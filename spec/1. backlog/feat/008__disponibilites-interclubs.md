@@ -28,7 +28,8 @@ relancer ceux qui n'ont pas répondu.
   (Doodle, Framadate) dont le lien est diffusé aux joueurs. Retenue.
 - Sollicitation par mail avec réponse par lien dans l'outil. Écartée : elle
   suppose des pages accessibles sans authentification, alors que Bado est un
-  service personnel protégé par identifiant et mot de passe. C'est la seule
+  service personnel protégé par identifiant et mot de passe
+  ([[021__authentification]]). C'est la seule
   spec qui percerait cette clôture, et elle ferait en plus transiter les
   réponses de tiers par un serveur exposé.
 

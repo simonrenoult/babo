@@ -55,7 +55,8 @@ Contraintes :
 - Un scraping en échec est-il réessayé dans la journée, ou attend-il la passe
   du lendemain ?
 - Qu'est-ce qui garantit le redémarrage automatique de l'application, et qui
-  n'est donc pas dans l'application elle-même ?
+  n'est donc pas dans l'application elle-même ? Tranché par
+  [[020__architecture-applicative]] : un service supervisé.
 
 ## Notes
 

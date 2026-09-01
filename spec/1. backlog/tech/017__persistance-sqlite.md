@@ -61,7 +61,8 @@ La liste des membres de l'équipe reste saisie dans un fichier de configuration
 stockage — son contenu est importé en base.
 
 La base est chiffrée au repos : elle porte les coordonnées des coéquipiers, et
-c'est le fichier qu'on recopie pour sauvegarder.
+c'est le fichier qu'on recopie pour sauvegarder — la sauvegarde elle-même fait
+l'objet de [[023__sauvegarde]].
 
 Une base unique pour tout, captures brutes comprises, malgré leur croissance
 non bornée et leur valeur moindre. La taille de la base figure dans le

@@ -62,8 +62,8 @@ détection des pannes, rapports, ancienneté affichée — relève de
 ## Notes
 
 Usage strictement personnel, sur serveur privé. L'application est protégée par
-identifiant et mot de passe ; le `noindex` n'est qu'un complément, il ne ferme
-rien par lui-même.
+identifiant et mot de passe ([[021__authentification]]) ; le `noindex` n'est
+qu'un complément, il ne ferme rien par lui-même.
 
 Quand la session myffbad tombe, le scraper s'arrête, le signale par mail, et
 attend une réauthentification depuis l'interface.

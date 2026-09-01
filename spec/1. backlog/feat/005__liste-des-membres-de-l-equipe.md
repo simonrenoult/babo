@@ -46,6 +46,6 @@ La vérification de validité des licences est hors périmètre.
 
 Les coordonnées des coéquipiers vivent dans le fichier de configuration, sur un
 serveur privé, derrière l'authentification de l'application — cf.
-[[015__source-de-donnees]]. Pas de diffusion hors de l'outil.
+[[021__authentification]]. Pas de diffusion hors de l'outil.
 
 Bloquée par [[015__source-de-donnees]].
