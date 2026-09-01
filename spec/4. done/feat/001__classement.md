@@ -8,9 +8,9 @@
 
 ## Contexte
 
-Le classement FFBaD d'un joueur évolue à chaque publication (CPPH mensuel) et
-conditionne les tableaux accessibles en tournoi. Aujourd'hui il faut aller le
-consulter à la main sur myffbad.
+Le classement FFBaD d'un joueur évolue à chaque publication (CPPH
+hebdomadaire) et conditionne les tableaux accessibles en tournoi. Aujourd'hui
+il faut aller le consulter à la main sur myffbad.
 
 C'est aussi la première spec à tirer une donnée métier de myffbad :
 [[015__source-de-donnees]] prouve l'accès, celle-ci en fait quelque chose. Elle
@@ -35,7 +35,7 @@ requête → base → page.
 
 - Scraper la fiche joueur myffbad. Retenue, conformément à
   [[015__source-de-donnees]] : c'est la source unique du classement.
-- Ingérer le fichier CPPH publié chaque mois. Écarté en
+- Ingérer le fichier CPPH publié chaque semaine. Écarté en
   [[015__source-de-donnees]] au profit de myffbad, qui couvre aussi le
   classement des coéquipiers.
 
@@ -57,11 +57,18 @@ décrit par [[019__robustesse-du-scraping]], et le seul moyen qu'il se voie.
 Contrepartie assumée : une évolution légitime du barème casse la passe jusqu'à
 correction, la capture archivée permettant de corriger hors ligne.
 
+Une passe par semaine, le vendredi à 1 h du matin. Le CPPH est publié une
+fois par semaine, en fin de semaine : relever à l'heure creuse qui suit donne
+la valeur du jour même, et une passe quotidienne coûterait sept requêtes là où
+une seule valeur peut avoir changé. C'est [[018__ordonnancement]] qui portera
+l'horaire.
+
 Une ligne par changement de valeur, jamais une par passe : le classement ne
-bouge qu'à la publication mensuelle, une passe quotidienne écrirait trois cent
-cinquante lignes identiques par an. Chaque ligne porte `apparu_le` et `vu_le`,
-ce dernier mis à jour à chaque passe réussie ; la page affiche `vu_le`.
-Conservation sans limite : une douzaine de lignes par an et par tableau.
+bouge qu'aux publications qui suivent une compétition jouée, et sans cette
+règle la passe hebdomadaire écrirait cinquante-deux lignes identiques par an
+et par discipline. Chaque ligne porte `apparu_le` et `vu_le`, ce dernier mis à
+jour à chaque passe réussie ; la page affiche `vu_le`. Conservation sans
+limite : une douzaine de lignes par an et par tableau.
 
 Écarté : un bouton « rafraîchir maintenant ». 015 accepte le risque de
 bannissement sur la base d'un passage par jour ; un bouton met ce plafond dans
@@ -85,8 +92,8 @@ passe myffbad n'a pas encore abouti » — jamais un tableau de tirets, qui se
 confondrait avec un joueur non classé.
 
 Bloquée par [[015__source-de-donnees]] pour l'accès et par
-[[018__ordonnancement]] pour le déclenchement quotidien. Suppose
-[[025__renommage-du-module-profil]] fait.
+[[018__ordonnancement]] pour le déclenchement hebdomadaire — vendredi 1 h.
+Suppose [[025__renommage-du-module-profil]] fait.
 
 Prolongée par [[024__historique-du-classement]] : la variation et l'évolution
 en relèvent. C'est pour elle qu'`apparu_le` est écrit dès maintenant — un
@@ -120,9 +127,9 @@ lettre hors barème.
 
 ## Ce qui reste à 018
 
-La passe existe et écrit ; elle n'a pas de déclencheur quotidien, qui est le
-sujet de [[018__ordonnancement]]. En attendant, `/sources` la lance à la main.
-Ce n'est pas le bouton « rafraîchir maintenant » écarté ci-dessus : celui-là
-serait sur `/mon-profil`, entre les mains de l'utilisateur ; celui-ci est sur
-l'écran d'exploitation, il rend possible la passe réelle exigée à la mise en
-service, et il disparaît avec 018.
+La passe existe et écrit ; elle n'a pas de déclencheur hebdomadaire, qui est
+le sujet de [[018__ordonnancement]]. En attendant, `/sources` la lance à la
+main. Ce n'est pas le bouton « rafraîchir maintenant » écarté ci-dessus :
+celui-là serait sur `/mon-profil`, entre les mains de l'utilisateur ; celui-ci
+est sur l'écran d'exploitation, il rend possible la passe réelle exigée à la
+mise en service, et il disparaît avec 018.

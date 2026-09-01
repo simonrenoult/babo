@@ -1,8 +1,9 @@
 -- Spec 001 : le classement relevé sur la fiche myffbad.
 --
 -- Une ligne par changement de valeur, jamais une par passe : le classement ne
--- bouge qu'à la publication mensuelle du CPPH, et une passe quotidienne
--- écrirait trois cent cinquante lignes identiques par an. D'où les deux dates
+-- bouge qu'aux publications hebdomadaires du CPPH qui suivent une compétition
+-- jouée, et sans cette règle la passe écrirait cinquante-deux lignes
+-- identiques par an et par discipline. D'où les deux dates
 -- — `apparu_le`, l'entrée dans le palier, et `vu_le`, la dernière passe qui a
 -- relevé ces valeurs. Seule `vu_le` s'affiche ; `apparu_le` s'écrit pour 024,
 -- parce qu'un historique ne se rattrape pas après coup.

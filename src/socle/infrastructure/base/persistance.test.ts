@@ -215,9 +215,10 @@ describe("le classement relevé", () => {
   after(() => rmSync(dossier, { recursive: true, force: true }));
 
   it("garde une ligne par changement de classement, jamais une par passe", () => {
-    // Le classement ne bouge qu'à la publication mensuelle : une passe
-    // quotidienne écrirait trois cent cinquante lignes identiques par an
-    // (spec 001). Seule `vu_le` bouge tant que la valeur tient.
+    // Le classement ne bouge qu'aux publications hebdomadaires qui suivent
+    // une compétition jouée : sans cette règle, la passe du vendredi écrirait
+    // cinquante-deux lignes identiques par an (spec 001). Seule `vu_le` bouge
+    // tant que la valeur tient.
     const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
     const licenceMienne = licence("07194591");
     const lundi = new Date("2026-09-01T05:00:00Z");

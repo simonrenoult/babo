@@ -67,8 +67,9 @@ export type Classement = {
  * Un classement tel que la base le garde — spec 001.
  *
  * Une ligne par changement de valeur, jamais une par passe : le classement ne
- * bouge qu'à la publication mensuelle, et une passe quotidienne écrirait trois
- * cent cinquante lignes identiques par an.
+ * bouge qu'aux publications hebdomadaires qui suivent une compétition jouée,
+ * et sans cette règle la passe écrirait cinquante-deux lignes identiques par
+ * an et par discipline.
  *
  * D'où les deux dates. `vuLe` est celle de la dernière passe qui a relevé ces
  * valeurs — c'est elle que la page affiche. `apparuLe` est celle du palier :

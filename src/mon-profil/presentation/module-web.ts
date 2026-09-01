@@ -9,7 +9,7 @@ import { monClassement } from "../core/classement.ts";
  *
  * Il lit le dépôt et affiche, rien d'autre : aucune feature ne parle à myffbad
  * (spec 022). Le classement y arrive par une passe d'acquisition du socle, que
- * 018 déclenchera chaque jour.
+ * 018 déclenchera chaque vendredi à 1 h du matin.
  */
 export function creerModuleMonProfil(options: {
   readonly licence: Licence;

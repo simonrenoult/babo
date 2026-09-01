@@ -9,7 +9,7 @@
 ## Contexte
 
 Composer une équipe suppose de savoir qui est en forme, au-delà du classement
-qui ne bouge qu'une fois par mois et intègre les résultats de tournoi.
+qui ne bouge qu'une fois par semaine et intègre les résultats de tournoi.
 
 ## Problème à résoudre
 

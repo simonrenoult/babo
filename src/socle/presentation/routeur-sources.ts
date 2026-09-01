@@ -32,7 +32,7 @@ export type AccesAuxSources = {
    * maintenant », qui mettrait le plafond d'un passage par jour entre les
    * mains de l'utilisateur. Celui-ci est sur l'écran d'exploitation, il sert à
    * constater une passe réelle à la mise en service, et [[018__ordonnancement]]
-   * le rend inutile en déclenchant la même passe chaque jour.
+   * le rend inutile en déclenchant la même passe chaque vendredi à 1 h.
    */
   relever(): Promise<RapportArchive>;
 };

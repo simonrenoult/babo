@@ -9,9 +9,10 @@
 ## Contexte
 
 Plusieurs traitements doivent se déclencher seuls : les deux scrapings
-quotidiens de [[015__source-de-donnees]], le battement hebdomadaire de
-[[019__robustesse-du-scraping]],
-l'alerte de veille qui suit chaque indexation
+quotidiens de [[015__source-de-donnees]], la passe de classement de
+[[001__classement]] — hebdomadaire, le vendredi à 1 h du matin, parce que le
+CPPH est publié une fois par semaine —, le battement hebdomadaire de
+[[019__robustesse-du-scraping]], l'alerte de veille qui suit chaque indexation
 ([[013__alerte-nouveau-tournoi]]), et les rappels échelonnés de
 [[014__rappel-ouverture-tournoi]].
 
@@ -53,7 +54,8 @@ Contraintes :
   démarrage, ou abandonnées ? Un rappel J-1 envoyé à J+2 est pire qu'un rappel
   manquant.
 - Un scraping en échec est-il réessayé dans la journée, ou attend-il la passe
-  du lendemain ?
+  du lendemain ? La question se pose plus durement pour la passe de classement,
+  hebdomadaire : y attendre la passe suivante, c'est attendre une semaine.
 - Qu'est-ce qui garantit le redémarrage automatique de l'application, et qui
   n'est donc pas dans l'application elle-même ? Tranché par
   [[020__architecture-applicative]] : un service supervisé.
@@ -73,4 +75,5 @@ existe — `releverLeClassement`, dans `socle/core/passe-classement.ts` — écr
 en base et consigne son rapport sous la tâche `acquisition:myffbad`. Elle ne
 lève rien : toute panne devient un rapport en échec, parce qu'un ordonnanceur
 n'a personne à qui remonter une exception. C'est cette fonction qu'il y aura à
-appeler chaque jour, et le bouton de `/sources` disparaîtra alors.
+appeler chaque vendredi à 1 h du matin, et le bouton de `/sources`
+disparaîtra alors.

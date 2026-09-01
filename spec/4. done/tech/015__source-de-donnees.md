@@ -32,15 +32,20 @@ Chaque donnée a une source et une seule :
 | Donnée | Source | Acquisition | Fraîcheur |
 |--------|--------|-------------|-----------|
 | Équipe : licence, mail, téléphone, sexe | fichier de configuration | saisie manuelle | saison |
-| Classement par tableau, à moi et à mes coéquipiers | myffbad, compte personnel | scraping | quotidien |
+| Classement par tableau, à moi et à mes coéquipiers | myffbad, compte personnel | scraping | hebdomadaire, vendredi 1 h |
 | Matchs : score, partenaire, adversaire, tableau, compétition | myffbad, compte personnel | scraping | quotidien |
 | Tournois : dates, lieu, tableaux, séries, date limite | badnet, **recherche publique** | scraping anonyme | quotidien |
 
 Il n'y a donc aucun arbitrage à faire entre sources, et pas d'interface
 unifiée à écrire : deux modules d'acquisition indépendants, un par site.
 
-Écartés : les fichiers CPPH mensuels et Poona. myffbad couvre le classement,
-y compris celui des coéquipiers, et l'équipe est saisie à la main.
+Le classement est la seule donnée qui ne se relève pas tous les jours : le
+CPPH est publié une fois par semaine, une passe le vendredi à 1 h du matin
+suffit donc à le suivre ([[001__classement]]). Les matchs et les tournois,
+eux, bougent au fil des jours.
+
+Écartés : les fichiers CPPH hebdomadaires et Poona. myffbad couvre le
+classement, y compris celui des coéquipiers, et l'équipe est saisie à la main.
 
 Accès à myffbad :
 

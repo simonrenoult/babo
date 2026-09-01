@@ -16,7 +16,8 @@ import type { Licence } from "./licence.ts";
  * que constater, celle-ci retient.
  *
  * Elle ne se déclenche pas elle-même : [[018__ordonnancement]] porte la passe
- * quotidienne, et c'est cette fonction qu'il appellera. En attendant, l'écran
+ * hebdomadaire — le vendredi à 1 h du matin, après la publication du CPPH —,
+ * et c'est cette fonction qu'il appellera. En attendant, l'écran
  * des sources la lance à la main — c'est ce qui permet de constater une passe
  * réelle à la mise en service, comme 001 l'exige. Ce n'est pas le bouton
  * « rafraîchir maintenant » que 001 écarte : celui-là serait sur `/mon-profil`,

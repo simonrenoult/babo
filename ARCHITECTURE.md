@@ -157,7 +157,7 @@ demanderait un sexe que rien ne configure. 001 disait « rattachés à un
 `Tableau` » avant qu'on ait vu la fiche ; elle est amendée.
 
 Une ligne par changement de valeur, jamais une par passe : le classement ne
-bouge qu'à la publication mensuelle du CPPH. Chaque ligne porte `apparu_le` —
+bouge qu'à la publication hebdomadaire du CPPH. Chaque ligne porte `apparu_le` —
 l'entrée dans le palier, que 024 lira — et `vu_le`, la dernière passe qui a
 relevé ces valeurs, seule date que la page affiche.
 
