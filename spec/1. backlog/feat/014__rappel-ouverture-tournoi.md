@@ -37,5 +37,6 @@ Retenue : rappels échelonnés, avec des délais par défaut modifiables.
 
 ## Notes
 
-Dépend de [[012__recherche-de-tournois]] pour la donnée et de
-[[013__alerte-nouveau-tournoi]] pour l'envoi de mails.
+Dépend de [[012__recherche-de-tournois]] pour la donnée, de
+[[016__envoi-de-mail]] pour l'envoi et de [[018__ordonnancement]] pour les
+échéances par tournoi, qui doivent survivre à un redémarrage.

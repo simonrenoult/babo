@@ -23,14 +23,16 @@ engagés et partenaire, triés par date, et signale les chevauchements de dates.
 ## Solutions envisagées
 
 - Saisie manuelle des engagements. Fiable, mais du travail de recopie.
-- Récupération automatique depuis myffbad / badnet. Zéro saisie, mais dépend de
-  ce que la source expose réellement.
+- Récupération automatique depuis myffbad, source des données personnelles
+  retenue en [[015__source-de-donnees]]. Zéro saisie, mais dépend de ce que la
+  fiche joueur expose réellement des inscriptions.
 
-À trancher une fois la source de données arbitrée.
+À trancher une fois la faisabilité du scraping myffbad établie : c'est la seule
+donnée du backlog dont on ignore encore si la source la porte.
 
 ## Questions
 
-- Les inscriptions sont-elles visibles quelque part de façon exploitable, ou
+- Les inscriptions sont-elles visibles sur myffbad de façon exploitable, ou
   faut-il passer par une saisie manuelle ?
 - Faut-il gérer les inscriptions en attente / non confirmées ?
 

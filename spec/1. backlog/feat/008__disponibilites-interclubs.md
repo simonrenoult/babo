@@ -24,21 +24,26 @@ relancer ceux qui n'ont pas répondu.
 
 ## Solutions envisagées
 
-- Saisie par le capitaine de ce qu'il reçoit par ailleurs. Immédiat, mais ne
-  supprime pas le travail de collecte.
-- Sollicitation par mail avec réponse par lien. Automatise la collecte,
-  demande une interface exposée aux joueurs.
+- Saisie par le capitaine, la collecte se faisant via un questionnaire externe
+  (Doodle, Framadate) dont le lien est diffusé aux joueurs. Retenue.
+- Sollicitation par mail avec réponse par lien dans l'outil. Écartée : elle
+  suppose des pages accessibles sans authentification, alors que Bado est un
+  service personnel protégé par identifiant et mot de passe. C'est la seule
+  spec qui percerait cette clôture, et elle ferait en plus transiter les
+  réponses de tiers par un serveur exposé.
 
-À trancher : dépend de la volonté d'exposer une interface publique.
+Le questionnaire externe reste hors de l'outil : Bado n'en lit pas les
+réponses, le capitaine les reporte.
 
 ## Questions
 
-- Les joueurs répondent-ils dans l'outil, ou le capitaine reste-t-il le seul
-  utilisateur ?
 - Faut-il gérer une disponibilité partielle (« oui si je joue en double ») ?
+- « Relancer les silencieux » se fait-il par un mail depuis l'outil
+  ([[016__envoi-de-mail]]), ou reste-t-il à la main du capitaine ?
+- Le lien du questionnaire est-il stocké par journée d'interclub ?
 
 ## Notes
 
 Alimente [[011__composition-de-journee]] et
 [[009__taux-de-sollicitation]]. Réutilise l'envoi de mails de
-[[013__alerte-nouveau-tournoi]].
+[[016__envoi-de-mail]].

@@ -32,12 +32,37 @@ limite, lien) et sans jamais alerter deux fois pour le même tournoi.
 À trancher : probablement mail immédiat, avec un regroupement si plusieurs
 tournois sortent dans la même passe.
 
+Plafond et rattrapage. À la première indexation, aucun tournoi n'a encore été
+vu : sans règle, le catalogue entier partirait en une fois. Deux régimes
+distincts, donc :
+
+- **Un tournoi nouvellement publié alerte immédiatement, hors plafond.** C'est
+  la raison d'être de cette spec : ces tournois-là se remplissent en quelques
+  jours.
+- **Le reste forme une file de rattrapage**, vidée à raison de dix par passe,
+  pris par date de tournoi la plus proche, en signalant qu'il en existe
+  davantage et en invitant à affiner les critères. Les tournois écartés ne sont
+  pas marqués comme vus : ils repassent le lendemain sous la même règle.
+
+Sans cette séparation, un catalogue initial de deux cents tournois mettrait
+vingt jours à se vider, et une publication du jour attendrait derrière deux
+cents tournois plus proches en date — dont beaucoup déjà complets.
+
+Même mécanique de rattrapage à chaque élargissement des critères, qui rouvre le
+même trou.
+
+L'envoi lui-même relève de [[016__envoi-de-mail]].
+
 ## Questions
 
-- Comment envoyer les mails (SMTP perso, service tiers) ?
 - Que se passe-t-il si un tournoi déjà notifié change de date ou de tableaux ?
+- Comment reconnaît-on un tournoi « nouvellement publié » : badnet expose-t-il
+  une date de publication, ou faut-il se fier à sa première apparition dans
+  l'index ?
 
 ## Notes
 
-Dépend de [[012__recherche-de-tournois]]. Partage la brique d'envoi de mails
-avec [[008__disponibilites-interclubs]] et [[014__rappel-ouverture-tournoi]].
+Dépend de [[012__recherche-de-tournois]] pour la donnée et de
+[[016__envoi-de-mail]] pour l'envoi. Les tournois déjà notifiés sont conservés
+en base ([[017__persistance-sqlite]]) : c'est ce qui garantit qu'on n'alerte
+jamais deux fois pour le même.

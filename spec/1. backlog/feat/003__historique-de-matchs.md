@@ -23,16 +23,24 @@ période, par tableau et par adversaire, avec le score et le contexte
 ## Solutions envisagées
 
 - Import ponctuel à la demande depuis la fiche joueur.
-- Synchronisation périodique dans une base locale, qui sert aussi de socle aux
-  statistiques.
+- Synchronisation quotidienne depuis myffbad vers une base locale, qui sert
+  aussi de socle aux statistiques.
 
-Retenue : synchronisation périodique — c'est la donnée de base de
+Retenue : synchronisation quotidienne, conformément à
+[[015__source-de-donnees]] — c'est la donnée de base de
 [[004__ratio-victoire-defaite-par-tableau]].
+
+Un match est identifié par la combinaison licence + date + événement, complétée
+du tableau et du tour, faute de quoi deux matchs joués le même jour dans la
+même compétition se confondent.
 
 ## Questions
 
 - Jusqu'où remonter dans l'historique ?
 - Les matchs d'interclub sont-ils exposés au même endroit que ceux de tournoi ?
+- Les pages myffbad portent-elles un identifiant de match stable ? À défaut, la
+  synchronisation remplace l'existant, et une correction de score côté FFBaD
+  réécrit l'historique en silence.
 
 ## Notes
 

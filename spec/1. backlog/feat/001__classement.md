@@ -19,23 +19,27 @@ courant dans chacun des trois tableaux (simple, double, mixte), ni comment il a
 bougé depuis la dernière publication.
 
 Résolu quand l'outil affiche, pour ma licence : le classement (lettre + CPPH)
-par tableau, la date de la publication utilisée, et la variation par rapport à
-la publication précédente.
+par tableau, la date du relevé utilisé, et la variation par rapport au relevé
+précédent enregistré par l'outil.
 
 ## Solutions envisagées
 
-- Scraper la fiche joueur myffbad à la demande. Simple, mais dépendant du HTML
-  et sans historique.
-- Ingérer le fichier CPPH publié chaque mois et le stocker. Donne l'historique
-  et la variation gratuitement, demande un stockage et un job d'import.
+- Scraper la fiche joueur myffbad. Retenue, conformément à
+  [[015__source-de-donnees]] : c'est la source unique du classement.
+- Ingérer le fichier CPPH publié chaque mois. Écarté en
+  [[015__source-de-donnees]] au profit de myffbad, qui couvre aussi le
+  classement des coéquipiers.
 
-Retenue : import CPPH, car [[004__ratio-victoire-defaite-par-tableau]] et
-[[003__historique-de-matchs]] ont besoin du même historique.
+Conséquence du choix : myffbad n'expose que le classement courant, pas
+l'antériorité. L'historique se constitue en enregistrant chaque relevé
+quotidien, donc aucune variation n'est affichable avant la première
+publication suivant la mise en service.
 
 ## Questions
 
-- Le fichier CPPH est-il récupérable sans authentification ?
 - Une seule licence (la mienne) ou plusieurs profils dès le départ ?
+- Affiche-t-on « — » pour la variation tant que le second relevé manque, ou
+  masque-t-on la colonne ?
 
 ## Notes
 
