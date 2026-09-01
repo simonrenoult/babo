@@ -6,7 +6,7 @@ import { after, before, describe, it } from "node:test";
 import type { Server } from "node:http";
 import { ouvrirLaPersistance } from "../src/socle/infrastructure/base/persistance.ts";
 import { creerApplication } from "../src/socle/presentation/serveur.ts";
-import { moduleProfil } from "../src/profil/presentation/module-web.ts";
+import { moduleMonProfil } from "../src/mon-profil/presentation/module-web.ts";
 import { moduleCapitanat } from "../src/capitanat/presentation/module-web.ts";
 import { moduleVeille } from "../src/veille/presentation/module-web.ts";
 import { etatDeLaSource } from "../src/socle/core/acquisition.ts";
@@ -36,7 +36,7 @@ describe("l'application assemblée", () => {
         motDePasseMyffbad: null,
         derriereUnProxy: true,
       },
-      modules: [moduleProfil, moduleCapitanat, moduleVeille],
+      modules: [moduleMonProfil, moduleCapitanat, moduleVeille],
       etatDuSocle: () => ({
         tailleDeLaBase: persistance.taille(),
         captures: persistance.captures.compter(),
@@ -87,7 +87,7 @@ describe("l'application assemblée", () => {
   });
 
   for (const [chemin, attendu] of [
-    ["/profil", /Mon profil/],
+    ["/mon-profil", /Mon profil/],
     ["/capitanat", /Capitanat/],
     ["/veille", /Veille de tournois/],
   ] as const) {

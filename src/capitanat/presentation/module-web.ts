@@ -10,7 +10,7 @@ routeur.get("/", (_requete, reponse) => {
 /**
  * Le module `capitanat` — specs 005 à 011.
  *
- * Il partage sa source de données avec `profil` sans partager son modèle : un
+ * Il partage sa source de données avec `mon-profil` sans partager son modèle : un
  * joueur vu d'ici est un coéquipier qu'on aligne (spec 022).
  */
 export const moduleCapitanat: ModuleWeb = {

@@ -1,6 +1,6 @@
 # Babo
 
-> Assistant de badminton : profil, veille, capitanat
+> Assistant de badminton : mon profil, veille, capitanat
 
 ## Features 
 

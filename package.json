@@ -2,7 +2,7 @@
   "name": "babo",
   "version": "0.1.0",
   "private": true,
-  "description": "Assistant de badminton : profil, veille, capitanat",
+  "description": "Assistant de badminton : mon profil, veille, capitanat",
   "type": "module",
   "engines": {
     "node": ">=24"

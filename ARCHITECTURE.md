@@ -25,7 +25,7 @@ Le TypeScript est exécuté directement par Node, sans étape de compilation :
 | Module      | Porte                                          |
 |-------------|------------------------------------------------|
 | `socle`     | base, mail, planificateur, authentification, acquisition, interface |
-| `profil`    | specs 001 à 004                                |
+| `mon-profil`| specs 001 à 004                                |
 | `capitanat` | specs 005 à 011                                |
 | `veille`    | specs 012 à 014                                |
 
@@ -60,7 +60,7 @@ Trois interdits, vérifiés par `npm run lint` et non par la discipline :
 
 Ils sont produits par `eslint.config.js` et testés par
 `test/architecture.test.ts`. Ce qui n'appartient à aucun module descend dans
-`socle/core` — un numéro de licence, un tableau. Jamais `Joueur` : `profil` et
+`socle/core` — un numéro de licence, un tableau. Jamais `Joueur` : `mon-profil` et
 `capitanat` gardent chacun le leur.
 
 ## L'acquisition

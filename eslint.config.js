@@ -11,7 +11,7 @@ import tseslint from "typescript-eslint";
  * import relatif traverse forcément le nom du dossier qu'il vise
  * (`../infrastructure/...`, `../../veille/core/...`), donc le motif suffit.
  */
-const MODULES = ["socle", "profil", "capitanat", "veille"];
+const MODULES = ["socle", "mon-profil", "capitanat", "veille"];
 const FEATURES = MODULES.filter((module) => module !== "socle");
 const COUCHES = ["core", "presentation", "infrastructure"];
 

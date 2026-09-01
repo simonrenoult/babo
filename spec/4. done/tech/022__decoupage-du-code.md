@@ -10,7 +10,7 @@
 
 [[020__architecture-applicative]] fixe la forme de l'artefact : un processus
 Node, Express, rendu côté serveur. Express n'impose aucune structure, et les
-specs emploient déjà un vocabulaire de modules — `profil`, `capitanat`,
+specs emploient déjà un vocabulaire de modules — `mon-profil`, `capitanat`,
 `veille`, `socle` — sans que rien ne le matérialise dans le code.
 
 ## Problème à résoudre
@@ -36,7 +36,7 @@ Quatre modules, ceux qu'emploient déjà les specs :
 | Module      | Porte                                                                   |
 |-------------|-------------------------------------------------------------------------|
 | `socle`     | base, mail, planificateur, authentification, acquisition, interface      |
-| `profil`    | [[001__classement]] à [[004__ratio-victoire-defaite-par-tableau]]        |
+| `mon-profil`| [[001__classement]] à [[004__ratio-victoire-defaite-par-tableau]]        |
 | `capitanat` | [[005__liste-des-membres-de-l-equipe]] à [[011__composition-de-journee]] |
 | `veille`    | [[012__recherche-de-tournois]] à [[014__rappel-ouverture-tournoi]]       |
 
@@ -67,12 +67,12 @@ contraintes déjà écrites en tombent gratuitement — les mails écrits en bas
 développement (016) et les parseurs rejoués sur captures sans réseau (019) sont
 des adaptateurs de remplacement, pas des cas particuliers à aménager.
 
-**Un `core` par module, sans noyau commun.** `profil` et `capitanat` partagent
+**Un `core` par module, sans noyau commun.** `mon-profil` et `capitanat` partagent
 leur source de données ([[001__classement]]) et manipuleront des notions
 proches — joueur, match. Ils garderont pourtant chacun leur représentation :
 la source commune est un fait d'infrastructure, elle n'oblige pas à un modèle
 métier commun. Un joueur vu par `capitanat` est un coéquipier qu'on aligne ;
-vu par `profil`, c'est moi. La duplication est acceptée en échange de deux
+vu par `mon-profil`, c'est moi. La duplication est acceptée en échange de deux
 modules qui évoluent sans se consulter.
 
 Ce qui n'est spécifique à aucun module appartient au `socle` : un numéro de
@@ -97,15 +97,20 @@ Aucune : les choix de cette spec sont tranchés.
 Architecture hexagonale au sens ports et adaptateurs :
 <https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>.
 
-Duplication assumée entre `profil` et `capitanat` : si les deux modèles se
+Duplication assumée entre `mon-profil` et `capitanat` : si les deux modèles se
 mettent à diverger, c'est la preuve que le choix était bon ; s'ils restent
 identiques pendant plusieurs specs, la question se rouvrira sur des faits.
 
 Amendée par [[001__classement]] : `classement` a été retiré de la liste des
 notions dupliquées ci-dessus et descend dans `socle/core`, avec `Licence` et
 `Tableau`. Une lettre et un CPPH sont un fait fédéral : il n'en existe pas une
-version vue par `profil` et une autre vue par `capitanat`, c'est le critère
+version vue par `mon-profil` et une autre vue par `capitanat`, c'est le critère
 même de cette spec. `Joueur` reste dupliqué, et la règle est inchangée.
 
 Détaillée depuis [[020__architecture-applicative]], qui portait ce découpage et
 débordait. À traiter avec elle.
+
+Renommée par [[025__renommage-du-module-profil]] : le module `profil` s'appelle
+`mon-profil`, dans le tableau ci-dessus comme partout ailleurs. `capitanat`
+manipule lui aussi des profils, ceux des coéquipiers — c'est le possessif qui
+lève l'ambiguïté que cette spec insiste à maintenir.

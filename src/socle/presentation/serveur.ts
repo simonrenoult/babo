@@ -67,7 +67,7 @@ export function creerApplication(options: {
   });
 
   // L'écran des sources est du socle, pas d'une feature : c'est la même
-  // session qui sert le classement de `profil` et les tournois de `veille`
+  // session qui sert le classement de `mon-profil` et les tournois de `veille`
   // (spec 015). Il est monté avant les modules, qui n'ont rien à en savoir.
   application.use("/sources", routeurSources(sources));
 

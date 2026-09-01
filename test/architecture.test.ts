@@ -36,7 +36,7 @@ describe("le cloisonnement des modules", () => {
 
   it("casse quand un module importe le `core` d'un autre", async () => {
     const refus = await violations(
-      "src/profil/core/faux.ts",
+      "src/mon-profil/core/faux.ts",
       `import type { Joueur } from "../../capitanat/core/joueur.ts";\nexport type X = Joueur;\n`,
     );
     assert.equal(refus.length, 1);
@@ -46,7 +46,7 @@ describe("le cloisonnement des modules", () => {
   it("casse quand le socle importe une feature", async () => {
     const refus = await violations(
       "src/socle/presentation/faux.ts",
-      `import { moduleProfil } from "../../profil/presentation/module-web.ts";\nexport const x = moduleProfil;\n`,
+      `import { moduleMonProfil } from "../../mon-profil/presentation/module-web.ts";\nexport const x = moduleMonProfil;\n`,
     );
     assert.equal(refus.length, 1);
     assert.match(refus[0] ?? "", /aucune feature/);
@@ -60,7 +60,7 @@ describe("le cloisonnement des modules", () => {
     assert.deepEqual(adaptateur, []);
 
     const featureSurSocle = await violations(
-      "src/profil/presentation/faux.ts",
+      "src/mon-profil/presentation/faux.ts",
       `import type { Tableau } from "../../socle/core/tableau.ts";\nexport type X = Tableau;\n`,
     );
     assert.deepEqual(featureSurSocle, []);
@@ -69,10 +69,10 @@ describe("le cloisonnement des modules", () => {
   it("laisse le point de composition connaître tout le monde", async () => {
     const refus = await violations(
       "src/main.ts",
-      `import { moduleProfil } from "./profil/presentation/module-web.ts";
+      `import { moduleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { moduleVeille } from "./veille/presentation/module-web.ts";
 import { ouvrirLaPersistance } from "./socle/infrastructure/base/persistance.ts";
-export const x = [moduleProfil, moduleVeille, ouvrirLaPersistance];
+export const x = [moduleMonProfil, moduleVeille, ouvrirLaPersistance];
 `,
     );
     assert.deepEqual(refus, []);

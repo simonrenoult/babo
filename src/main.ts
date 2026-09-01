@@ -15,7 +15,7 @@ import { horlogeSysteme } from "./socle/core/horloge.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
 import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
-import { moduleProfil } from "./profil/presentation/module-web.ts";
+import { moduleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { moduleCapitanat } from "./capitanat/presentation/module-web.ts";
 import { moduleVeille } from "./veille/presentation/module-web.ts";
 
@@ -61,7 +61,7 @@ const clientPour = (source: (typeof modulesDAcquisition)[number]["source"], plaf
 
 const application = creerApplication({
   configuration,
-  modules: [moduleProfil, moduleCapitanat, moduleVeille],
+  modules: [moduleMonProfil, moduleCapitanat, moduleVeille],
   etatDuSocle: () => ({
     tailleDeLaBase: persistance.taille(),
     captures: persistance.captures.compter(),

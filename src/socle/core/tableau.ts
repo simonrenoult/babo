@@ -1,5 +1,5 @@
 /**
- * Un tableau de compétition. Notion partagée par les trois features : `profil`
+ * Un tableau de compétition. Notion partagée par les trois features : `mon-profil`
  * y range ses ratios, `capitanat` ses préférences, `veille` ses critères.
  */
 export const TABLEAUX = ["SH", "SD", "DH", "DD", "MX"] as const;

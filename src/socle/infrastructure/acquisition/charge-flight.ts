@@ -8,9 +8,9 @@
  * - dans la réponse d'une Server Action, à nu, une par ligne.
  *
  * Ce module ne connaît que cette enveloppe. Il rend des objets bruts et ne
- * nomme aucune notion métier : c'est `profil` qui saura qu'un classement est un
- * classement (spec 022). Le tenir ici, et non chez l'appelant, c'est ce qui
- * permet d'en changer quand myffbad changera de version de Next.
+ * nomme aucune notion métier : c'est `mon-profil` qui saura qu'un classement
+ * est un classement (spec 022). Le tenir ici, et non chez l'appelant, c'est ce
+ * qui permet d'en changer quand myffbad changera de version de Next.
  */
 export type ChargeFlight = ReadonlyMap<string, unknown>;
 
