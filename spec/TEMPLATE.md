@@ -4,11 +4,16 @@
 > dans `<état>/<type>/` — ex. `spec/1. backlog/feat/042__import-csv.md`.
 > La spec se déplace de dossier d'état en dossier d'état, en gardant son type.
 
-| Champ  | Valeur                                             |
-|--------|----------------------------------------------------|
-| id     | `000` — `999`, unique, sur 3 chiffres              |
-| module | nom du module concerné                             |
-| type   | `feat` \| `fix` \| `refactor` \| `chore` \| `docs` \| `test` |
+| Champ  | Valeur                                |
+|--------|---------------------------------------|
+| id     | `000` — `999`, unique, sur 3 chiffres |
+| module | nom du module concerné                |
+| type   | voir ci-dessous                       |
+
+Types : `feat` (nouvelle capacité), `fix` (correctif), `refactor` (même
+comportement, meilleure forme), `tech` (chantier de socle : choix
+d'architecture, intégration d'une source, outillage — pas de valeur
+utilisateur directe, mais débloque d'autres specs), `chore`, `docs`, `test`.
 
 ## Contexte
 
