@@ -59,9 +59,11 @@ par 018, et la condition du risque qui y est accepté.
 
 - Qui supervise le processus et le relance ? Le mécanisme retenu est, par
   construction, la seule pièce qui ne peut pas vivre dans l'application.
+  Tranché : une unité systemd en `Restart=always` (`deploiement/babo.service`).
 - Qui termine TLS ? Le cookie `Secure` de [[021__authentification]] rend HTTPS
   obligatoire, et rien ne dit si c'est Express ou un proxy en amont qui s'en
-  charge.
+  charge. Tranché : un proxy en amont ; Express se contente de lui faire
+  confiance.
 
 ## Notes
 

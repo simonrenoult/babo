@@ -21,3 +21,23 @@
   - Rechercher des tournois selon des critères
   - Envoyer des mails de rappel quand un nouveau tournoi est trouvé
   - Envoyer un mail de rappel quand un tournoi va ouvrir
+
+## Mise en route
+
+```sh
+npm install
+cp .env.example .env
+openssl rand -base64 32      # à recopier dans BABO_BASE_CLE : la base est chiffrée au repos
+npm start                    # http://localhost:3000
+```
+
+`npm run dev` pour le rechargement à chaud, `npm run verifier` pour les types,
+le lint d'architecture et les tests.
+
+Le socle est en place — un processus Node, une base SQLite unique et chiffrée,
+quatre modules hexagonaux. Les features viendront s'y poser. Voir
+[ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et
+[`spec/`](spec/) pour les décisions.
+
+> **Pas encore joignable depuis internet** : l'authentification (spec 021)
+> n'est pas faite.

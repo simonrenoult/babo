@@ -1,0 +1,40 @@
+# Superviseur du processus Bado — répond à la question laissée ouverte par les
+# specs 018 et 020 : ce qui garantit le redémarrage ne peut pas vivre dans
+# l'application.
+#
+#   sudo cp deploiement/babo.service /etc/systemd/system/
+#   sudo systemctl enable --now babo
+#
+# Les secrets ne sont pas dans ce fichier : ils vivent dans un fichier
+# d'environnement lisible du seul compte de service (chmod 600).
+
+[Unit]
+Description=Bado — assistant de badminton
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=babo
+WorkingDirectory=/opt/babo
+ExecStart=/usr/bin/node src/main.ts
+EnvironmentFile=/etc/babo/environnement
+
+# Le redémarrage automatique est la contrepartie assumée du planificateur
+# interne : une application morte n'exécute plus rien et ne prévient personne.
+Restart=always
+RestartSec=5
+
+# Arrêt propre : main.ts ferme le serveur puis la base sur SIGTERM.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# La base et son journal WAL sont les seuls fichiers que l'application écrit.
+ReadWritePaths=/opt/babo/data
+
+[Install]
+WantedBy=multi-user.target

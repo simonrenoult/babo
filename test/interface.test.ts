@@ -1,0 +1,70 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, before, describe, it } from "node:test";
+import type { Server } from "node:http";
+import { ouvrirLaPersistance } from "../src/socle/infrastructure/base/persistance.ts";
+import { creerApplication } from "../src/socle/presentation/serveur.ts";
+import { moduleProfil } from "../src/profil/presentation/module-web.ts";
+import { moduleCapitanat } from "../src/capitanat/presentation/module-web.ts";
+import { moduleVeille } from "../src/veille/presentation/module-web.ts";
+
+/**
+ * L'assemblage réel, tel que `main.ts` le monte : c'est le seul endroit du
+ * dépôt, avec le point de composition, qui a le droit de tout connaître.
+ */
+describe("l'application assemblée", () => {
+  let dossier: string;
+  let serveur: Server;
+  let base: string;
+  let persistance: ReturnType<typeof ouvrirLaPersistance>;
+
+  before(async () => {
+    dossier = mkdtempSync(join(tmpdir(), "babo-interface-"));
+    persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
+
+    const application = creerApplication({
+      configuration: {
+        port: 0,
+        base: { chemin: join(dossier, "babo.db"), cle: "clé-de-test" },
+        derriereUnProxy: true,
+      },
+      modules: [moduleProfil, moduleCapitanat, moduleVeille],
+      etatDuSocle: () => ({
+        tailleDeLaBase: persistance.taille(),
+        captures: persistance.captures.compter(),
+      }),
+    });
+
+    serveur = application.listen(0);
+    await new Promise((resoudre) => serveur.once("listening", resoudre));
+    const adresse = serveur.address();
+    if (adresse === null || typeof adresse === "string") throw new Error("port inattendu");
+    base = `http://127.0.0.1:${adresse.port}`;
+  });
+
+  after(() => {
+    serveur.close();
+    persistance.fermer();
+    rmSync(dossier, { recursive: true, force: true });
+  });
+
+  it("sert l'accueil avec l'état réel de la base", async () => {
+    const reponse = await fetch(`${base}/`);
+    assert.equal(reponse.status, 200);
+    assert.match(await reponse.text(), /Captures archivées/);
+  });
+
+  for (const [chemin, attendu] of [
+    ["/profil", /Mon profil/],
+    ["/capitanat", /Capitanat/],
+    ["/veille", /Veille de tournois/],
+  ] as const) {
+    it(`sert ${chemin}, monté par le point de composition`, async () => {
+      const reponse = await fetch(`${base}${chemin}`);
+      assert.equal(reponse.status, 200);
+      assert.match(await reponse.text(), attendu);
+    });
+  }
+});

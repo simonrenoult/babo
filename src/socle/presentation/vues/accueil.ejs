@@ -1,0 +1,23 @@
+<%- include("entete", { titre }) %>
+
+<p>
+  Le socle est en place : la base est ouverte et migrée, l'interface est servie,
+  les quatre modules existent. Les features viendront s'y poser.
+</p>
+
+<h2>État du socle</h2>
+<table>
+  <tr><th>Taille de la base</th><td><%= Math.round(socle.tailleDeLaBase / 1024) %> Ko</td></tr>
+  <tr><th>Captures archivées</th><td><%= socle.captures %></td></tr>
+</table>
+
+<h2>Ce qui n'est pas encore là</h2>
+<ul>
+  <li>Acquisition myffbad et badnet — spec 015</li>
+  <li>Envoi de mail — spec 016</li>
+  <li>Ordonnancement — spec 018</li>
+  <li>Rapports et battement hebdomadaire — spec 019</li>
+  <li>Authentification — spec 021, à faire avant toute mise en ligne</li>
+</ul>
+
+<%- include("pied") %>

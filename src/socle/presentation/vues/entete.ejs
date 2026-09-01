@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= titre %> — Bado</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      margin: 0 auto; padding: 1.5rem; max-width: 52rem;
+      font: 1rem/1.55 system-ui, sans-serif;
+    }
+    header { display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline;
+             border-bottom: 1px solid currentColor; padding-bottom: .75rem; }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    nav { display: flex; gap: 1rem; }
+    footer { margin-top: 2.5rem; padding-top: .75rem; border-top: 1px solid currentColor;
+             font-size: .85rem; opacity: .7; }
+    table { border-collapse: collapse; }
+    th, td { text-align: left; padding: .25rem .75rem .25rem 0; }
+  </style>
+</head>
+<body>
+<header>
+  <h1><a href="/">Bado</a></h1>
+  <nav>
+    <% for (const module of modules) { %>
+      <a href="<%= module.chemin %>"><%= module.intitule %></a>
+    <% } %>
+  </nav>
+</header>
+<main>

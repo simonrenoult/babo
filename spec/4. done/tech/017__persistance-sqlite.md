@@ -73,8 +73,12 @@ de décider, sur des chiffres, s'il faut un jour séparer l'archive ou purger.
 
 - Où vit la clé de chiffrement de la base ? Placée dans la configuration du
   serveur, à côté des identifiants myffbad, elle protège une sauvegarde volée,
-  pas un serveur compromis.
-- Faut-il un mécanisme de migration de schéma dès le départ ?
+  pas un serveur compromis. Tranché : `BABO_BASE_CLE`, sans valeur par défaut —
+  sans elle l'application refuse de démarrer.
+- Faut-il un mécanisme de migration de schéma dès le départ ? Tranché : oui.
+  Cette spec annonce elle-même que le schéma des matchs et des tournois se
+  dessinera après la sonde de 015 : il bougera donc avant la mise en
+  production.
 
 ## Notes
 
