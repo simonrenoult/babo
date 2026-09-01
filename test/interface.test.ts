@@ -9,6 +9,10 @@ import { creerApplication } from "../src/socle/presentation/serveur.ts";
 import { moduleProfil } from "../src/profil/presentation/module-web.ts";
 import { moduleCapitanat } from "../src/capitanat/presentation/module-web.ts";
 import { moduleVeille } from "../src/veille/presentation/module-web.ts";
+import { etatDeLaSource } from "../src/socle/core/acquisition.ts";
+import { tacheDAcquisition } from "../src/socle/core/sonde.ts";
+import { SOURCES } from "../src/socle/core/source.ts";
+import { licence } from "../src/socle/core/licence.ts";
 
 /**
  * L'assemblage réel, tel que `main.ts` le monte : c'est le seul endroit du
@@ -28,6 +32,8 @@ describe("l'application assemblée", () => {
       configuration: {
         port: 0,
         base: { chemin: join(dossier, "babo.db"), cle: "clé-de-test" },
+        licence: licence("07194591"),
+        motDePasseMyffbad: null,
         derriereUnProxy: true,
       },
       modules: [moduleProfil, moduleCapitanat, moduleVeille],
@@ -35,6 +41,30 @@ describe("l'application assemblée", () => {
         tailleDeLaBase: persistance.taille(),
         captures: persistance.captures.compter(),
       }),
+      sources: {
+        etats: () =>
+          SOURCES.map((source) =>
+            etatDeLaSource(
+              source,
+              persistance.jetonMyffbad.lire(source),
+              persistance.rapports.dernierRapport(tacheDAcquisition(source)),
+              new Date(),
+            ),
+          ),
+        enregistrer: (source, valeur) =>
+          persistance.jetonMyffbad.enregistrer(source, {
+            valeur,
+            obtenuLe: new Date(),
+            expireLe: new Date(Date.now() + 86_400_000),
+          }),
+        oublier: (source) => persistance.jetonMyffbad.effacer(source),
+        deploiements: () => [],
+        // La connexion touche au réseau : l'assemblage vérifie le montage.
+        connecter: () => Promise.resolve(),
+        // La sonde touche au réseau : l'assemblage vérifie qu'elle est montée,
+        // pas qu'elle atteint les sites fédéraux.
+        sonder: () => Promise.resolve([]),
+      },
     });
 
     serveur = application.listen(0);

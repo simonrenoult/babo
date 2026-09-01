@@ -1,5 +1,6 @@
 import express, { type Express, type Router } from "express";
 import type { Configuration } from "../core/configuration.ts";
+import { routeurSources, type AccesAuxSources } from "./routeur-sources.ts";
 
 /**
  * Un module de feature branché sur l'interface.
@@ -32,8 +33,9 @@ export function creerApplication(options: {
   readonly configuration: Configuration;
   readonly modules: readonly ModuleWeb[];
   readonly etatDuSocle: () => EtatDuSocle;
+  readonly sources: AccesAuxSources;
 }): Express {
-  const { configuration, modules, etatDuSocle } = options;
+  const { configuration, modules, etatDuSocle, sources } = options;
   const application = express();
   application.disable("x-powered-by");
 
@@ -63,6 +65,11 @@ export function creerApplication(options: {
   application.get("/", (_requete, reponse) => {
     reponse.render("accueil", { titre: "Accueil", socle: etatDuSocle() });
   });
+
+  // L'écran des sources est du socle, pas d'une feature : c'est la même
+  // session qui sert le classement de `profil` et les tournois de `veille`
+  // (spec 015). Il est monté avant les modules, qui n'ont rien à en savoir.
+  application.use("/sources", routeurSources(sources));
 
   for (const module of modules) {
     application.use(module.chemin, module.routeur);

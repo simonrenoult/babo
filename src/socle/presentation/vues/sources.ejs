@@ -1,0 +1,146 @@
+<%- include("entete", { titre }) %>
+
+<h2>Sources</h2>
+<p>
+  Bado tire ses données de deux sites, chacun avec sa propre session : myffbad
+  pour le classement et les matchs, badnet pour les tournois (spec 015). Une
+  session tombée arrête le scraper de sa source, et elle seule.
+</p>
+
+<table>
+  <tr>
+    <th>Source</th><th>Session</th><th>Expire</th>
+    <th>Dernière acquisition</th><th>Issue</th>
+  </tr>
+  <% for (const etat of etats) { %>
+    <tr>
+      <td><%= etat.source %></td>
+      <td><%= { absente: "absente", expiree: "expirée", valide: "valide" }[etat.session] %></td>
+      <td><%= etat.expireLe ? etat.expireLe.toLocaleDateString("fr-FR") : "—" %></td>
+      <td>
+        <%= etat.derniereAcquisition
+              ? etat.derniereAcquisition.toLocaleString("fr-FR")
+              : "jamais" %>
+      </td>
+      <td><%= etat.derniereIssue ?? "—" %></td>
+    </tr>
+  <% } %>
+</table>
+
+<h2>Déploiements</h2>
+<p>
+  myffbad se lit par des fonctions serveur désignées par un identifiant calculé
+  à sa construction : un redéploiement peut les périmer. Chaque réponse annonce
+  son build ; les compter dit à quelle fréquence il faudra les relever
+  (spec 015).
+</p>
+
+<table>
+  <tr><th>Source</th><th>Build courant</th><th>Vu depuis</th><th>Builds observés</th></tr>
+  <% for (const deploiement of deploiements) { %>
+    <tr>
+      <td><%= deploiement.source %></td>
+      <td><%= deploiement.build ?? "—" %></td>
+      <td><%= deploiement.depuis ? deploiement.depuis.toLocaleString("fr-FR") : "—" %></td>
+      <td><%= deploiement.builds %></td>
+    </tr>
+  <% } %>
+</table>
+
+<% for (const deploiement of deploiements.filter((d) => d.actionsPeutEtrePerimees)) { %>
+  <p class="etat">
+    <strong><%= deploiement.source %> a redéployé</strong> depuis le relevé des
+    identifiants d'action. Ils peuvent avoir péri — seul le redéploiement de
+    l'action elle-même les invalide, donc rien n'est sûr. La panne, si elle
+    vient, sera franche : « action introuvable », jamais une liste vide.
+  </p>
+<% } %>
+
+<h2>Sonder l'accès</h2>
+<p>
+  La sonde joue les requêtes qui portent les données, les archive telles
+  quelles, et compte ce qu'elle en tire. C'est le décompte qui vaut, pas la
+  taille : une session morte rend un statut 200 et une liste vide, et seule la
+  colonne « extraits » l'en distingue (specs 015 et 019).
+</p>
+<form method="post" action="/sources/sonde"><button type="submit">Sonder</button></form>
+
+<% if (sonde) { %>
+  <table>
+    <tr>
+      <th>Source</th><th>Page</th><th>Verdict</th><th>Statut</th>
+      <th>Extraits</th><th>Taille</th><th>Détail</th>
+    </tr>
+    <% for (const resultat of sonde) { %>
+      <tr>
+        <td><%= resultat.source %></td>
+        <td><%= resultat.page.intitule %></td>
+        <td><%= resultat.verdict %></td>
+        <td><%= resultat.statutHttp ?? "—" %></td>
+        <td><%= resultat.extraits ?? "—" %></td>
+        <td><%= resultat.octets === null ? "—" : Math.round(resultat.octets / 1024) + " Ko" %></td>
+        <td><%= resultat.detail ?? "" %></td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>
+
+<h2>Enregistrer une session</h2>
+<p>
+  Bado ne renouvelle aucune session : il garde celle que tu lui donnes. Se
+  connecter dans un navigateur, y copier le cookie de session, le coller ici.
+  Pour badnet c'est incontournable — une 2FA garde la porte ; pour myffbad,
+  qui n'en a pas, c'est provisoire (spec 015). Bado ne demande jamais le mot de passe fédéral, et le jeton
+  est écrit dans la base chiffrée, jamais dans un journal — c'est pourquoi le
+  champ reste vide même quand une session existe : Bado ne réaffiche jamais un
+  jeton qu'on lui a confié. Ce qu'il en dit se lit juste au-dessus du champ.
+  L'échéance affichée est celle que porte le jeton, quand il la porte.
+</p>
+
+<% for (const etat of etats) { %>
+  <h3><%= etat.source %></h3>
+
+  <p class="etat">
+    <% if (etat.session === "absente") { %>
+      Aucune session enregistrée pour cette source.
+    <% } else if (etat.session === "expiree") { %>
+      Session enregistrée le <%= etat.enregistreeLe.toLocaleString("fr-FR") %>,
+      <strong>expirée</strong> depuis le <%= etat.expireLe.toLocaleString("fr-FR") %>.
+      En enregistrer une nouvelle.
+    <% } else { %>
+      Session enregistrée le <%= etat.enregistreeLe.toLocaleString("fr-FR") %>,
+      valide jusqu'au <%= etat.expireLe.toLocaleString("fr-FR") %>
+      (<%= etat.joursRestants %> jour<%= etat.joursRestants > 1 ? "s" : "" %>).
+    <% } %>
+  </p>
+
+  <% if (etat.autonome) { %>
+    <form method="post" action="/sources/<%= etat.source %>/connexion">
+      <p>
+        Cette source sait aller chercher sa session seule : elle n'a pas de
+        double authentification, et son mot de passe est configuré.
+      </p>
+      <button type="submit">Se connecter maintenant</button>
+    </form>
+  <% } %>
+
+  <form method="post" action="/sources/<%= etat.source %>/jeton">
+    <p>
+      <label for="valeur-<%= etat.source %>">
+        <%= etat.autonome ? "Ou coller un cookie à la main" :
+            etat.session === "absente" ? "Cookie de session" : "Remplacer par" %>
+      </label><br>
+      <input id="valeur-<%= etat.source %>" name="valeur" size="60"
+             placeholder="nom=valeur; autre=valeur" required>
+    </p>
+    <button type="submit">Enregistrer la session</button>
+  </form>
+
+  <% if (etat.session !== "absente") { %>
+    <form method="post" action="/sources/<%= etat.source %>/oubli">
+      <button type="submit">Oublier cette session</button>
+    </form>
+  <% } %>
+<% } %>
+
+<%- include("pied") %>

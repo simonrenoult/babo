@@ -22,7 +22,10 @@ describe("la base unique du socle", () => {
 
   it("crée son fichier, dossier compris, et applique ses migrations", () => {
     const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
-    assert.deepEqual(persistance.migrationsAppliquees, ["001__socle.sql"]);
+    assert.deepEqual(persistance.migrationsAppliquees, [
+      "001__socle.sql",
+      "002__build_source.sql",
+    ]);
     persistance.fermer();
   });
 
@@ -163,5 +166,41 @@ describe("le chiffrement au repos", () => {
     const compte = base.prepare("select count(*) as total from capture").get() as { total: number };
     assert.equal(compte.total, 1);
     base.close();
+  });
+});
+
+describe("les déploiements observés", () => {
+  const dossier = mkdtempSync(join(tmpdir(), "babo-builds-"));
+  const chemin = join(dossier, "babo.db");
+
+  after(() => rmSync(dossier, { recursive: true, force: true }));
+
+  it("compte les builds, pas les passes", () => {
+    const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
+    const lundi = new Date("2026-09-01T06:00:00Z");
+    const mardi = new Date("2026-09-02T06:00:00Z");
+    const mercredi = new Date("2026-09-03T06:00:00Z");
+
+    assert.equal(persistance.builds.observer("myffbad", "BUILD-A", lundi), true);
+    assert.equal(
+      persistance.builds.observer("myffbad", "BUILD-A", mardi),
+      false,
+      "revoir le même build n'est pas un déploiement",
+    );
+    assert.equal(persistance.builds.observer("myffbad", "BUILD-B", mercredi), true);
+
+    assert.equal(persistance.builds.historique("myffbad").length, 2);
+    assert.partialDeepStrictEqual(persistance.builds.courant("myffbad"), {
+      build: "BUILD-B",
+      vuLaPremiereFois: mercredi,
+    });
+
+    // La première vue du build A tient : c'est elle qui date le déploiement.
+    const [, ancien] = persistance.builds.historique("myffbad");
+    assert.deepEqual(ancien?.vuLaPremiereFois, lundi);
+    assert.deepEqual(ancien?.vuLaDerniereFois, mardi);
+
+    assert.deepEqual(persistance.builds.historique("badnet"), [], "chaque source la sienne");
+    persistance.fermer();
   });
 });

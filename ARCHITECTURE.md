@@ -2,8 +2,9 @@
 
 Ce document décrit ce qui est en place. Il ne remplace pas les specs
 [020](<spec/4. done/tech/020__architecture-applicative.md>),
-[017](<spec/4. done/tech/017__persistance-sqlite.md>) et
-[022](<spec/4. done/tech/022__decoupage-du-code.md>), qui portent les décisions
+[017](<spec/4. done/tech/017__persistance-sqlite.md>),
+[022](<spec/4. done/tech/022__decoupage-du-code.md>) et
+[015](<spec/4. done/tech/015__source-de-donnees.md>), qui portent les décisions
 et leurs raisons.
 
 ## La forme de l'application
@@ -62,6 +63,41 @@ Ils sont produits par `eslint.config.js` et testés par
 `socle/core` — un numéro de licence, un tableau. Jamais `Joueur` : `profil` et
 `capitanat` gardent chacun le leur.
 
+## L'acquisition
+
+Deux sources, deux modules qui s'ignorent — `src/socle/infrastructure/acquisition/`,
+spec 015. Chacun sait reconnaître son propre mur de connexion : myffbad
+redirige vers `/connexion`, badnet sert sa page de connexion sous l'URL
+demandée. C'est cette différence qui interdit de les mutualiser.
+
+Elles ne se ressemblent pas non plus dans leur mécanique. myffbad se lit par
+fonctions serveur Next.js, sous session, avec un `personId` qui ne vit que dans
+le jeton. La recherche de tournois badnet, elle, est **publique et anonyme** :
+un POST sur `/index.php`, sans cookie, dont la réponse embarque la liste en
+JSON dans `div.b-markers`. C'est la seule requête du projet qui ne dépende de
+rien — et elle ne doit jamais passer sous session, sous peine de mettre la
+veille quotidienne sous le même risque de bannissement que le reste (spec 027).
+
+Toute requête sortante passe par deux décorateurs du `core`, qu'aucun appelant
+ne peut oublier : `enArchivant` écrit la réponse en base avant que quiconque
+l'analyse, `sousPlafond` arrête une passe qui boucle. La session vit dans
+`jeton_source` ; elle se recopie à la main depuis le navigateur vers `/sources`,
+car badnet impose une 2FA. myffbad, lui, n'en a pas : Bado s'y connecte seul
+quand `BABO_MYFFBAD_MOT_DE_PASSE` est renseigné, en rejouant la Server Action
+de connexion, et ne garde en base que le jeton rendu — jamais le mot de passe.
+Son échéance
+est lue dans le jeton quand il la porte — le JWT myffbad porte son `exp` — et
+devinée à un mois seulement sinon.
+
+Un troisième décorateur consigne le `buildId` que myffbad annonce dans chaque
+réponse (`build_source`, une ligne par build et non par passe). C'est la mesure
+de la seule fragilité qui reste : les identifiants de Server Action sont
+calculés à la construction du site, et on ignore encore à quelle fréquence il
+faut les relever. L'écran prévient quand le build a changé depuis le relevé.
+
+`/sources` affiche l'état de chaque session, l'ancienneté de la dernière passe,
+les déploiements observés, et lance la sonde d'accès.
+
 ## La base
 
 Un fichier SQLite unique, chiffré au repos (SQLCipher), ouvert et migré au
@@ -69,9 +105,9 @@ démarrage par `src/socle/infrastructure/base/persistance.ts`. Aucune feature ne
 persiste quoi que ce soit en dehors.
 
 Le schéma est volontairement partiel : il porte le jeton de session, les
-captures brutes et les rapports d'exécution. Le schéma des matchs et des
-tournois se dessinera après la sonde de 015, sur des pages réellement
-observées. Les migrations sont des fichiers `.sql` numérotés dans
+captures brutes, les rapports d'exécution et les déploiements observés. Celui
+des matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages
+réelles sur lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
 `src/socle/infrastructure/base/migrations/`, appliqués une fois, dans l'ordre
 des noms, chacun dans une transaction.
 
@@ -100,7 +136,8 @@ l'application est un jour exposée sans intermédiaire.
 
 ## Ce qui n'est pas encore là
 
-L'acquisition (015), l'envoi de mail (016), l'ordonnancement (018), les
-rapports et le battement hebdomadaire (019), l'authentification (021) et la
-sauvegarde (023). **L'application ne doit pas être joignable depuis internet
-tant que 021 n'est pas faite.**
+Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
+sur les pages désormais observées. L'envoi de mail (016),
+l'ordonnancement (018), les rapports et le battement hebdomadaire (019),
+l'authentification (021) et la sauvegarde (023). **L'application ne doit pas
+être joignable depuis internet tant que 021 n'est pas faite.**

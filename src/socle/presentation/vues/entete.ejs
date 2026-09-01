@@ -18,6 +18,8 @@
     footer { margin-top: 2.5rem; padding-top: .75rem; border-top: 1px solid currentColor;
              font-size: .85rem; opacity: .7; }
     table { border-collapse: collapse; }
+    .etat { padding: .5rem .75rem; border-left: 3px solid currentColor;
+            background: color-mix(in srgb, currentColor 6%, transparent); }
     th, td { text-align: left; padding: .25rem .75rem .25rem 0; }
   </style>
 </head>
@@ -28,6 +30,7 @@
     <% for (const module of modules) { %>
       <a href="<%= module.chemin %>"><%= module.intitule %></a>
     <% } %>
+    <a href="/sources">Sources</a>
   </nav>
 </header>
 <main>

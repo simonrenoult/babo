@@ -4,7 +4,8 @@ import type { Source } from "./source.ts";
  * Le jeton de session myffbad — specs 015 et 017.
  *
  * C'est la raison d'être immédiate de la base : gardé en mémoire, il est perdu
- * à chaque redémarrage et coûte une réauthentification 2FA manuelle. Les
+ * à chaque redémarrage et coûte une reconnexion manuelle — et, côté badnet, un
+ * passage par la 2FA que ce site impose et que myffbad n'a pas. Les
  * identifiants, eux, restent en variable d'environnement et n'entrent jamais
  * ici.
  */

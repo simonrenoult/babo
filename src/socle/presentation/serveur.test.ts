@@ -3,10 +3,14 @@ import { describe, it } from "node:test";
 import { Router } from "express";
 import { creerApplication, type ModuleWeb } from "./serveur.ts";
 import type { Configuration } from "../core/configuration.ts";
+import { licence } from "../core/licence.ts";
+import type { AccesAuxSources } from "./routeur-sources.ts";
 
 const CONFIGURATION: Configuration = {
   port: 0,
   base: { chemin: ":memory:", cle: "peu-importe" },
+  licence: licence("07194591"),
+  motDePasseMyffbad: null,
   derriereUnProxy: true,
 };
 
@@ -21,11 +25,23 @@ const moduleQuelconque: ModuleWeb = {
   vues: new URL("vues/", import.meta.url).pathname,
 };
 
+// Aucune source branchée : l'écran de 015 se teste avec ses propres doublures,
+// ici on vérifie seulement que le socle le monte.
+const aucuneSource: AccesAuxSources = {
+  etats: () => [],
+  deploiements: () => [],
+  enregistrer: () => {},
+  oublier: () => {},
+  connecter: () => Promise.resolve(),
+  sonder: () => Promise.resolve([]),
+};
+
 function applicationDEssai() {
   return creerApplication({
     configuration: CONFIGURATION,
     modules: [moduleQuelconque],
     etatDuSocle: () => ({ tailleDeLaBase: 40960, captures: 3 }),
+    sources: aucuneSource,
   });
 }
 

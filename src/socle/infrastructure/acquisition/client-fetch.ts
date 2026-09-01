@@ -1,0 +1,51 @@
+import type { ClientHttp, Requete, Reponse } from "../../core/acquisition.ts";
+
+/**
+ * Adaptateur `fetch` du port `ClientHttp` — spec 015.
+ *
+ * Rien de plus qu'un navigateur sans écran : les redirections sont suivies et
+ * l'URL réellement atteinte est rendue, parce que c'est elle — et non le
+ * statut, qui reste 200 — qui trahit un renvoi vers la page de connexion.
+ *
+ * L'agent s'annonce. Bado est un outil personnel dont le risque de
+ * bannissement est assumé (015) : se déguiser en navigateur ne réduirait pas
+ * ce risque, cela empêcherait seulement l'hébergeur de savoir à qui écrire.
+ */
+const AGENT = "Bado/0.1 (outil personnel de suivi badminton; contact@simonrenoult.fr)";
+
+const DELAI_MAX = 20_000;
+
+export function clientFetch(options: { readonly delaiMax?: number } = {}): ClientHttp {
+  const delaiMax = options.delaiMax ?? DELAI_MAX;
+
+  return {
+    async recuperer(requete: Requete): Promise<Reponse> {
+      const entetes: Record<string, string> = {
+        "user-agent": AGENT,
+        accept: "text/html,application/xhtml+xml",
+        "accept-language": "fr-FR,fr;q=0.9",
+        ...requete.entetes,
+      };
+      if (requete.jeton !== null) entetes["cookie"] = requete.jeton;
+
+      // `AbortSignal.timeout` plutôt qu'un `setTimeout` à démonter : une passe
+      // quotidienne qui reste pendue sur une socket ne se signale jamais.
+      const reponse = await fetch(requete.url, {
+        method: requete.methode ?? "GET",
+        headers: entetes,
+        ...(requete.corps === undefined ? {} : { body: requete.corps }),
+        redirect: "follow",
+        signal: AbortSignal.timeout(delaiMax),
+      });
+
+      return {
+        url: reponse.url,
+        statutHttp: reponse.status,
+        contenu: await reponse.text(),
+        // `getSetCookie` et non `get` : une connexion en pose plusieurs, et
+        // `get` les recollerait en une chaîne qu'aucun parseur ne redécoupe.
+        cookies: reponse.headers.getSetCookie(),
+      };
+    },
+  };
+}

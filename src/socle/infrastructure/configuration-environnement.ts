@@ -1,4 +1,5 @@
 import type { Configuration } from "../core/configuration.ts";
+import { licence } from "../core/licence.ts";
 
 /**
  * Lecture de la configuration du serveur — spec 020.
@@ -11,6 +12,8 @@ export function configurationDepuisEnvironnement(
 ): Configuration {
   return {
     port: entier(environnement["BABO_PORT"], 3000),
+    licence: licence(obligatoire(environnement, "BABO_LICENCE")),
+    motDePasseMyffbad: environnement["BABO_MYFFBAD_MOT_DE_PASSE"] || null,
     base: {
       chemin: environnement["BABO_BASE_CHEMIN"] ?? "data/babo.db",
       cle: obligatoire(environnement, "BABO_BASE_CLE"),
@@ -23,7 +26,7 @@ function obligatoire(environnement: NodeJS.ProcessEnv, nom: string): string {
   const valeur = environnement[nom];
   if (valeur === undefined || valeur === "") {
     throw new Error(
-      `Variable d'environnement manquante : ${nom}. Voir .env.example — la clé de chiffrement de la base n'a pas de valeur par défaut.`,
+      `Variable d'environnement manquante : ${nom}. Voir .env.example.`,
     );
   }
   return valeur;
