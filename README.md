@@ -1,4 +1,4 @@
-# Bado
+# Babo
 
 > Assistant de badminton : profil, veille, capitanat
 
