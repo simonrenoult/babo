@@ -66,4 +66,5 @@ prévient — l'absence du battement hebdomadaire reste le seul indice. Risque
 accepté.
 
 Utilisé par [[015__source-de-donnees]], [[019__robustesse-du-scraping]],
-[[013__alerte-nouveau-tournoi]] et [[014__rappel-ouverture-tournoi]].
+[[013__alerte-nouveau-tournoi]] et [[014__rappel-ouverture-tournoi]]. Bloque
+[[001__classement]], qui n'a pas d'autre déclencheur que la passe quotidienne.

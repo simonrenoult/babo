@@ -3,7 +3,7 @@
 | Champ  | Valeur   |
 |--------|----------|
 | id     | 002      |
-| module | profil   |
+| module | mon-profil |
 | type   | feat     |
 
 ## Contexte

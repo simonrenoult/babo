@@ -3,7 +3,7 @@
 | Champ  | Valeur   |
 |--------|----------|
 | id     | 004      |
-| module | profil   |
+| module | mon-profil |
 | type   | feat     |
 
 ## Contexte
@@ -16,7 +16,7 @@ Un joueur peut être bien classé en double et en difficulté en simple.
 Je ne sais pas objectivement quel est mon tableau le plus rentable, ni si ma
 forme évolue. Le calcul à la main sur l'historique n'est pas tenable.
 
-Résolu quand l'outil affiche, par tableau (SH/SD, DH/DD, DM) : nombre de
+Résolu quand l'outil affiche, par tableau (SH/SD, DH/DD, MX) : nombre de
 matchs, victoires, défaites, ratio, sur une période choisie — et distingue
 tournoi et interclub.
 
