@@ -85,6 +85,26 @@
   </table>
 <% } %>
 
+<h2>Relever le classement</h2>
+<p>
+  La passe qui relève mon classement sur la fiche myffbad, l'écrit en base et
+  laisse un rapport (spec 001). Elle est ici, sur l'écran d'exploitation, et
+  non sur « Mon profil » : 001 écarte le bouton « rafraîchir maintenant », qui
+  mettrait le plafond d'un passage par jour entre les mains de l'utilisateur.
+  La spec 018 déclenchera la même passe chaque jour, et ce bouton n'aura plus
+  qu'à servir de dépannage.
+</p>
+<form method="post" action="/sources/classement"><button type="submit">Relever le classement</button></form>
+
+<% if (passe) { %>
+  <p class="etat">
+    Passe <strong><%= passe.issue %></strong>, terminée le
+    <%= passe.termineLe.toLocaleString("fr-FR") %> —
+    <%= passe.volumeExtrait %> discipline<%= passe.volumeExtrait > 1 ? "s" : "" %>.
+    <br><%= passe.detail %>
+  </p>
+<% } %>
+
 <h2>Enregistrer une session</h2>
 <p>
   Bado ne renouvelle aucune session : il garde celle que tu lui donnes. Se

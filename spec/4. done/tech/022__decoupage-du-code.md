@@ -107,6 +107,11 @@ notions dupliquées ci-dessus et descend dans `socle/core`, avec `Licence` et
 version vue par `mon-profil` et une autre vue par `capitanat`, c'est le critère
 même de cette spec. `Joueur` reste dupliqué, et la règle est inchangée.
 
+`socle/core` y gagne aussi `Discipline` — simple, double, mixte — que 001 a
+découverte en lisant la fiche : c'est l'axe du classement, distinct de
+`Tableau`, l'axe d'une compétition. Deux types que personne ne possède, donc
+deux types du socle.
+
 Détaillée depuis [[020__architecture-applicative]], qui portait ce découpage et
 débordait. À traiter avec elle.
 

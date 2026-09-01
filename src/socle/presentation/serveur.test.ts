@@ -34,6 +34,7 @@ const aucuneSource: AccesAuxSources = {
   oublier: () => {},
   connecter: () => Promise.resolve(),
   sonder: () => Promise.resolve([]),
+  relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
 };
 
 function applicationDEssai() {

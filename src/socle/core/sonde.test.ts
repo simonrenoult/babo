@@ -4,7 +4,8 @@ import type { ClientHttp, ModuleDAcquisition, Reponse } from "./acquisition.ts";
 import type { DepotJetonMyffbad, JetonMyffbad } from "./jeton-myffbad.ts";
 import type { DepotRapports, RapportArchive, RapportExecution } from "./rapport-execution.ts";
 import type { Source } from "./source.ts";
-import { sonder, tacheDAcquisition } from "./sonde.ts";
+import { sonder } from "./sonde.ts";
+import { tacheDAcquisition } from "./acquisition.ts";
 
 const LE_JOUR = new Date("2026-09-01T08:00:00Z");
 const horlogeFigee = { maintenant: () => LE_JOUR };

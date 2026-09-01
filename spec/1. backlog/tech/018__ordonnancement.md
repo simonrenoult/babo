@@ -66,5 +66,11 @@ prévient — l'absence du battement hebdomadaire reste le seul indice. Risque
 accepté.
 
 Utilisé par [[015__source-de-donnees]], [[019__robustesse-du-scraping]],
-[[013__alerte-nouveau-tournoi]] et [[014__rappel-ouverture-tournoi]]. Bloque
-[[001__classement]], qui n'a pas d'autre déclencheur que la passe quotidienne.
+[[013__alerte-nouveau-tournoi]] et [[014__rappel-ouverture-tournoi]].
+
+~~Bloque [[001__classement]]~~ : 001 est faite, sauf son déclencheur. Sa passe
+existe — `releverLeClassement`, dans `socle/core/passe-classement.ts` — écrit
+en base et consigne son rapport sous la tâche `acquisition:myffbad`. Elle ne
+lève rien : toute panne devient un rapport en échec, parce qu'un ordonnanceur
+n'a personne à qui remonter une exception. C'est cette fonction qu'il y aura à
+appeler chaque jour, et le bouton de `/sources` disparaîtra alors.

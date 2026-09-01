@@ -104,10 +104,10 @@ Un fichier SQLite unique, chiffré au repos (SQLCipher), ouvert et migré au
 démarrage par `src/socle/infrastructure/base/persistance.ts`. Aucune feature ne
 persiste quoi que ce soit en dehors.
 
-Le schéma est volontairement partiel : il porte le jeton de session, les
-captures brutes, les rapports d'exécution et les déploiements observés. Celui
-des matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages
-réelles sur lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
+Le schéma porte le jeton de session, les captures brutes, les rapports
+d'exécution, les déploiements observés et le classement. Celui des matchs et
+des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
+lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
 `src/socle/infrastructure/base/migrations/`, appliqués une fois, dans l'ordre
 des noms, chacun dans une transaction.
 
@@ -134,10 +134,47 @@ TLS est terminé par un proxy en amont, pas par Express : c'est lui qui rend
 tenable le cookie `Secure` de 021. `BABO_DERRIERE_UN_PROXY=false` si
 l'application est un jour exposée sans intermédiaire.
 
+## Le classement
+
+Première donnée métier écrite en base — spec 001. La chaîne tient en quatre
+pièces, une par couche :
+
+| Pièce | Où |
+|-------|-----|
+| la notion — lettre, CPPH, discipline | `socle/core/classement.ts` |
+| le parseur de la fiche myffbad | `socle/infrastructure/acquisition/myffbad.ts` |
+| la passe qui relève, écrit et rapporte | `socle/core/passe-classement.ts` |
+| la lecture et la page | `mon-profil/` |
+
+`Classement` est dans le `socle` et non dans `mon-profil` : une lettre et un
+CPPH sont un fait fédéral, il n'en existe pas une version vue par `mon-profil`
+et une autre vue par `capitanat` (022, amendée par 001). `Joueur`, lui, reste
+dupliqué.
+
+Trois disciplines — simple, double, mixte — et non les cinq tableaux de
+`Tableau`. C'est ce que la fiche expose, et en déduire `SH` ou `SD`
+demanderait un sexe que rien ne configure. 001 disait « rattachés à un
+`Tableau` » avant qu'on ait vu la fiche ; elle est amendée.
+
+Une ligne par changement de valeur, jamais une par passe : le classement ne
+bouge qu'à la publication mensuelle du CPPH. Chaque ligne porte `apparu_le` —
+l'entrée dans le palier, que 024 lira — et `vu_le`, la dernière passe qui a
+relevé ces valeurs, seule date que la page affiche.
+
+Une lettre hors barème fait échouer la passe au lieu d'entrer en base : c'est
+le seul moyen que le succès vide de 019 se voie. La capture étant archivée, la
+correction se fait dessus, sans requête réseau.
+
+La passe n'a pas encore de déclencheur : 018 la portera. En attendant,
+`/sources` la lance à la main — sur l'écran d'exploitation, jamais sur
+`/mon-profil`, où un bouton mettrait le plafond d'un passage par jour entre les
+mains de l'utilisateur.
+
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
 sur les pages désormais observées. L'envoi de mail (016),
-l'ordonnancement (018), les rapports et le battement hebdomadaire (019),
+l'ordonnancement (018) — sans lequel la passe de classement n'a d'autre
+déclencheur qu'un bouton —, les rapports et le battement hebdomadaire (019),
 l'authentification (021) et la sauvegarde (023). **L'application ne doit pas
 être joignable depuis internet tant que 021 n'est pas faite.**

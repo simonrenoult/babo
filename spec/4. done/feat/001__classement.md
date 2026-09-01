@@ -41,10 +41,11 @@ requête → base → page.
 
 Où le code atterrit :
 
-- `socle/core` porte `Classement` — une lettre et un CPPH rattachés à un
-  `Tableau`. C'est un fait fédéral, pas la représentation d'un module : il
-  rejoint `Licence` et `Tableau`, et [[022__decoupage-du-code]] est amendée en
-  ce sens. `Joueur`, lui, reste dupliqué entre modules.
+- `socle/core` porte `Classement` — une lettre et un CPPH rattachés à une
+  **discipline**, et non à un `Tableau` : voir la correction en Notes. C'est un
+  fait fédéral, pas la représentation d'un module : il rejoint `Licence` et
+  `Tableau`, et [[022__decoupage-du-code]] est amendée en ce sens. `Joueur`,
+  lui, reste dupliqué entre modules.
 - `socle/infrastructure` porte le parseur de la fiche et le dépôt SQLite : le
   parsing d'un site vit dans un module unique ([[015__source-de-donnees]]).
 - `mon-profil` lit le dépôt et affiche. Aucune feature ne parle à myffbad.
@@ -68,10 +69,10 @@ les mains de l'utilisateur.
 
 ## Questions
 
-Aucune. Ce que la fiche expose exactement — libellé des tableaux, présence
+Aucune. ~~Ce que la fiche expose exactement — libellé des tableaux, présence
 d'un tableau jamais joué — sera constaté par la sonde de
-[[015__source-de-donnees]] : on affiche ce qu'elle donne, `NC` compris, sans
-rien inventer.
+[[015__source-de-donnees]]~~ **Constaté : voir Notes.** On affiche ce qu'elle
+donne, `NC` compris, sans rien inventer.
 
 ## Notes
 
@@ -91,3 +92,37 @@ Prolongée par [[024__historique-du-classement]] : la variation et l'évolution
 en relèvent. C'est pour elle qu'`apparu_le` est écrit dès maintenant — un
 historique ne se rattrape pas après coup, et l'antériorité myffbad n'est pas
 importée.
+
+## Ce que la fiche a montré
+
+**Trois disciplines, pas cinq tableaux.** La capture du 1er septembre 2026
+expose `SimpleSubLevel`, `DoubleSubLevel` et `MixteSubLevel`, avec les CPPH
+`SimpleRate`, `DoubleRate` et `MixteRate`. Cette spec disait « rattachés à un
+`Tableau` » avant qu'on ait vu la fiche ; c'est faux, et le `core` porte
+désormais une `Discipline` — `simple`, `double`, `mixte` — distincte de
+`Tableau`. Passer de « simple » à `SH` demanderait le sexe du licencié, que
+rien ne configure et que la fiche ne donne pas : ce serait inventer là où cette
+spec demande d'afficher ce que la source donne. `Tableau` reste ce qu'il est,
+le tableau d'une compétition — celui de [[004__ratio-victoire-defaite-par-tableau]],
+[[010__tableaux-preferes]] et [[012__recherche-de-tournois]].
+
+**La fiche porte sa propre date de publication**, `RankingDate` — `2026-09-01`
+sur la capture. Elle n'est pas lue : cette spec affiche `vu_le`, la date de la
+passe, et c'est bien à cette question-là que la page répond (« est-ce à
+jour ? »). Mais elle rouvre l'arbitrage de [[024__historique-du-classement]],
+qui écartait l'import de l'antériorité « faute de savoir ce que la fiche expose
+réellement » : la fiche donne aussi `Best*SubLevel` et `Best*RankingDate`, soit
+un point d'antériorité par discipline, déjà archivé dans la capture.
+
+**Le CPPH arrive en chaîne** — `"936.00"`. Il devient un nombre au parsing ;
+une valeur qui ne s'y convertit pas fait échouer la passe, au même titre qu'une
+lettre hors barème.
+
+## Ce qui reste à 018
+
+La passe existe et écrit ; elle n'a pas de déclencheur quotidien, qui est le
+sujet de [[018__ordonnancement]]. En attendant, `/sources` la lance à la main.
+Ce n'est pas le bouton « rafraîchir maintenant » écarté ci-dessus : celui-là
+serait sur `/mon-profil`, entre les mains de l'utilisateur ; celui-ci est sur
+l'écran d'exploitation, il rend possible la passe réelle exigée à la mise en
+service, et il disparaît avec 018.

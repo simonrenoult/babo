@@ -8,14 +8,16 @@ import {
   enObservantLeBuild,
   etatDeLaSource,
   sousPlafond,
+  tacheDAcquisition,
 } from "./socle/core/acquisition.ts";
-import { sonder, tacheDAcquisition } from "./socle/core/sonde.ts";
+import { sonder } from "./socle/core/sonde.ts";
+import { PLAFOND_DE_LA_PASSE, releverLeClassement } from "./socle/core/passe-classement.ts";
 import { seConnecter } from "./socle/core/connexion.ts";
 import { horlogeSysteme } from "./socle/core/horloge.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
 import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
-import { moduleMonProfil } from "./mon-profil/presentation/module-web.ts";
+import { creerModuleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { moduleCapitanat } from "./capitanat/presentation/module-web.ts";
 import { moduleVeille } from "./veille/presentation/module-web.ts";
 
@@ -61,7 +63,14 @@ const clientPour = (source: (typeof modulesDAcquisition)[number]["source"], plaf
 
 const application = creerApplication({
   configuration,
-  modules: [moduleMonProfil, moduleCapitanat, moduleVeille],
+  modules: [
+    creerModuleMonProfil({
+      licence: configuration.licence,
+      classements: persistance.classements,
+    }),
+    moduleCapitanat,
+    moduleVeille,
+  ],
   etatDuSocle: () => ({
     tailleDeLaBase: persistance.taille(),
     captures: persistance.captures.compter(),
@@ -131,6 +140,24 @@ const application = creerApplication({
         rapports: persistance.rapports,
         horloge: horlogeSysteme,
       }),
+
+    // La passe de 001, déclenchée à la main tant que 018 n'ordonnance rien.
+    // C'est la même fonction que l'ordonnanceur appellera : le bouton
+    // disparaîtra, la passe restera.
+    relever: () => {
+      const module = modulesDAcquisition.find((candidat) => candidat.source === "myffbad");
+      if (module === undefined) throw new Error("Source sans module d'acquisition : myffbad");
+
+      return releverLeClassement({
+        client: clientPour("myffbad", PLAFOND_DE_LA_PASSE),
+        module,
+        licence: configuration.licence,
+        jetons: persistance.jetonMyffbad,
+        classements: persistance.classements,
+        rapports: persistance.rapports,
+        horloge: horlogeSysteme,
+      });
+    },
   },
 });
 

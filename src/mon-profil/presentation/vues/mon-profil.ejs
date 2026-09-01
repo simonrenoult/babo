@@ -1,8 +1,35 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
-<p>Module en place, sans métier : les specs suivantes viendront le remplir.</p>
+
+<h3>Mon classement</h3>
+
+<% if (classement.vuLe === null) { %>
+  <p class="etat">
+    Aucun relevé : la première passe myffbad n'a pas encore abouti. L'état de la
+    source et la sonde d'accès sont sur <a href="/sources">l'écran des sources</a>.
+  </p>
+<% } else { %>
+  <p>
+    Licence <%= classement.licence %>, relevé le
+    <%= classement.vuLe.toLocaleString("fr-FR") %>. Le classement ne bouge qu'à
+    la publication mensuelle du CPPH.
+  </p>
+
+  <table>
+    <tr><th>Tableau</th><th>Lettre</th><th>CPPH</th></tr>
+    <% for (const ligne of classement.lignes) { %>
+      <tr>
+        <td><%= ligne.discipline %></td>
+        <td><%= ligne.lettre %></td>
+        <td><%= ligne.cpph.toLocaleString("fr-FR") %></td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>
+
+<h3>Ce qui viendra ici</h3>
 <ul>
-  <li>Classement et sa variation — spec 001</li>
+  <li>Évolution du classement — spec 024</li>
   <li>Prochains tournois — spec 002</li>
   <li>Historique de matchs — spec 003</li>
   <li>Ratio victoire/défaite par tableau — spec 004</li>

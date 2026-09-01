@@ -38,7 +38,13 @@ Le socle est en place — un processus Node, une base SQLite unique et chiffrée
 quatre modules hexagonaux — et les deux sources sont acquises (spec 015) :
 Bado se connecte seul à myffbad pour le classement et les matchs, et interroge
 la recherche publique de badnet, anonyme, pour les tournois. `/sources` porte
-les sessions, les déploiements observés et la sonde d'accès. Voir
+les sessions, les déploiements observés et la sonde d'accès.
+
+Première feature en place : `/mon-profil` affiche mon classement, une ligne par
+discipline, avec la date de la passe qui l'a relevé (spec 001). La passe
+attend son ordonnanceur (spec 018) ; d'ici là elle se lance depuis `/sources`.
+
+Voir
 [ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et
 [`spec/`](spec/) pour les décisions.
 

@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
 import type { EtatDuDeploiement } from "../core/build.ts";
+import type { RapportArchive } from "../core/rapport-execution.ts";
 import type { ResultatDeSonde } from "../core/sonde.ts";
 import type { Source } from "../core/source.ts";
 import { estUneSource } from "../core/source.ts";
@@ -9,7 +10,7 @@ import { estUneSource } from "../core/source.ts";
  * Ce que l'écran des sources a besoin de savoir faire — spec 015.
  *
  * Branché dans `main.ts` : la présentation ne connaît ni la base ni le réseau,
- * seulement ces quatre gestes.
+ * seulement ces gestes.
  */
 export type AccesAuxSources = {
   etats(): readonly EtatDeLaSource[];
@@ -24,6 +25,16 @@ export type AccesAuxSources = {
   connecter(source: Source): Promise<void>;
   oublier(source: Source): void;
   sonder(): Promise<readonly ResultatDeSonde[]>;
+  /**
+   * Lance la passe qui relève le classement — spec 001.
+   *
+   * Ici et non sur `/mon-profil` : 001 écarte le bouton « rafraîchir
+   * maintenant », qui mettrait le plafond d'un passage par jour entre les
+   * mains de l'utilisateur. Celui-ci est sur l'écran d'exploitation, il sert à
+   * constater une passe réelle à la mise en service, et [[018__ordonnancement]]
+   * le rend inutile en déclenchant la même passe chaque jour.
+   */
+  relever(): Promise<RapportArchive>;
 };
 
 /**
@@ -41,26 +52,32 @@ export type AccesAuxSources = {
 export function routeurSources(acces: AccesAuxSources): Router {
   const routeur = Router();
 
-  routeur.get("/", (_requete, reponse) => {
+  const ecran = (
+    reponse: Response,
+    vue: { sonde?: readonly ResultatDeSonde[] | null; passe?: RapportArchive | null },
+  ): void => {
     reponse.render("sources", {
       titre: "Sources",
       etats: acces.etats(),
       deploiements: acces.deploiements(),
-      sonde: null,
+      sonde: vue.sonde ?? null,
+      passe: vue.passe ?? null,
     });
-  });
+  };
+
+  routeur.get("/", (_requete, reponse) => ecran(reponse, {}));
 
   routeur.post("/sonde", (_requete, reponse, suite) => {
     acces
       .sonder()
-      .then((sonde) => {
-        reponse.render("sources", {
-          titre: "Sources",
-          etats: acces.etats(),
-          deploiements: acces.deploiements(),
-          sonde,
-        });
-      })
+      .then((sonde) => ecran(reponse, { sonde }))
+      .catch(suite);
+  });
+
+  routeur.post("/classement", (_requete, reponse, suite) => {
+    acces
+      .relever()
+      .then((passe) => ecran(reponse, { passe }))
       .catch(suite);
   });
 

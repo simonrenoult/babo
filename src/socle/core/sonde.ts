@@ -1,5 +1,10 @@
 import type { ClientHttp, ModuleDAcquisition, PageSondee } from "./acquisition.ts";
-import { ActionIntrouvable, SessionMorte, recupererSousSession } from "./acquisition.ts";
+import {
+  ActionIntrouvable,
+  SessionMorte,
+  recupererSousSession,
+  tacheDAcquisition,
+} from "./acquisition.ts";
 import type { DepotJetonMyffbad } from "./jeton-myffbad.ts";
 import type { DepotRapports, RapportExecution } from "./rapport-execution.ts";
 import { issueDuVolume } from "./rapport-execution.ts";
@@ -126,8 +131,8 @@ function rapportDeLaSonde(
 
   return {
     // Nommée d'après la source et non d'après la sonde : c'est cette tâche que
-    // l'écran interroge pour l'ancienneté, et les passes de 018 viendront s'y
-    // consigner à leur tour, sous le même nom.
+    // l'écran interroge pour l'ancienneté, et la passe de classement de 001
+    // s'y consigne à son tour, sous le même nom.
     tache: tacheDAcquisition(source),
     demarreLe,
     termineLe: horloge.maintenant(),
@@ -135,10 +140,6 @@ function rapportDeLaSonde(
     volumeExtrait,
     detail: detailLisible(resultats),
   };
-}
-
-export function tacheDAcquisition(source: Source): string {
-  return `acquisition:${source}`;
 }
 
 function detailLisible(resultats: readonly ResultatDeSonde[]): string {

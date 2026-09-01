@@ -1,4 +1,5 @@
 import type { Source } from "./source.ts";
+import type { Classement } from "./classement.ts";
 import type { DepotCaptures } from "./capture.ts";
 import type { DepotBuilds } from "./build.ts";
 import type { Horloge } from "./horloge.ts";
@@ -253,6 +254,17 @@ export function etatDeLaSource(
 }
 
 /**
+ * Le nom de la tâche sous laquelle une source consigne ses passes — spec 019.
+ *
+ * Nommée d'après la source et non d'après ce qui la déclenche : la sonde de
+ * 015, la passe de classement de 001 et l'ordonnancement de 018 s'y consignent
+ * tous les trois, et c'est cette tâche que l'écran interroge pour l'ancienneté.
+ */
+export function tacheDAcquisition(source: Source): string {
+  return `acquisition:${source}`;
+}
+
+/**
  * Une requête que la sonde d'accès va jouer pour prouver que la source répond
  * — spec 015.
  *
@@ -311,6 +323,22 @@ export type ModuleDAcquisition = {
   readonly connexion?: {
     requete(motDePasse: string): Requete;
     jetonDepuisLesCookies(cookies: readonly string[]): string | null;
+  };
+  /**
+   * De quoi relever le classement, quand la source le porte — spec 001.
+   *
+   * Présent pour myffbad, seule source du classement (015) ; absent pour
+   * badnet, qui ne connaît que les tournois. La requête et sa lecture vivent
+   * ensemble et dans le module du site : le socle n'a jamais à savoir qu'une
+   * fiche s'appelle une fiche.
+   *
+   * `requete` rend `null` quand la session ne permet pas de la composer —
+   * l'action prend un identifiant interne que myffbad ne met que dans le
+   * jeton. Un `null` explicite plutôt qu'une requête qui échouerait.
+   */
+  readonly classement?: {
+    requete(jeton: string): Requete | null;
+    lire(reponse: Reponse): readonly Classement[];
   };
   /**
    * L'échéance que le jeton porte lui-même, quand la source en donne une.

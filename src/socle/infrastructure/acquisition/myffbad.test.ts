@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { creerModuleMyffbad, identifiantDuJoueur } from "./myffbad.ts";
+import { classementDuJoueur, creerModuleMyffbad, identifiantDuJoueur } from "./myffbad.ts";
+import { ClassementIllisible } from "../../core/classement.ts";
 import { licence } from "../../core/licence.ts";
 
 const module = creerModuleMyffbad(licence("07194591"));
@@ -110,5 +112,111 @@ describe("l'appel d'une Server Action myffbad", () => {
   it("ne prend pas un jwt vide pour un jeton", () => {
     assert.equal(module.connexion?.jetonDepuisLesCookies(["jwt=; Path=/", "rgpd=0"]), null);
     assert.equal(module.connexion?.jetonDepuisLesCookies([]), null);
+  });
+});
+
+/**
+ * La capture réelle de l'action « classement », relevée le 1er septembre 2026
+ * par la sonde de 015 et archivée telle quelle.
+ *
+ * C'est la première des deux vérifications que 001 exige : le parseur rejoué
+ * sur une capture réelle, sans réseau. La seconde — une passe réelle constatée
+ * une fois à la mise en service — ne se joue pas ici, et c'est voulu : celle-ci
+ * ne prouverait que le parseur, pas la chaîne session → requête → base → page.
+ */
+const FICHE = readFileSync(new URL("exemples/myffbad-classement.txt", import.meta.url), "utf8");
+
+function reponse(contenu: string) {
+  return {
+    url: "https://www.myffbad.fr/joueur/07194591",
+    statutHttp: 200,
+    contenu,
+    cookies: [],
+  };
+}
+
+/** La fiche réelle, réduite aux clés que le parseur lit, pour en varier une. */
+function ficheAvec(remplacements: Record<string, unknown>): string {
+  const ligne = {
+    RankingDate: "2026-09-01",
+    SimpleSubLevel: "D9",
+    SimpleRate: "936.00",
+    DoubleSubLevel: "D8",
+    DoubleRate: "1311.00",
+    MixteSubLevel: "D9",
+    MixteRate: "1007.00",
+    ...remplacements,
+  };
+  return `0:{"b":"DQCg8nwBq71o32okRTijN"}\n1:${JSON.stringify(ligne)}\n`;
+}
+
+describe("le classement lu sur la fiche", () => {
+  it("rend les trois disciplines de la capture réelle, dans l'ordre", () => {
+    assert.deepEqual(classementDuJoueur(reponse(FICHE)), [
+      { discipline: "simple", lettre: "D9", cpph: 936 },
+      { discipline: "double", lettre: "D8", cpph: 1311 },
+      { discipline: "mixte", lettre: "D9", cpph: 1007 },
+    ]);
+  });
+
+  it("omet la discipline que la fiche ne porte pas, sans l'inventer", () => {
+    const sansMixte = classementDuJoueur(reponse(ficheAvec({ MixteSubLevel: null })));
+
+    assert.deepEqual(
+      sansMixte.map(({ discipline }) => discipline),
+      ["simple", "double"],
+    );
+  });
+
+  it("prend `NC` pour ce qu'il est : une lettre du barème", () => {
+    const nonClasse = ficheAvec({ SimpleSubLevel: "NC", SimpleRate: "0.00" });
+
+    assert.deepEqual(classementDuJoueur(reponse(nonClasse))[0], {
+      discipline: "simple",
+      lettre: "NC",
+      cpph: 0,
+    });
+  });
+
+  it("échoue plutôt que d'entrer en base une lettre hors barème", () => {
+    // Le seul moyen qu'un barème qui change se voie : sans ce refus, la page
+    // servirait une donnée fausse avec l'aplomb d'une donnée vraie (019).
+    assert.throws(
+      () => classementDuJoueur(reponse(ficheAvec({ DoubleSubLevel: "D10" }))),
+      ClassementIllisible,
+    );
+  });
+
+  it("échoue plutôt que d'entrer en base un CPPH qui n'est pas un nombre", () => {
+    assert.throws(
+      () => classementDuJoueur(reponse(ficheAvec({ SimpleRate: "non communiqué" }))),
+      ClassementIllisible,
+    );
+    assert.throws(
+      () => classementDuJoueur(reponse(ficheAvec({ SimpleRate: null }))),
+      ClassementIllisible,
+    );
+  });
+
+  it("rend une liste vide quand la réponse ne porte pas de classement", () => {
+    // C'est le succès vide de 019 : statut 200, aucune erreur, rien dedans.
+    assert.deepEqual(classementDuJoueur(reponse("0:{\"b\":\"BUILD\"}\n")), []);
+  });
+});
+
+describe("la requête de classement du module", () => {
+  it("vise ma fiche et l'action relevée, sous la session", () => {
+    const jetonValide = `jwt=${jwt({ personId: "1083591", exp: 1790869415 })}`;
+    const requete = module.classement?.requete(jetonValide);
+
+    assert.equal(requete?.url, "https://www.myffbad.fr/joueur/07194591");
+    assert.equal(requete?.corps, "[1083591]");
+    assert.equal(requete?.entetes?.["next-action"], "407802f1dd81b811b755a938c6142d52f0622e3c0a");
+  });
+
+  it("ne compose rien quand le jeton ne porte pas l'identifiant du joueur", () => {
+    // myffbad ne l'expose nulle part ailleurs : sans lui, il n'y a pas de
+    // requête à faire, et surtout pas une requête qui échouerait.
+    assert.equal(module.classement?.requete("session=opaque"), null);
   });
 });

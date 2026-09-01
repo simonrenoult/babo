@@ -6,11 +6,10 @@ import { after, before, describe, it } from "node:test";
 import type { Server } from "node:http";
 import { ouvrirLaPersistance } from "../src/socle/infrastructure/base/persistance.ts";
 import { creerApplication } from "../src/socle/presentation/serveur.ts";
-import { moduleMonProfil } from "../src/mon-profil/presentation/module-web.ts";
+import { creerModuleMonProfil } from "../src/mon-profil/presentation/module-web.ts";
 import { moduleCapitanat } from "../src/capitanat/presentation/module-web.ts";
 import { moduleVeille } from "../src/veille/presentation/module-web.ts";
-import { etatDeLaSource } from "../src/socle/core/acquisition.ts";
-import { tacheDAcquisition } from "../src/socle/core/sonde.ts";
+import { etatDeLaSource, tacheDAcquisition } from "../src/socle/core/acquisition.ts";
 import { SOURCES } from "../src/socle/core/source.ts";
 import { licence } from "../src/socle/core/licence.ts";
 
@@ -36,7 +35,14 @@ describe("l'application assemblée", () => {
         motDePasseMyffbad: null,
         derriereUnProxy: true,
       },
-      modules: [moduleMonProfil, moduleCapitanat, moduleVeille],
+      modules: [
+        creerModuleMonProfil({
+          licence: licence("07194591"),
+          classements: persistance.classements,
+        }),
+        moduleCapitanat,
+        moduleVeille,
+      ],
       etatDuSocle: () => ({
         tailleDeLaBase: persistance.taille(),
         captures: persistance.captures.compter(),
@@ -64,6 +70,8 @@ describe("l'application assemblée", () => {
         // La sonde touche au réseau : l'assemblage vérifie qu'elle est montée,
         // pas qu'elle atteint les sites fédéraux.
         sonder: () => Promise.resolve([]),
+        // La passe touche au réseau : idem, l'assemblage vérifie le montage.
+        relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
       },
     });
 
@@ -84,6 +92,33 @@ describe("l'application assemblée", () => {
     const reponse = await fetch(`${base}/`);
     assert.equal(reponse.status, 200);
     assert.match(await reponse.text(), /Captures archivées/);
+  });
+
+  it("dit sur mon profil qu'aucune passe n'a abouti, plutôt qu'un tableau de tirets", async () => {
+    // Un tableau de tirets se confondrait avec un joueur non classé (spec 001).
+    const reponse = await fetch(`${base}/mon-profil`);
+
+    assert.match(await reponse.text(), /aucun relevé/i);
+  });
+
+  it("sert sur mon profil ce que la passe a écrit en base", async () => {
+    // La chaîne base → page, celle que le parseur rejoué seul ne prouve pas.
+    persistance.classements.relever(
+      licence("07194591"),
+      [
+        { discipline: "simple", lettre: "D9", cpph: 936 },
+        { discipline: "double", lettre: "D8", cpph: 1311 },
+        { discipline: "mixte", lettre: "D9", cpph: 1007 },
+      ],
+      new Date("2026-09-01T05:00:00Z"),
+    );
+
+    const corps = await (await fetch(`${base}/mon-profil`)).text();
+
+    assert.match(corps, /07194591/);
+    assert.match(corps, /D9/);
+    assert.match(corps, /1\s?311/, "le CPPH, formaté en français");
+    assert.doesNotMatch(corps, /aucun relevé/i);
   });
 
   for (const [chemin, attendu] of [

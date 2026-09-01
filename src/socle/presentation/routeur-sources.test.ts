@@ -43,10 +43,11 @@ type Trace = {
   oublies: Source[];
   sondes: number;
   connectes: Source[];
+  releves: number;
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
-  const trace: Trace = { enregistres: [], oublies: [], sondes: 0, connectes: [] };
+  const trace: Trace = { enregistres: [], oublies: [], sondes: 0, connectes: [], releves: 0 };
   return {
     trace,
     acces: {
@@ -72,6 +73,18 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
       connecter: (source) => {
         trace.connectes.push(source);
         return Promise.resolve();
+      },
+      relever: () => {
+        trace.releves += 1;
+        return Promise.resolve({
+          id: 12,
+          tache: "acquisition:myffbad",
+          demarreLe: new Date("2026-09-01T05:00:00Z"),
+          termineLe: new Date("2026-09-01T05:00:02Z"),
+          issue: "succes",
+          volumeExtrait: 3,
+          detail: "classement : simple D9, double D8, mixte D9",
+        });
       },
       sonder: () => {
         trace.sondes += 1;
@@ -222,6 +235,18 @@ describe("l'écran des sources", () => {
     assert.equal(trace.sondes, 1);
     assert.match(reponse.corps, /accueil public/);
     assert.match(reponse.corps, /atteinte/);
+  });
+
+  it("lance la passe de classement et rend son rapport", async () => {
+    // Le bouton est ici, sur l'écran d'exploitation, et non sur « Mon profil » :
+    // 001 écarte le « rafraîchir maintenant » entre les mains de l'utilisateur.
+    // 018 déclenchera la même passe, et ce bouton n'aura plus qu'à dépanner.
+    const { acces, trace } = ecran();
+    const reponse = await interroger(acces, "/sources/classement", new URLSearchParams());
+
+    assert.equal(reponse.statut, 200);
+    assert.equal(trace.releves, 1);
+    assert.match(reponse.corps, /simple D9, double D8, mixte D9/);
   });
 });
 

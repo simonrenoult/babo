@@ -6,6 +6,8 @@ import { after, before, describe, it } from "node:test";
 import { CleDeChiffrementInvalide, ouvrirLaBase } from "./connexion.ts";
 import { migrer } from "./migrateur.ts";
 import { ouvrirLaPersistance } from "./persistance.ts";
+import { licence } from "../../core/licence.ts";
+import type { ReleveDeClassement } from "../../core/classement.ts";
 
 const CLE = "clé-de-test-*-avec-une-'quote";
 
@@ -25,6 +27,7 @@ describe("la base unique du socle", () => {
     assert.deepEqual(persistance.migrationsAppliquees, [
       "001__socle.sql",
       "002__build_source.sql",
+      "003__classement.sql",
     ]);
     persistance.fermer();
   });
@@ -204,3 +207,109 @@ describe("les déploiements observés", () => {
     persistance.fermer();
   });
 });
+
+describe("le classement relevé", () => {
+  const dossier = mkdtempSync(join(tmpdir(), "babo-classement-"));
+  const chemin = join(dossier, "babo.db");
+
+  after(() => rmSync(dossier, { recursive: true, force: true }));
+
+  it("garde une ligne par changement de classement, jamais une par passe", () => {
+    // Le classement ne bouge qu'à la publication mensuelle : une passe
+    // quotidienne écrirait trois cent cinquante lignes identiques par an
+    // (spec 001). Seule `vu_le` bouge tant que la valeur tient.
+    const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
+    const licenceMienne = licence("07194591");
+    const lundi = new Date("2026-09-01T05:00:00Z");
+    const mardi = new Date("2026-09-02T05:00:00Z");
+    const octobre = new Date("2026-10-01T05:00:00Z");
+
+    persistance.classements.relever(
+      licenceMienne,
+      [
+        { discipline: "simple", lettre: "D9", cpph: 936 },
+        { discipline: "double", lettre: "D8", cpph: 1311 },
+      ],
+      lundi,
+    );
+    persistance.classements.relever(
+      licenceMienne,
+      [
+        { discipline: "simple", lettre: "D9", cpph: 936 },
+        { discipline: "double", lettre: "D8", cpph: 1311 },
+      ],
+      mardi,
+    );
+
+    // L'ordre du dépôt n'engage rien — c'est `mon-profil` qui range les
+    // disciplines pour l'affichage. On interroge donc par discipline.
+    const apresMardi = parDiscipline(persistance.classements.derniers(licenceMienne));
+    assert.deepEqual(apresMardi["simple"], {
+      licence: licenceMienne,
+      discipline: "simple",
+      lettre: "D9",
+      cpph: 936,
+      apparuLe: lundi,
+      vuLe: mardi,
+    });
+    assert.deepEqual(apresMardi["double"], {
+      licence: licenceMienne,
+      discipline: "double",
+      lettre: "D8",
+      cpph: 1311,
+      apparuLe: lundi,
+      vuLe: mardi,
+    });
+
+    // Publication du CPPH : le simple change de palier, le double ne bouge
+    // pas. Une ligne s'ouvre pour l'un, l'autre se contente d'un `vu_le`.
+    persistance.classements.relever(
+      licenceMienne,
+      [
+        { discipline: "simple", lettre: "D8", cpph: 1204 },
+        { discipline: "double", lettre: "D8", cpph: 1311 },
+      ],
+      octobre,
+    );
+
+    const courants = parDiscipline(persistance.classements.derniers(licenceMienne));
+    assert.partialDeepStrictEqual(courants["simple"], {
+      lettre: "D8",
+      cpph: 1204,
+      apparuLe: octobre,
+      vuLe: octobre,
+    });
+    assert.partialDeepStrictEqual(courants["double"], {
+      lettre: "D8",
+      cpph: 1311,
+      apparuLe: lundi,
+      vuLe: octobre,
+    });
+
+    // Trois lignes en base pour deux disciplines : l'antériorité que 024 lira.
+    const total = persistance.base
+      .prepare("select count(*) as total from classement")
+      .get() as { total: number };
+    assert.equal(total.total, 3);
+
+    persistance.fermer();
+  });
+
+  it("ne rend le classement de personne d'autre", () => {
+    const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
+    persistance.classements.relever(
+      licence("00000001"),
+      [{ discipline: "mixte", lettre: "R6", cpph: 2100 }],
+      new Date("2026-09-01T05:00:00Z"),
+    );
+
+    assert.deepEqual(persistance.classements.derniers(licence("00000002")), []);
+    persistance.fermer();
+  });
+});
+
+function parDiscipline(
+  releves: readonly ReleveDeClassement[],
+): Record<string, ReleveDeClassement> {
+  return Object.fromEntries(releves.map((releve) => [releve.discipline, releve]));
+}

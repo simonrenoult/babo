@@ -1,4 +1,6 @@
 import type { ModuleDAcquisition, PageSondee, Reponse, Requete } from "../../core/acquisition.ts";
+import type { Classement, Discipline, Lettre } from "../../core/classement.ts";
+import { ClassementIllisible, DISCIPLINES, estUneLettre } from "../../core/classement.ts";
 import type { Licence } from "../../core/licence.ts";
 import { lireLaChargeFlight, ligneQuiPorte } from "./charge-flight.ts";
 
@@ -89,6 +91,19 @@ export function creerModuleMyffbad(licence: Licence): ModuleDAcquisition {
     connexion: {
       requete: (motDePasse) => connexion(licence, motDePasse),
       jetonDepuisLesCookies,
+    },
+
+    classement: {
+      requete: (jeton) => {
+        const joueur = identifiantDuJoueur(jeton);
+        // Le classement est public — il répond sans session (015) — mais
+        // l'action prend un `personId` que myffbad n'expose que dans le jeton.
+        // Sans lui, il n'y a pas de requête à composer, pas une requête vide.
+        return joueur === null
+          ? null
+          : appel({ action: "classement", page: `/joueur/${licence}`, arguments: [joueur], jeton });
+      },
+      lire: (reponse) => classementDuJoueur(reponse),
     },
 
     expirationDuJeton: expirationDuJwt,
@@ -284,4 +299,65 @@ export function resultatsDeLaReponse(reponse: Reponse): readonly Record<string, 
     }
   }
   return [];
+}
+
+/**
+ * Les clés que la fiche emploie pour chaque discipline — spec 001.
+ *
+ * Relevées sur la capture du 1er septembre 2026, pas devinées : la fiche donne
+ * trois disciplines, `Simple`, `Double` et `Mixte`, et non les cinq tableaux
+ * d'une compétition. Le préfixe est explicite plutôt que calculé, pour que le
+ * jour où myffbad renomme une clé, la correction tienne dans cette table.
+ */
+const PREFIXE: Readonly<Record<Discipline, string>> = {
+  simple: "Simple",
+  double: "Double",
+  mixte: "Mixte",
+};
+
+/**
+ * Le classement, discipline par discipline — spec 001, premier parseur de
+ * production.
+ *
+ * Deux refus, et ils ne sont pas les mêmes :
+ *
+ * - la discipline absente de la fiche est **omise**, pas inventée. C'est le
+ *   tableau jamais joué, et 001 demande d'afficher ce que la source donne ;
+ * - la discipline présente mais illisible **fait échouer la passe**. Une
+ *   lettre hors barème ou un CPPH qui n'est pas un nombre est le seul signe
+ *   qu'on ait qu'on ne lit plus la bonne chose : la laisser passer servirait
+ *   une donnée fausse avec l'aplomb d'une donnée vraie (019).
+ */
+export function classementDuJoueur(reponse: Reponse): readonly Classement[] {
+  const fiche = classementDeLaReponse(reponse);
+  if (fiche === null) return [];
+
+  return DISCIPLINES.flatMap((discipline) => {
+    const lettre = fiche[`${PREFIXE[discipline]}SubLevel`];
+    if (lettre === null || lettre === undefined || lettre === "") return [];
+
+    return [
+      {
+        discipline,
+        lettre: lettreLisible(discipline, lettre),
+        cpph: cpphLisible(discipline, fiche[`${PREFIXE[discipline]}Rate`]),
+      },
+    ];
+  });
+}
+
+function lettreLisible(discipline: Discipline, valeur: unknown): Lettre {
+  if (typeof valeur !== "string" || !estUneLettre(valeur)) {
+    throw new ClassementIllisible(`« ${String(valeur)} » n'est pas une lettre du barème (${discipline})`);
+  }
+  return valeur;
+}
+
+/** myffbad rend le CPPH en chaîne — « 936.00 ». C'est un nombre, il le devient ici. */
+function cpphLisible(discipline: Discipline, valeur: unknown): number {
+  const nombre = typeof valeur === "string" || typeof valeur === "number" ? Number(valeur) : NaN;
+  if (!Number.isFinite(nombre)) {
+    throw new ClassementIllisible(`« ${String(valeur)} » n'est pas un CPPH (${discipline})`);
+  }
+  return nombre;
 }
