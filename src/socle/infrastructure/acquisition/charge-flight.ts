@@ -35,21 +35,48 @@ export function lireLaChargeFlight(contenu: string): ChargeFlight {
 }
 
 /**
- * Trouve la première ligne qui porte toutes ces clés.
+ * Trouve le premier objet qui porte toutes ces clés, où qu'il soit.
  *
  * Les identifiants de ligne changent d'une réponse à l'autre — ils dépendent de
  * l'ordre de rendu, pas du contenu. Chercher par forme plutôt que par numéro,
  * c'est la différence entre un parseur qui survit à un redéploiement de myffbad
  * et un parseur qui casse (spec 019).
+ *
+ * La descente dans les tableaux n'est pas un raffinement : les deux blocs
+ * qu'on lit ne sont pas logés à la même profondeur. L'action `classement` rend
+ * son objet à plat, en tête de ligne ; l'identité de la fiche est enfouie dans
+ * l'élément React qui la rend, `["$", "$L44", null, { personId, fullName… }]`
+ * (spec 028). Un parseur qui ne regarderait que le premier niveau lirait l'un
+ * et pas l'autre, sans que rien ne le dise.
  */
-export function ligneQuiPorte(
+export function objetQuiPorte(
   charge: ChargeFlight,
   clefs: readonly string[],
 ): Record<string, unknown> | null {
   for (const valeur of charge.values()) {
-    if (typeof valeur !== "object" || valeur === null || Array.isArray(valeur)) continue;
-    const objet = valeur as Record<string, unknown>;
-    if (clefs.every((clef) => clef in objet)) return objet;
+    const trouve = descendre(valeur, clefs);
+    if (trouve !== null) return trouve;
+  }
+  return null;
+}
+
+function descendre(valeur: unknown, clefs: readonly string[]): Record<string, unknown> | null {
+  if (typeof valeur !== "object" || valeur === null) return null;
+
+  if (Array.isArray(valeur)) {
+    for (const element of valeur) {
+      const trouve = descendre(element, clefs);
+      if (trouve !== null) return trouve;
+    }
+    return null;
+  }
+
+  const objet = valeur as Record<string, unknown>;
+  if (clefs.every((clef) => clef in objet)) return objet;
+
+  for (const enfant of Object.values(objet)) {
+    const trouve = descendre(enfant, clefs);
+    if (trouve !== null) return trouve;
   }
   return null;
 }

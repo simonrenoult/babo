@@ -10,7 +10,7 @@
   - Historique de matchs
   - Ratio victoire/défaite par tableau
 - Aide au capitanat : 
-  - Lister les membres de mon équipe (licence, sexe, téléphone, lien myffbad, puis nom et classement)
+  - Lister les membres de mon équipe (nom, classement, licence, sexe, téléphone, lien myffbad)
   - Performance individuelle
   - Ratio victoire/défaite
   - Disponibilités aux interclubs
@@ -41,13 +41,17 @@ la recherche publique de badnet, anonyme, pour les tournois. `/sources` porte
 les sessions, les déploiements observés et la sonde d'accès.
 
 Deux features en place. `/mon-profil` affiche mon classement, une ligne par
-discipline, avec la date de la passe qui l'a relevé (spec 001) ; la passe
-attend son ordonnanceur (spec 018), et d'ici là elle se lance depuis
-`/sources`. `/capitanat` affiche les membres de l'équipe — licence, sexe,
-téléphone cliquable et lien vers la fiche fédérale (spec 005). L'équipe
-s'importe depuis `/sources` par un CSV `licence;sexe;telephone` en UTF-8, qui
-remplace la liste entière ou est refusé en entier. Les noms et les classements
-des coéquipiers viendront de la spec 028.
+discipline, avec la date de la passe qui l'a relevé (spec 001). `/capitanat`
+affiche l'équipe — nom, classement par discipline, licence, sexe, téléphone
+cliquable et lien vers la fiche fédérale (specs 005 et 028). L'équipe s'importe
+depuis `/sources` par un CSV `licence;sexe;telephone` en UTF-8, qui remplace la
+liste entière ou est refusé en entier ; l'import enchaîne aussitôt une passe, si
+bien qu'on dépose huit lignes et qu'on lit huit noms.
+
+Cette passe relève noms et classements pour tout le monde d'un coup, et
+**sans aucune session** : la fiche myffbad et l'action qui porte le classement
+répondent à froid. Elle attend son ordonnanceur (spec 018) ; d'ici là elle se
+lance depuis `/sources`.
 
 Voir
 [ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et

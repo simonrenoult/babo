@@ -1,5 +1,7 @@
 import { Router } from "express";
 import type { ModuleWeb } from "../../socle/presentation/serveur.ts";
+import type { DepotClassements } from "../../socle/core/classement.ts";
+import type { DepotIdentites } from "../../socle/core/identite.ts";
 import type { DepotCoequipiers } from "../core/coequipier.ts";
 import { listeDeLEquipe } from "../core/coequipier.ts";
 
@@ -14,12 +16,18 @@ import { listeDeLEquipe } from "../core/coequipier.ts";
  */
 export function creerModuleCapitanat(options: {
   readonly coequipiers: DepotCoequipiers;
+  /** Noms et classements : relevés par le socle (028), lus ici, jamais demandés à myffbad. */
+  readonly identites: DepotIdentites;
+  readonly classements: DepotClassements;
 }): ModuleWeb {
-  const { coequipiers } = options;
+  const { coequipiers, identites, classements } = options;
   const routeur = Router();
 
   routeur.get("/", (_requete, reponse) => {
-    reponse.render("capitanat", { titre: "Capitanat", equipe: listeDeLEquipe(coequipiers) });
+    reponse.render("capitanat", {
+      titre: "Capitanat",
+      equipe: listeDeLEquipe(coequipiers, identites, classements),
+    });
   });
 
   return {

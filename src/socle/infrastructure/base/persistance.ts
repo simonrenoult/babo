@@ -1,6 +1,7 @@
 import type { ConfigurationBase } from "../../core/configuration.ts";
 import type { DepotCaptures } from "../../core/capture.ts";
 import type { DepotClassements } from "../../core/classement.ts";
+import type { DepotIdentites } from "../../core/identite.ts";
 import type { DepotJetonMyffbad } from "../../core/jeton-myffbad.ts";
 import type { DepotRapports } from "../../core/rapport-execution.ts";
 import type { DepotBuilds } from "../../core/build.ts";
@@ -8,6 +9,7 @@ import { ouvrirLaBase, tailleDeLaBase, type BaseSqlite } from "./connexion.ts";
 import { migrer } from "./migrateur.ts";
 import { depotCapturesSqlite } from "./depot-captures-sqlite.ts";
 import { depotClassementsSqlite } from "./depot-classements-sqlite.ts";
+import { depotIdentitesSqlite } from "./depot-identites-sqlite.ts";
 import { depotJetonMyffbadSqlite } from "./depot-jeton-myffbad-sqlite.ts";
 import { depotRapportsSqlite } from "./depot-rapports-sqlite.ts";
 import { depotBuildsSqlite } from "./depot-builds-sqlite.ts";
@@ -27,6 +29,7 @@ export type Persistance = {
   readonly rapports: DepotRapports;
   readonly builds: DepotBuilds;
   readonly classements: DepotClassements;
+  readonly identites: DepotIdentites;
   taille(): number;
   fermer(): void;
 };
@@ -43,6 +46,7 @@ export function ouvrirLaPersistance(configuration: ConfigurationBase): Persistan
     rapports: depotRapportsSqlite(base),
     builds: depotBuildsSqlite(base),
     classements: depotClassementsSqlite(base),
+    identites: depotIdentitesSqlite(base),
     taille: () => tailleDeLaBase(base),
     fermer: () => base.close(),
   };

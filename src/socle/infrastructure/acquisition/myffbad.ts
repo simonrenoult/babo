@@ -1,8 +1,11 @@
 import type { ModuleDAcquisition, PageSondee, Reponse, Requete } from "../../core/acquisition.ts";
 import type { Classement, Discipline, Lettre } from "../../core/classement.ts";
 import { ClassementIllisible, DISCIPLINES, estUneLettre } from "../../core/classement.ts";
+import type { Identite } from "../../core/identite.ts";
+import { IdentiteIllisible } from "../../core/identite.ts";
 import type { Licence } from "../../core/licence.ts";
-import { lireLaChargeFlight, ligneQuiPorte } from "./charge-flight.ts";
+import { licence as versLicence } from "../../core/licence.ts";
+import { lireLaChargeFlight, objetQuiPorte } from "./charge-flight.ts";
 
 /**
  * Le module d'acquisition myffbad — spec 015, source du classement et des matchs.
@@ -45,20 +48,30 @@ export function creerModuleMyffbad(licence: Licence): ModuleDAcquisition {
         // à trancher avant de maintenir deux sources.
         { intitule: "recherche de tournoi", requete: { url: `${RACINE}/recherche/tournoi`, jeton } },
 
+        // La fiche publique, sans cookie : c'est la moitié anonyme de
+        // l'acquisition, celle que 028 a établie. Elle ne porte pas le
+        // classement — aucun `SubLevel` — mais elle porte le nom et le
+        // `personId`, donc elle ouvre la chaîne.
+        {
+          intitule: "fiche publique",
+          requete: { url: `${RACINE}${fiche}`, jeton: null },
+          extraire: (reponse) => (identiteDeLaReponse(reponse) === null ? 0 : 1),
+        },
+
         // Les deux appels qui portent vraiment la donnée. Visiter la fiche ne
-        // prouverait rien : elle arrive vide, ses blocs sont peuplés par ces
-        // fonctions serveur — c'est donc elles que la sonde doit exercer.
+        // suffit pas : ses blocs de classement et de résultats sont peuplés
+        // par ces fonctions serveur — c'est donc elles que la sonde exerce.
+        //
+        // L'identifiant vient encore du jeton faute de chaînage dans la sonde,
+        // qui ne joue qu'une liste de requêtes connues d'avance ; l'appel, lui,
+        // part sans cookie pour le classement, parce que c'est ainsi que la
+        // passe de 028 le joue et que sonder autrement ne prouverait rien.
         ...(joueur === null
           ? []
           : ([
               {
-                intitule: "classement (action)",
-                requete: appel({
-                  action: "classement",
-                  page: fiche,
-                  arguments: [joueur],
-                  jeton,
-                }),
+                intitule: "classement (action, anonyme)",
+                requete: requeteDuClassement(licence, joueur),
                 // Un classement, ou rien : le compter à 1 suffit à distinguer
                 // la réponse pleine de la réponse vide d'une session morte.
                 extraire: (reponse) => (classementDeLaReponse(reponse) === null ? 0 : 1),
@@ -93,16 +106,16 @@ export function creerModuleMyffbad(licence: Licence): ModuleDAcquisition {
       jetonDepuisLesCookies,
     },
 
+    identite: {
+      requete: (licenceVisee) => ({ url: `${RACINE}/joueur/${licenceVisee}`, jeton: null }),
+      lire: (reponse, licenceVisee) => identiteDuJoueur(reponse, licenceVisee),
+    },
+
     classement: {
-      requete: (jeton) => {
-        const joueur = identifiantDuJoueur(jeton);
-        // Le classement est public — il répond sans session (015) — mais
-        // l'action prend un `personId` que myffbad n'expose que dans le jeton.
-        // Sans lui, il n'y a pas de requête à composer, pas une requête vide.
-        return joueur === null
-          ? null
-          : appel({ action: "classement", page: `/joueur/${licence}`, arguments: [joueur], jeton });
-      },
+      // Sans cookie, et sur la fiche du joueur visé — jamais la mienne : le
+      // module est construit avec ma licence pour la connexion et la sonde,
+      // mais la passe de 028 le promène sur toute l'équipe.
+      requete: (licenceVisee, personId) => requeteDuClassement(licenceVisee, personId),
       lire: (reponse) => classementDuJoueur(reponse),
     },
 
@@ -244,12 +257,29 @@ function buildDeLaReponse(reponse: Reponse): string | null {
 }
 
 /**
- * L'identifiant interne du joueur, lu dans le jeton — spec 015.
+ * L'appel qui rend le classement d'un joueur — specs 001 et 028.
  *
- * Les Server Actions ne prennent pas la licence mais un `personId` que myffbad
- * n'expose nulle part ailleurs que dans la charge du JWT. Sans session, donc,
- * pas d'appel possible : c'est ce qui distingue les deux moitiés de
- * l'acquisition, la fiche publique et les données du licencié.
+ * Un seul endroit, parce que la sonde et la passe doivent jouer exactement la
+ * même requête : une sonde qui prouverait autre chose que ce qui tourne ne
+ * prouverait rien. Et pas de jeton — voir `identiteDuJoueur`.
+ */
+function requeteDuClassement(licence: Licence, personId: number): Requete {
+  return appel({
+    action: "classement",
+    page: `/joueur/${licence}`,
+    arguments: [personId],
+    jeton: null,
+  });
+}
+
+/**
+ * L'identifiant interne du joueur, lu dans le jeton — spec 015, dépassée par 028.
+ *
+ * Les Server Actions ne prennent pas la licence mais un `personId`. On l'a cru
+ * réservé au JWT, et 015 en a tiré que le classement exigeait une session : la
+ * fiche publique le porte aussi (028), et c'est elle qui l'apporte désormais.
+ * Ceci ne sert plus qu'à la sonde, qui joue une liste de requêtes connues
+ * d'avance et ne peut donc pas enchaîner la fiche puis l'action.
  */
 export function identifiantDuJoueur(jeton: string | null): number | null {
   if (jeton === null) return null;
@@ -282,11 +312,75 @@ export function identifiantDuJoueur(jeton: string | null): number | null {
  * quand la session est morte — sans erreur, avec un statut 200.
  */
 export function classementDeLaReponse(reponse: Reponse): Record<string, unknown> | null {
-  return ligneQuiPorte(lireLaChargeFlight(reponse.contenu), [
+  return objetQuiPorte(lireLaChargeFlight(reponse.contenu), [
     "SimpleSubLevel",
     "DoubleSubLevel",
     "MixteSubLevel",
   ]);
+}
+
+/**
+ * Le bloc d'identité de la fiche, ou `null` — spec 028.
+ *
+ * Cherché par forme, comme le classement, mais plus profond : myffbad le rend
+ * à l'intérieur de l'élément React qui l'affiche. Les trois clés retenues sont
+ * celles qui font l'identité — un bloc qui les porte toutes les trois n'est pas
+ * un autre bloc.
+ */
+export function identiteDeLaReponse(reponse: Reponse): Record<string, unknown> | null {
+  return objetQuiPorte(lireLaChargeFlight(reponse.contenu), ["personId", "fullName", "licence"]);
+}
+
+/**
+ * Qui est derrière une licence — spec 028, deuxième parseur de production.
+ *
+ * Trois refus, et le troisième est le seul qui compte vraiment :
+ *
+ * - pas de bloc d'identité : la fiche n'est pas celle qu'on croit, ou myffbad a
+ *   déplacé son bloc. Panne franche, comme pour le classement (019) ;
+ * - un `personId` ou un nom vide : idem, on ne devine pas ;
+ * - **une licence qui n'est pas celle demandée** : là, ce n'est plus un parseur
+ *   qui se trompe, c'est une identité qu'on s'apprête à rattacher au mauvais
+ *   numéro. Une licence bien formée mais erronée rapporte le nom et le
+ *   classement de quelqu'un d'autre, et rien d'autre que ce contrôle ne le dit
+ *   avant que la page ne l'affiche.
+ */
+export function identiteDuJoueur(reponse: Reponse, licence: Licence): Identite {
+  const bloc = identiteDeLaReponse(reponse);
+  if (bloc === null) {
+    throw new IdentiteIllisible(`aucun bloc d'identité sur la fiche de ${licence}`);
+  }
+
+  const personId = Number(bloc["personId"]);
+  if (!Number.isSafeInteger(personId) || personId <= 0) {
+    throw new IdentiteIllisible(`« ${String(bloc["personId"])} » n'est pas un personId (${licence})`);
+  }
+
+  const nom = typeof bloc["fullName"] === "string" ? bloc["fullName"].trim() : "";
+  if (nom === "") {
+    throw new IdentiteIllisible(`la fiche de ${licence} ne porte pas de nom`);
+  }
+
+  // Comparée après normalisation des deux côtés : myffbad écrit les licences
+  // sur huit chiffres, mais ce contrôle doit porter sur la personne, pas sur
+  // une convention d'écriture (028).
+  const rendue = normalisee(String(bloc["licence"] ?? ""));
+  if (rendue !== licence) {
+    throw new IdentiteIllisible(
+      `la fiche demandée pour ${licence} a répondu pour ${rendue || "personne"} — le relevé s'arrête là plutôt que d'attribuer ${nom} à ${licence}`,
+    );
+  }
+
+  return { licence, nom, personId };
+}
+
+/** La licence rendue par la fiche, ou la chaîne brute si elle n'en est pas une. */
+function normalisee(valeur: string): string {
+  try {
+    return versLicence(valeur);
+  } catch {
+    return valeur;
+  }
 }
 
 /** Les résultats rendus par l'action : tournois et interclubs dans la même liste. */

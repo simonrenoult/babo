@@ -129,3 +129,55 @@ Bloquée par [[005__liste-des-membres-de-l-equipe]] et
 [[015__source-de-donnees]]. Bloque [[006__performance-individuelle]] et
 [[011__composition-de-journee]]. Attend [[018__ordonnancement]] pour le
 déclenchement hebdomadaire — vendredi 1 h, l'horaire de 001.
+
+## Fait
+
+**La passe réelle, constatée le 2 septembre 2026.** Import d'un CSV depuis
+`/sources`, passe enchaînée, sans aucune session en base : deux requêtes, la
+fiche (91 168 octets) puis l'action (2229 octets), `1 relevé(s) sur 1`, trois
+disciplines écrites, et `/capitanat` affichant « Simon RENOULT » avec D9 / D8 /
+D9. La seconde passe n'a coûté qu'une requête — le cache de `personId` tient — et
+n'a pas ouvert de nouveau palier, seul `vu_le` ayant bougé. Une licence
+inexistante ajoutée au fichier a laissé sa ligne à l'écran, colonnes marquées
+« non relevé », le rapport portant `1 relevé(s) sur 2 — 99999999 : aucun bloc
+d'identité`. C'est la seconde des deux vérifications exigées ci-dessus ; la
+première tient dans les tests, parseurs rejoués sur les captures archivées.
+
+**Un choix tranché en écrivant.** Le succès vide de
+[[019__robustesse-du-scraping]] descend au niveau du joueur : `issueDuVolume`
+ne peut plus rien dire d'utile au niveau de la passe, puisqu'un volume nul y
+implique qu'aucune ligne n'a abouti — cas déjà traité comme un échec. Un joueur
+dont l'action ne rend rien est donc muet même si les autres parlent, et le
+rapport le nomme.
+
+**Ce qui reste ouvert, et n'appartient pas à cette spec.** La sonde de 015
+échoue toujours en entier quand aucune session n'existe, y compris pour ses
+pages anonymes — le mur de connexion y compte comme une page manquée. C'est la
+règle que `/competitions` a fait écarter de badnet (« un rapport qui échoue
+toujours ne signale plus rien ») appliquée d'un seul côté. Le partage des pages
+sondées entre moitié anonyme et moitié sous session est un amendement à
+[[019__robustesse-du-scraping]], à écrire.
+
+**Un défaut trouvé à la mise en service, et sa correction.** La première passe
+réelle sur l'équipe entière n'a relevé qu'un joueur sur seize. Le tableur qui a
+produit le CSV avait traité la colonne des licences comme un nombre et mangé les
+zéros de tête : `7194591` en base, `07194591` chez myffbad. Le contrôle
+d'identité ci-dessus a fait exactement son travail — il a refusé d'attribuer
+« Simon RENOULT » à `7194591` — mais il accusait myffbad d'avoir répondu pour
+quelqu'un d'autre là où le défaut était chez nous.
+
+La correction est dans le type : `Licence` complète à huit chiffres, zéros de
+tête compris, ce qui est la forme que myffbad emploie lui-même — la fiche
+demandée pour `409390` répond pour `00409390`. Le padding est dans le
+constructeur du type et non chez l'un de ses appelants, seule place où aucun
+chemin ne peut l'oublier. La migration `006` rattrape ce qui était déjà écrit,
+dans les trois tables qui portent une licence.
+
+**Et un manque, révélé par le même passage.** 005 supprime les relevés de
+classement d'un coéquipier absent du fichier ; le nom que cette spec ajoute
+n'était pas dans ce ménage. Il l'est désormais — c'est de la donnée personnelle
+au même titre que le téléphone, davantage même, puisqu'il désigne la personne
+là où un classement ne fait que la situer ([[021__authentification]]).
+
+**Passe réelle après correction :** `15 relevé(s) sur 15`, 45 disciplines,
+quinze noms et trois colonnes de classement à l'écran, sans aucune session.

@@ -26,7 +26,10 @@ export type AccesAuxSources = {
   oublier(source: Source): void;
   sonder(): Promise<readonly ResultatDeSonde[]>;
   /**
-   * Lance la passe qui relève le classement — spec 001.
+   * Lance la passe qui relève noms et classements — specs 001 et 028.
+   *
+   * Une seule passe, pour moi et pour l'équipe : nous sommes tous dans la même
+   * liste, et deux passes auraient produit deux dates affichées.
    *
    * Ici et non sur `/mon-profil` : 001 écarte le bouton « rafraîchir
    * maintenant », qui mettrait le plafond d'un passage par jour entre les
@@ -42,8 +45,13 @@ export type AccesAuxSources = {
    * (022) : il reçoit du texte, rend un décompte ou des motifs de refus, et
    * `main.ts` branche le module `capitanat` derrière. Le geste est ici parce
    * que `/sources` est l'écran d'exploitation, celui de la passe de 001.
+   *
+   * L'import enchaîne une passe complète (028) : on clique, on voit huit noms.
+   * C'est aussi ce qui rend une licence fausse visible tout de suite — bien
+   * formée mais erronée, elle rapporte le nom de quelqu'un d'autre, et seul le
+   * nom affiché le dit.
    */
-  importerLEquipe(csv: string): ResultatDImport;
+  importerLEquipe(csv: string): Promise<ResultatDImport>;
 };
 
 /**
@@ -54,7 +62,12 @@ export type AccesAuxSources = {
  * d'import partiel à défaire à la main.
  */
 export type ResultatDImport =
-  | { readonly issue: "importee"; readonly membres: number }
+  | {
+      readonly issue: "importee";
+      readonly membres: number;
+      /** Le rapport de la passe enchaînée (028). `null` si elle n'a pas pu partir. */
+      readonly releve: RapportArchive | null;
+    }
   | { readonly issue: "refusee"; readonly motifs: readonly MotifDeRefus[] };
 
 export type MotifDeRefus = {
@@ -124,12 +137,15 @@ export function routeurSources(acces: AccesAuxSources): Router {
    * Le plafond est là pour qu'un fichier de dix mille lignes déposé par
    * mégarde soit refusé par la porte, pas par la mémoire.
    */
-  routeur.post("/equipe", text({ type: "text/csv", limit: "64kb" }), (requete, reponse) => {
-    const resultat = acces.importerLEquipe(typeof requete.body === "string" ? requete.body : "");
-
-    // 400 sur un refus : l'écran le dit, et le journal du proxy aussi.
-    reponse.status(resultat.issue === "refusee" ? 400 : 200);
-    ecran(reponse, { equipe: resultat });
+  routeur.post("/equipe", text({ type: "text/csv", limit: "64kb" }), (requete, reponse, suite) => {
+    acces
+      .importerLEquipe(typeof requete.body === "string" ? requete.body : "")
+      .then((resultat) => {
+        // 400 sur un refus : l'écran le dit, et le journal du proxy aussi.
+        reponse.status(resultat.issue === "refusee" ? 400 : 200);
+        ecran(reponse, { equipe: resultat });
+      })
+      .catch(suite);
   });
 
   routeur.post("/:source/jeton", (requete, reponse) => {

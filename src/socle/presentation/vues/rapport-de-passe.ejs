@@ -1,0 +1,18 @@
+<%#
+  Le rapport d'une passe — specs 019 et 028.
+
+  Un seul partiel pour les deux endroits qui l'affichent, le bouton et l'import
+  enchaîné : deux copies auraient divergé, et c'est l'écran qui doit dire la
+  même chose du même fait.
+
+  Le volume est un décompte de disciplines relevées, jamais un nombre de pages
+  atteintes : une page qui répond sans rien rendre est le mode de panne le plus
+  coûteux, parce qu'elle passe pour un succès (019).
+%>
+<p class="etat">
+  Passe <strong><%= passe.issue %></strong>, terminée le
+  <%= passe.termineLe.toLocaleString("fr-FR") %> —
+  <% const pluriel = passe.volumeExtrait > 1 ? "s" : ""; %>
+  <%= passe.volumeExtrait %> discipline<%= pluriel %> relevée<%= pluriel %>.
+  <br><%= passe.detail %>
+</p>

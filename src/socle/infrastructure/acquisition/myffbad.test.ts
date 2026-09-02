@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { classementDuJoueur, creerModuleMyffbad, identifiantDuJoueur } from "./myffbad.ts";
+import {
+  classementDuJoueur,
+  creerModuleMyffbad,
+  identifiantDuJoueur,
+  identiteDuJoueur,
+} from "./myffbad.ts";
 import { ClassementIllisible } from "../../core/classement.ts";
+import { IdentiteIllisible } from "../../core/identite.ts";
 import { licence } from "../../core/licence.ts";
 
 const module = creerModuleMyffbad(licence("07194591"));
@@ -52,12 +58,16 @@ describe("le mur de connexion myffbad", () => {
 describe("les pages sondées", () => {
   const jetonValide = `jwt=${jwt({ personId: "1083591", exp: 1790869415 })}`;
 
-  it("n'exerce les actions que sous session, faute de personId sans elle", () => {
+  it("n'exerce les actions que sous session, faute de personId à composer sans elle", () => {
+    // La sonde joue une liste connue d'avance : elle ne peut pas enchaîner la
+    // fiche puis l'action comme la passe de 028 le fait, donc l'identifiant lui
+    // vient encore du jeton. L'appel, lui, part sans cookie.
     const sansSession = module.pagesDeLaSonde(null).map(({ intitule }) => intitule);
     const avecSession = module.pagesDeLaSonde(jetonValide).map(({ intitule }) => intitule);
 
-    assert.ok(!sansSession.includes("classement (action)"));
-    assert.ok(avecSession.includes("classement (action)"));
+    assert.ok(!sansSession.includes("classement (action, anonyme)"));
+    assert.ok(sansSession.includes("fiche publique"), "la moitié anonyme part quand même");
+    assert.ok(avecSession.includes("classement (action, anonyme)"));
     assert.ok(avecSession.includes("résultats (action)"));
   });
 
@@ -205,18 +215,97 @@ describe("le classement lu sur la fiche", () => {
 });
 
 describe("la requête de classement du module", () => {
-  it("vise ma fiche et l'action relevée, sous la session", () => {
-    const jetonValide = `jwt=${jwt({ personId: "1083591", exp: 1790869415 })}`;
-    const requete = module.classement?.requete(jetonValide);
+  it("vise la fiche du joueur demandé et l'action relevée, sans cookie", () => {
+    // Le joueur visé, jamais le mien : le module est construit avec ma licence
+    // pour la connexion et la sonde, mais 028 le promène sur toute l'équipe.
+    const requete = module.classement?.requete(licence("02345678"), 999);
 
-    assert.equal(requete?.url, "https://www.myffbad.fr/joueur/07194591");
-    assert.equal(requete?.corps, "[1083591]");
+    assert.equal(requete?.url, "https://www.myffbad.fr/joueur/02345678");
+    assert.equal(requete?.corps, "[999]");
+    assert.equal(requete?.jeton, null, "la chaîne de 028 est anonyme de bout en bout");
     assert.equal(requete?.entetes?.["next-action"], "407802f1dd81b811b755a938c6142d52f0622e3c0a");
   });
 
-  it("ne compose rien quand le jeton ne porte pas l'identifiant du joueur", () => {
-    // myffbad ne l'expose nulle part ailleurs : sans lui, il n'y a pas de
-    // requête à faire, et surtout pas une requête qui échouerait.
-    assert.equal(module.classement?.requete("session=opaque"), null);
+  it("demande la fiche publique elle aussi sans cookie", () => {
+    const requete = module.identite?.requete(licence("02345678"));
+
+    assert.equal(requete?.url, "https://www.myffbad.fr/joueur/02345678");
+    assert.equal(requete?.jeton, null);
+  });
+});
+
+/**
+ * La fiche réelle, relevée **sans session** le 2 septembre 2026 et archivée
+ * telle quelle — 91 Ko, non tronquée (spec 028).
+ *
+ * Non tronquée à dessein : une capture réduite à la ligne utile ne casserait
+ * plus le jour où myffbad déplace le bloc, et c'est justement ce déplacement
+ * qu'on veut voir.
+ */
+const FICHE_PUBLIQUE = readFileSync(new URL("exemples/myffbad-fiche.html", import.meta.url), "utf8");
+
+describe("l'identité lue sur la fiche publique", () => {
+  it("rend le nom et le personId de la capture réelle, sans session", () => {
+    // C'est le fait qui a renversé 015 : `isAuthenticated:false`, et le
+    // `personId` que l'action exige est là, sur une page servie à froid.
+    assert.deepEqual(identiteDuJoueur(reponse(FICHE_PUBLIQUE), licence("07194591")), {
+      licence: "07194591",
+      nom: "Simon RENOULT",
+      personId: 1083591,
+    });
+    assert.match(FICHE_PUBLIQUE, /isAuthenticated\\":false/);
+  });
+
+  it("ne porte aucun genre, ce qui laisse le sexe au CSV de 005", () => {
+    for (const clef of ["gender", "sexe", "\"SH\"", "\"SD\""]) {
+      assert.ok(!FICHE_PUBLIQUE.includes(clef), `la fiche ne porte pas ${clef}`);
+    }
+  });
+
+  it("refuse la fiche qui répond pour quelqu'un d'autre", () => {
+    // Une licence bien formée mais erronée rapporte le nom et le classement
+    // d'un inconnu : rien d'autre que ce contrôle ne le dit avant la page.
+    assert.throws(
+      () => identiteDuJoueur(reponse(FICHE_PUBLIQUE), licence("02345678")),
+      IdentiteIllisible,
+    );
+  });
+
+  it("refuse la page qui ne porte pas de bloc d'identité", () => {
+    assert.throws(
+      () => identiteDuJoueur(reponse('0:{"b":"BUILD"}\n'), licence("07194591")),
+      IdentiteIllisible,
+    );
+  });
+
+  it("refuse un personId ou un nom que myffbad aurait vidés", () => {
+    const bloc = (remplacements: Record<string, unknown>) =>
+      `0:{"b":"BUILD"}\n1:${JSON.stringify([
+        "$",
+        "$L44",
+        null,
+        { personId: 1083591, fullName: "Simon RENOULT", licence: "07194591", ...remplacements },
+      ])}\n`;
+
+    assert.throws(() => identiteDuJoueur(reponse(bloc({ personId: 0 })), licence("07194591")), IdentiteIllisible);
+    assert.throws(() => identiteDuJoueur(reponse(bloc({ fullName: "  " })), licence("07194591")), IdentiteIllisible);
+  });
+});
+
+describe("les pages sondées, deuxième moitié", () => {
+  it("exerce la fiche publique sans cookie, session ou pas", () => {
+    for (const jeton of [null, `jwt=${jwt({ personId: "1083591", exp: 1790869415 })}`]) {
+      const fiche = module.pagesDeLaSonde(jeton).find(({ intitule }) => intitule === "fiche publique");
+
+      assert.equal(fiche?.requete.url, "https://www.myffbad.fr/joueur/07194591");
+      assert.equal(fiche?.requete.jeton, null);
+    }
+  });
+
+  it("compte l'identité extraite, parce qu'une page qui répond peut ne rien rendre", () => {
+    const fiche = module.pagesDeLaSonde(null).find(({ intitule }) => intitule === "fiche publique");
+
+    assert.equal(fiche?.extraire?.(reponse(FICHE_PUBLIQUE)), 1);
+    assert.equal(fiche?.extraire?.(reponse('0:{"b":"BUILD"}\n')), 0);
   });
 });

@@ -11,9 +11,10 @@ import {
   tacheDAcquisition,
 } from "./socle/core/acquisition.ts";
 import { sonder } from "./socle/core/sonde.ts";
-import { PLAFOND_DE_LA_PASSE, releverLeClassement } from "./socle/core/passe-classement.ts";
+import { plafondDeLaPasse, releverLesClassements } from "./socle/core/passe-classement.ts";
 import { seConnecter } from "./socle/core/connexion.ts";
 import { horlogeSysteme } from "./socle/core/horloge.ts";
+import type { Licence } from "./socle/core/licence.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
 import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
@@ -42,13 +43,6 @@ if (persistance.migrationsAppliquees.length > 0) {
 }
 
 /**
- * Les deux sources, et le client qui les atteint — spec 015.
- *
- * Un client neuf par passe et par source : c'est lui qui porte l'archivage
- * avant analyse et le plafond de requêtes, et aucun des deux ne doit pouvoir
- * s'oublier ni se partager entre sources.
- */
-/**
  * Le dépôt de `capitanat`, monté sur la même base que le reste — spec 005.
  *
  * Il n'est pas dans la persistance du socle : `Coequipier` est une notion de
@@ -60,6 +54,13 @@ const coequipiers = depotCoequipiersSqlite(persistance.base);
 const modulesDAcquisition = [creerModuleMyffbad(configuration.licence), moduleBadnet];
 const reseau = clientFetch();
 
+/**
+ * Les deux sources, et le client qui les atteint — spec 015.
+ *
+ * Un client neuf par passe et par source : c'est lui qui porte l'archivage
+ * avant analyse et le plafond de requêtes, et aucun des deux ne doit pouvoir
+ * s'oublier ni se partager entre sources.
+ */
 const clientPour = (source: (typeof modulesDAcquisition)[number]["source"], plafond: number) => {
   const module = modulesDAcquisition.find((candidat) => candidat.source === source);
   if (module === undefined) throw new Error(`Source sans module d'acquisition : ${source}`);
@@ -73,6 +74,38 @@ const clientPour = (source: (typeof modulesDAcquisition)[number]["source"], plaf
   );
 };
 
+/**
+ * Les licences suivies — spec 028.
+ *
+ * La mienne et celles de l'équipe, dédoublonnées : je suis dans le CSV comme
+ * les autres, et sans cette union je serais relevé deux fois. Elle se relit à
+ * chaque passage plutôt que de se figer au démarrage, parce que l'import de 005
+ * la change entre deux passes.
+ *
+ * La passe les reçoit en argument : un port de plus n'aurait qu'un seul
+ * implémenteur, et le point de composition est déjà l'endroit désigné pour
+ * brancher un module sur le socle (022).
+ */
+const licencesSuivies = (): readonly Licence[] => [
+  ...new Set([configuration.licence, ...coequipiers.tous().map(({ licence }) => licence)]),
+];
+
+const relever = () => {
+  const module = modulesDAcquisition.find((candidat) => candidat.source === "myffbad");
+  if (module === undefined) throw new Error("Source sans module d'acquisition : myffbad");
+
+  const licences = licencesSuivies();
+  return releverLesClassements({
+    client: clientPour("myffbad", plafondDeLaPasse(licences.length)),
+    module,
+    licences,
+    identites: persistance.identites,
+    classements: persistance.classements,
+    rapports: persistance.rapports,
+    horloge: horlogeSysteme,
+  });
+};
+
 const application = creerApplication({
   configuration,
   modules: [
@@ -80,7 +113,11 @@ const application = creerApplication({
       licence: configuration.licence,
       classements: persistance.classements,
     }),
-    creerModuleCapitanat({ coequipiers }),
+    creerModuleCapitanat({
+      coequipiers,
+      identites: persistance.identites,
+      classements: persistance.classements,
+    }),
     moduleVeille,
   ],
   etatDuSocle: () => ({
@@ -130,17 +167,23 @@ const application = creerApplication({
 
     // L'import de l'équipe — spec 005. Le socle passe du texte et reçoit un
     // décompte ou des motifs : c'est ici que le CSV devient des coéquipiers.
-    // Il n'appelle personne, volontairement : 005 doit pouvoir se vérifier
-    // sans source externe, et c'est 028 qui accrochera la passe ensuite.
-    importerLEquipe: (csv) => {
+    //
+    // Et la passe suit dans la foulée (028) : on clique, on voit huit noms.
+    // C'est ce qui rend une licence bien formée mais erronée visible tout de
+    // suite — elle rapporte le nom de quelqu'un d'autre. Une passe qui échoue
+    // ne défait pas l'import : le CSV, lui, était bon, et l'écran porte les
+    // deux verdicts séparément.
+    importerLEquipe: async (csv) => {
+      let equipe;
       try {
-        const equipe = lireLeCsvDeLEquipe(csv);
+        equipe = lireLeCsvDeLEquipe(csv);
         coequipiers.remplacer(equipe);
-        return { issue: "importee", membres: equipe.length };
       } catch (erreur) {
         if (erreur instanceof ImportRefuse) return { issue: "refusee", motifs: erreur.motifs };
         throw erreur;
       }
+
+      return { issue: "importee", membres: equipe.length, releve: await relever() };
     },
 
     connecter: async (source) => {
@@ -168,23 +211,10 @@ const application = creerApplication({
         horloge: horlogeSysteme,
       }),
 
-    // La passe de 001, déclenchée à la main tant que 018 n'ordonnance rien.
-    // C'est la même fonction que l'ordonnanceur appellera : le bouton
-    // disparaîtra, la passe restera.
-    relever: () => {
-      const module = modulesDAcquisition.find((candidat) => candidat.source === "myffbad");
-      if (module === undefined) throw new Error("Source sans module d'acquisition : myffbad");
-
-      return releverLeClassement({
-        client: clientPour("myffbad", PLAFOND_DE_LA_PASSE),
-        module,
-        licence: configuration.licence,
-        jetons: persistance.jetonMyffbad,
-        classements: persistance.classements,
-        rapports: persistance.rapports,
-        horloge: horlogeSysteme,
-      });
-    },
+    // La passe de 001, élargie à l'équipe par 028, déclenchée à la main tant
+    // que 018 n'ordonnance rien. C'est la même fonction que l'ordonnanceur
+    // appellera : le bouton disparaîtra, la passe restera.
+    relever,
   },
 });
 

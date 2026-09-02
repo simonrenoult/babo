@@ -1,3 +1,6 @@
+import type { Classement, DepotClassements } from "../../socle/core/classement.ts";
+import { DISCIPLINES } from "../../socle/core/classement.ts";
+import type { DepotIdentites } from "../../socle/core/identite.ts";
 import type { Licence } from "../../socle/core/licence.ts";
 
 /**
@@ -9,8 +12,9 @@ import type { Licence } from "../../socle/core/licence.ts";
  *
  * Ce que porte cette table est exactement ce que myffbad ne publie pas : le
  * sexe et le téléphone. Le nom et le classement, eux, se relèvent
- * ([[028__nom-et-classement-de-l-equipe]]) — les saisir ici serait recopier à
- * la main une donnée qui se périme chaque semaine.
+ * ([[028__nom-et-classement-de-l-equipe]], faite) et vivent dans le socle —
+ * les saisir ici serait recopier à la main une donnée qui se périme chaque
+ * semaine.
  *
  * Pas de mail : myffbad ne publie pas les coordonnées de ses licenciés, et une
  * colonne remplie « au cas où » serait de la donnée personnelle de tiers
@@ -88,17 +92,31 @@ export class ImportRefuse extends Error {
 }
 
 /**
- * Un membre tel que la page le montre — spec 005.
+ * Un membre tel que la page le montre — specs 005 et 028.
  *
- * Ni nom ni classement : cette spec n'appelle personne, et c'est voulu, pas
- * oublié. Elle doit pouvoir se livrer et se vérifier sans source externe ;
- * [[028__nom-et-classement-de-l-equipe]] accroche la passe ensuite.
+ * 005 n'appelait personne : la page montrait des numéros de licence là où il
+ * fallait des noms. 028 accroche la passe, et les trois champs relevés arrivent
+ * ici — sans jamais que ce module ne parle à myffbad, qui reste le travail du
+ * socle (022).
  */
 export type MembreDeLEquipe = Coequipier & {
   /** Le numéro débarrassé de sa mise en forme, pour l'`href="tel:"`. */
   readonly appel: string;
   /** Sa fiche fédérale, publique : le lien qui manquait entre le tableur et myffbad. */
   readonly fiche: string;
+  /**
+   * Le nom relevé sur myffbad, ou `null` tant qu'aucune passe n'a abouti pour
+   * lui. C'est aussi ce qui rend visible une licence bien formée mais erronée :
+   * elle rapporte le nom de quelqu'un d'autre, et rien d'autre ne le dit (028).
+   */
+  readonly nom: string | null;
+  /** Une entrée par discipline présente sur la fiche, dans l'ordre du barème. */
+  readonly classements: readonly Classement[];
+  /**
+   * La date de la passe qui a relevé ces valeurs — `vu_le`, pas `apparu_le` :
+   * la question à laquelle la page répond est « est-ce à jour ? ».
+   */
+  readonly vuLe: Date | null;
 };
 
 /**
@@ -108,12 +126,54 @@ export type MembreDeLEquipe = Coequipier & {
  */
 const FICHE_MYFFBAD = "https://www.myffbad.fr/joueur/";
 
-export function listeDeLEquipe(depot: DepotCoequipiers): readonly MembreDeLEquipe[] {
-  // L'ordre vient du dépôt : par licence croissante, arbitraire mais stable et
-  // sans code. 028 le remplacera par le nom dès qu'il y en aura un.
-  return depot.tous().map((coequipier) => ({
-    ...coequipier,
-    appel: coequipier.telephone.replaceAll(/[^+0-9]/gu, ""),
-    fiche: `${FICHE_MYFFBAD}${coequipier.licence}`,
-  }));
+export function listeDeLEquipe(
+  depot: DepotCoequipiers,
+  identites: DepotIdentites,
+  classements: DepotClassements,
+): readonly MembreDeLEquipe[] {
+  const membres = depot.tous().map((coequipier) => {
+    const releves = classements.derniers(coequipier.licence);
+
+    return {
+      ...coequipier,
+      appel: coequipier.telephone.replaceAll(/[^+0-9]/gu, ""),
+      fiche: `${FICHE_MYFFBAD}${coequipier.licence}`,
+      nom: identites.lire(coequipier.licence)?.nom ?? null,
+      // Dans l'ordre simple, double, mixte — celui de la fiche et du barème,
+      // et non celui que la base rendrait, qui n'est l'ordre de personne. La
+      // discipline jamais jouée est absente, jamais inventée (001).
+      classements: DISCIPLINES.flatMap((discipline) => {
+        const releve = releves.find((candidat) => candidat.discipline === discipline);
+        return releve === undefined
+          ? []
+          : [{ discipline, lettre: releve.lettre, cpph: releve.cpph }];
+      }),
+      vuLe: laPlusRecente(releves.map(({ vuLe }) => vuLe)),
+    };
+  });
+
+  return [...membres].sort(parNom);
+}
+
+/**
+ * Le tri de 028 : sur le nom tel que myffbad le rend — « Simon RENOULT »,
+ * prénom puis nom.
+ *
+ * Pas d'extraction du nom de famille : une heuristique sur des noms propres
+ * échoue en silence au premier nom composé, sur la donnée qu'on lit en premier.
+ *
+ * Les membres pas encore relevés passent en fin de liste, par licence : c'est
+ * l'ordre provisoire de 005, et le tenir séparé évite qu'un membre change de
+ * place à mesure que la passe avance.
+ */
+function parNom(un: MembreDeLEquipe, autre: MembreDeLEquipe): number {
+  if (un.nom === null || autre.nom === null) {
+    if (un.nom !== autre.nom) return un.nom === null ? 1 : -1;
+    return un.licence.localeCompare(autre.licence);
+  }
+  return un.nom.localeCompare(autre.nom, "fr");
+}
+
+function laPlusRecente(dates: readonly Date[]): Date | null {
+  return dates.length === 0 ? null : new Date(Math.max(...dates.map((date) => date.getTime())));
 }

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { licence } from "../../socle/core/licence.ts";
 import { ouvrirLaPersistance } from "../../socle/infrastructure/base/persistance.ts";
+import { depotIdentitesSqlite } from "../../socle/infrastructure/base/depot-identites-sqlite.ts";
 import { depotCoequipiersSqlite } from "./depot-coequipiers-sqlite.ts";
 
 const CLE = "clé-de-test";
@@ -44,6 +45,19 @@ describe("l'équipe en base", () => {
     assert.deepEqual(depot.tous(), [
       { licence: "03456789", sexe: "F", telephone: "0612345670" },
     ]);
+  });
+
+  it("emporte le nom du partant, pas seulement son classement", () => {
+    // Le nom que 028 relève est de la donnée personnelle au même titre que le
+    // téléphone — davantage, même : il désigne la personne (021).
+    const identites = depotIdentitesSqlite(persistance.base);
+    const partant = licence("04567890");
+    depot.remplacer([{ licence: partant, sexe: "F", telephone: "0612345670" }]);
+    identites.enregistrer({ licence: partant, nom: "Alice DUPONT", personId: 7 }, new Date());
+
+    depot.remplacer([{ licence: licence("07194591"), sexe: "M", telephone: "0612345678" }]);
+
+    assert.equal(identites.lire(partant), null);
   });
 
   it("emporte les relevés de classement du partant", () => {

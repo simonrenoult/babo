@@ -5,6 +5,7 @@ import type { AccesAuxSources } from "./routeur-sources.ts";
 import type { Configuration } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
+import type { RapportArchive } from "../core/rapport-execution.ts";
 import type { Source } from "../core/source.ts";
 
 const CONFIGURATION: Configuration = {
@@ -37,6 +38,17 @@ const ETATS: readonly EtatDeLaSource[] = [
     derniereIssue: null,
   },
 ];
+
+/** Le rapport que la passe de 028 rend : une ligne par joueur, un décompte. */
+const RAPPORT: RapportArchive = {
+  id: 12,
+  tache: "acquisition:myffbad",
+  demarreLe: new Date("2026-09-01T05:00:00Z"),
+  termineLe: new Date("2026-09-01T05:00:02Z"),
+  issue: "succes",
+  volumeExtrait: 24,
+  detail: "8 relevé(s) sur 8",
+};
 
 type Trace = {
   enregistres: [Source, string][];
@@ -80,10 +92,13 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
       importerLEquipe: (csv) => {
         trace.importes.push(csv);
         // Le socle ne sait pas lire un CSV d'équipe et n'a pas à l'apprendre
-        // (022) : la doublure rend ce que `main.ts` rendrait.
-        return csv.includes("licence")
-          ? { issue: "importee", membres: 8 }
-          : { issue: "refusee", motifs: [{ ligne: 1, raison: "colonne « licence » absente." }] };
+        // (022) : la doublure rend ce que `main.ts` rendrait — import puis
+        // passe enchaînée (028).
+        return Promise.resolve(
+          csv.includes("licence")
+            ? { issue: "importee", membres: 8, releve: { ...RAPPORT, detail: "8 relevé(s) sur 8" } }
+            : { issue: "refusee", motifs: [{ ligne: 1, raison: "colonne « licence » absente." }] },
+        );
       },
       oublier: (source) => void trace.oublies.push(source),
       connecter: (source) => {
@@ -92,15 +107,7 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
       },
       relever: () => {
         trace.releves += 1;
-        return Promise.resolve({
-          id: 12,
-          tache: "acquisition:myffbad",
-          demarreLe: new Date("2026-09-01T05:00:00Z"),
-          termineLe: new Date("2026-09-01T05:00:02Z"),
-          issue: "succes",
-          volumeExtrait: 3,
-          detail: "classement : simple D9, double D8, mixte D9",
-        });
+        return Promise.resolve(RAPPORT);
       },
       sonder: () => {
         trace.sondes += 1;
@@ -258,7 +265,7 @@ describe("l'écran des sources", () => {
     assert.match(reponse.corps, /atteinte/);
   });
 
-  it("lance la passe de classement et rend son rapport", async () => {
+  it("lance la passe et rend son rapport, ligne par ligne", async () => {
     // Le bouton est ici, sur l'écran d'exploitation, et non sur « Mon profil » :
     // 001 écarte le « rafraîchir maintenant » entre les mains de l'utilisateur.
     // 018 déclenchera la même passe, et ce bouton n'aura plus qu'à dépanner.
@@ -267,7 +274,8 @@ describe("l'écran des sources", () => {
 
     assert.equal(reponse.statut, 200);
     assert.equal(trace.releves, 1);
-    assert.match(reponse.corps, /simple D9, double D8, mixte D9/);
+    assert.match(reponse.corps, /8 relevé\(s\) sur 8/, "le décompte que 028 exige");
+    assert.match(reponse.corps, /24 disciplines relevées/, "le volume, pas le nombre de pages");
   });
 });
 

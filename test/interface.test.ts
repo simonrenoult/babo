@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -15,11 +15,59 @@ import { moduleVeille } from "../src/veille/presentation/module-web.ts";
 import { etatDeLaSource, tacheDAcquisition } from "../src/socle/core/acquisition.ts";
 import { SOURCES } from "../src/socle/core/source.ts";
 import { licence } from "../src/socle/core/licence.ts";
+import type { ClientHttp } from "../src/socle/core/acquisition.ts";
+import { sousPlafond } from "../src/socle/core/acquisition.ts";
+import { creerModuleMyffbad } from "../src/socle/infrastructure/acquisition/myffbad.ts";
+import { plafondDeLaPasse, releverLesClassements } from "../src/socle/core/passe-classement.ts";
+import { horlogeSysteme } from "../src/socle/core/horloge.ts";
+import type { RapportArchive } from "../src/socle/core/rapport-execution.ts";
 
 /**
  * L'assemblage réel, tel que `main.ts` le monte : c'est le seul endroit du
  * dépôt, avec le point de composition, qui a le droit de tout connaître.
  */
+/**
+ * Les deux captures réelles, rejouées à la place du réseau — spec 028.
+ *
+ * Tout le reste est vrai : les parseurs, les dépôts, la passe, la page. Seul le
+ * transport est doublé, parce qu'un test qui appelle myffbad dépendrait de
+ * myffbad — et parce que 015 assume un risque de bannissement qu'une suite de
+ * tests n'a pas à consommer.
+ */
+const CAPTURES = {
+  fiche: readFileSync(
+    new URL("../src/socle/infrastructure/acquisition/exemples/myffbad-fiche.html", import.meta.url),
+    "utf8",
+  ),
+  classement: readFileSync(
+    new URL("../src/socle/infrastructure/acquisition/exemples/myffbad-classement.txt", import.meta.url),
+    "utf8",
+  ),
+};
+
+/** Un réseau qui rend la fiche sur un GET et le classement sur l'action. */
+function reseauRejoue(): ClientHttp & { requetes: number; jetons: (string | null)[] } {
+  const trace = {
+    requetes: 0,
+    /** Les sessions réellement présentées. Doit rester vide (028). */
+    jetons: [] as (string | null)[],
+    recuperer: (requete: { url: string; methode?: string; jeton: string | null }) => {
+      trace.requetes += 1;
+      if (requete.jeton !== null) trace.jetons.push(requete.jeton);
+      // Une licence inconnue de la capture : myffbad rendrait la fiche de
+      // quelqu'un d'autre ou rien du tout. On rend la même, et c'est le
+      // contrôle de licence du parseur qui doit s'en apercevoir (028).
+      return Promise.resolve({
+        url: requete.url,
+        statutHttp: 200,
+        contenu: requete.methode === "POST" ? CAPTURES.classement : CAPTURES.fiche,
+        cookies: [],
+      });
+    },
+  };
+  return trace;
+}
+
 describe("l'application assemblée", () => {
   let dossier: string;
   let serveur: Server;
@@ -27,10 +75,32 @@ describe("l'application assemblée", () => {
   let persistance: ReturnType<typeof ouvrirLaPersistance>;
   let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
 
+  let reseau: ReturnType<typeof reseauRejoue>;
+  let passe: () => Promise<RapportArchive>;
+
   before(async () => {
     dossier = mkdtempSync(join(tmpdir(), "babo-interface-"));
     persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
     coequipiers = depotCoequipiersSqlite(persistance.base);
+    reseau = reseauRejoue();
+
+    const moduleMyffbad = creerModuleMyffbad(licence("07194591"));
+    passe = () => {
+      const licences = [
+        ...new Set([licence("07194591"), ...coequipiers.tous().map(({ licence: numero }) => numero)]),
+      ];
+      return releverLesClassements({
+        // Sous plafond, comme dans `main.ts` : c'est le garde-fou qu'on veut
+        // voir tenir sur une équipe entière, pas seulement sur un joueur.
+        client: sousPlafond(reseau, plafondDeLaPasse(licences.length)),
+        module: moduleMyffbad,
+        licences,
+        identites: persistance.identites,
+        classements: persistance.classements,
+        rapports: persistance.rapports,
+        horloge: horlogeSysteme,
+      });
+    };
 
     const application = creerApplication({
       configuration: {
@@ -45,7 +115,11 @@ describe("l'application assemblée", () => {
           licence: licence("07194591"),
           classements: persistance.classements,
         }),
-        creerModuleCapitanat({ coequipiers }),
+        creerModuleCapitanat({
+          coequipiers,
+          identites: persistance.identites,
+          classements: persistance.classements,
+        }),
         moduleVeille,
       ],
       etatDuSocle: () => ({
@@ -77,17 +151,19 @@ describe("l'application assemblée", () => {
         sonder: () => Promise.resolve([]),
         // La passe touche au réseau : idem, l'assemblage vérifie le montage.
         relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
-        // L'import, lui, n'appelle personne : c'est la chaîne entière, du
-        // téléversement à la page, qui se vérifie ici (spec 005).
-        importerLEquipe: (csv) => {
+        // L'import enchaîne la passe (028), et le tout est vrai sauf le
+        // réseau : parseurs, dépôts, passe, page. C'est la chaîne entière, du
+        // téléversement à l'affichage, que ce test tient.
+        importerLEquipe: async (csv) => {
+          let equipe;
           try {
-            const equipe = lireLeCsvDeLEquipe(csv);
+            equipe = lireLeCsvDeLEquipe(csv);
             coequipiers.remplacer(equipe);
-            return { issue: "importee", membres: equipe.length };
           } catch (erreur) {
             if (erreur instanceof ImportRefuse) return { issue: "refusee", motifs: erreur.motifs };
             throw erreur;
           }
+          return { issue: "importee", membres: equipe.length, releve: await passe() };
         },
       },
     });
@@ -160,6 +236,35 @@ describe("l'application assemblée", () => {
     assert.match(corps, /https:\/\/www\.myffbad\.fr\/joueur\/07194591/, "et la fiche liée");
     assert.match(corps, /02345678/);
     assert.doesNotMatch(corps, /Aucune équipe importée/);
+  });
+
+  it("relève le nom et le classement dans la foulée de l'import", async () => {
+    // La deuxième vérification que 028 exige : pas seulement les parseurs
+    // rejoués, mais la chaîne fiche → personId → action → base → page.
+    const corps = await (await fetch(`${base}/capitanat`)).text();
+
+    assert.match(corps, /Simon RENOULT/, "le nom relevé sur la fiche publique");
+    assert.match(corps, /D9/);
+    assert.match(corps, /1\s?311/, "le CPPH du double, formaté en français");
+    assert.doesNotMatch(corps, /Noms et classements non encore relevés/);
+  });
+
+  it("laisse la ligne du coéquipier introuvable, sans la faire passer pour non classée", async () => {
+    // Le réseau rejoué rend toujours la fiche de 07194591 : la licence
+    // 02345678 reçoit donc la fiche de quelqu'un d'autre, et c'est le contrôle
+    // de licence du parseur qui la laisse muette (028). Une case vide ne doit
+    // jamais pouvoir se lire comme « non classé ».
+    const corps = await (await fetch(`${base}/capitanat`)).text();
+
+    assert.match(corps, /1 membre\s+sans relevé/);
+    assert.match(corps, /non relevé/);
+  });
+
+  it("n'a présenté aucun cookie pour relever l'équipe", async () => {
+    // Le cœur de 028 : la passe hebdomadaire ne dépend plus d'une session, donc
+    // le vendredi où le jeton est mort, le classement est relevé quand même.
+    assert.ok(reseau.requetes > 0, "la passe a bien tourné");
+    assert.deepEqual(reseau.jetons, [], "et sans jamais présenter de session");
   });
 
   it("refuse l'import entier sur une ligne fautive, sans toucher à l'équipe en base", async () => {

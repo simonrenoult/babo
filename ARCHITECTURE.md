@@ -71,8 +71,12 @@ redirige vers `/connexion`, badnet sert sa page de connexion sous l'URL
 demandée. C'est cette différence qui interdit de les mutualiser.
 
 Elles ne se ressemblent pas non plus dans leur mécanique. myffbad se lit par
-fonctions serveur Next.js, sous session, avec un `personId` qui ne vit que dans
-le jeton. La recherche de tournois badnet, elle, est **publique et anonyme** :
+fonctions serveur Next.js, avec un `personId` qu'on a d'abord cru réservé au
+jeton — la fiche publique le porte aussi, et c'est ce que 028 a établi. myffbad
+a donc lui aussi deux moitiés : la fiche `/joueur/<licence>` et l'action
+`classement` répondent **à froid**, sans cookie ; l'espace du licencié — accueil,
+mes inscriptions, résultats — reste derrière la session. La recherche de
+tournois badnet, elle, est **publique et anonyme** :
 un POST sur `/index.php`, sans cookie, dont la réponse embarque la liste en
 JSON dans `div.b-markers`. C'est la seule requête du projet qui ne dépende de
 rien — et elle ne doit jamais passer sous session, sous peine de mettre la
@@ -105,7 +109,8 @@ démarrage par `src/socle/infrastructure/base/persistance.ts`. Aucune feature ne
 persiste quoi que ce soit en dehors.
 
 Le schéma porte le jeton de session, les captures brutes, les rapports
-d'exécution, les déploiements observés, le classement et l'équipe. Celui des
+d'exécution, les déploiements observés, le classement, l'équipe et l'identité
+de chaque licence suivie. Celui des
 matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
 lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
 `src/socle/infrastructure/base/migrations/`, appliqués une fois, dans l'ordre
@@ -142,9 +147,10 @@ pièces, une par couche :
 | Pièce | Où |
 |-------|-----|
 | la notion — lettre, CPPH, discipline | `socle/core/classement.ts` |
-| le parseur de la fiche myffbad | `socle/infrastructure/acquisition/myffbad.ts` |
+| l'identité — nom et `personId` | `socle/core/identite.ts` |
+| les parseurs de la fiche myffbad | `socle/infrastructure/acquisition/myffbad.ts` |
 | la passe qui relève, écrit et rapporte | `socle/core/passe-classement.ts` |
-| la lecture et la page | `mon-profil/` |
+| la lecture et les pages | `mon-profil/` et `capitanat/` |
 
 `Classement` est dans le `socle` et non dans `mon-profil` : une lettre et un
 CPPH sont un fait fédéral, il n'en existe pas une version vue par `mon-profil`
@@ -167,10 +173,32 @@ Une lettre hors barème fait échouer la passe au lieu d'entrer en base : c'est
 le seul moyen que le succès vide de 019 se voie. La capture étant archivée, la
 correction se fait dessus, sans requête réseau.
 
+**Une seule passe, entièrement anonyme, pour tout le monde** — 028. Elle boucle
+sur les licences suivies, la mienne et celles de l'équipe dédoublonnées, et pour
+chacune enchaîne deux requêtes sans cookie : la fiche `/joueur/<licence>`, qui
+rend le nom et le `personId`, puis l'action `classement`, qui n'accepte que ce
+`personId`. Le `personId` est gardé en base — un cache par licence, côté socle,
+parce que c'est un détail d'acquisition et pas une donnée d'équipe —, ce qui
+ramène le régime de croisière à une requête par joueur et par semaine. Sur
+réponse vide, la fiche est relue et l'appel retenté une fois : un cache qui ne
+se répare pas laisse un joueur muet jusqu'à ce que quelqu'un lise un rapport.
+
+001 exigeait une session valide et refusait de partir sans. La sonde du
+2 septembre 2026 a montré que le classement sort en anonyme à l'octet près, et
+028 a retiré la condition — ce qui supprime un mode de panne entier : le
+vendredi où le jeton est mort, le classement de toute l'équipe est relevé quand
+même.
+
+**L'échec est ligne à ligne.** La passe consigne « 7 relevés sur 8, licence X
+muette », et son issue n'est `echec` que si aucune ligne n'aboutit : sans cela,
+un seul coéquipier qui change de club ferait tomber le classement de toute
+l'équipe. Le succès vide de 019 descend du même coup au niveau du joueur — celui
+dont l'action ne rend rien est muet, même si les autres parlent.
+
 La passe n'a pas encore de déclencheur : 018 la portera. En attendant,
 `/sources` la lance à la main — sur l'écran d'exploitation, jamais sur
 `/mon-profil`, où un bouton mettrait le plafond d'un passage par jour entre les
-mains de l'utilisateur.
+mains de l'utilisateur —, et l'import de l'équipe l'enchaîne.
 
 ## L'équipe
 
@@ -183,7 +211,7 @@ Deuxième donnée métier, et la première d'une feature — spec 005. Elle vit 
 | la notion — licence, sexe, téléphone — et son port | `capitanat/core/coequipier.ts` |
 | le parseur du CSV | `capitanat/infrastructure/csv-equipe.ts` |
 | le dépôt | `capitanat/infrastructure/depot-coequipiers-sqlite.ts` |
-| la table | `socle/infrastructure/base/migrations/004__coequipier.sql` |
+| les tables | `migrations/004__coequipier.sql` et `005__identite.sql` |
 | la page | `capitanat/presentation/` |
 
 Le dépôt n'est pas monté par la persistance du socle, qui ne connaît aucune
@@ -193,8 +221,12 @@ hors de là.
 
 Trois colonnes, et exactement celles que myffbad ne publie pas : la sonde de
 015 a montré que la fiche ne porte aucun genre et aucune coordonnée. Le nom et
-le classement des coéquipiers se relèveront (028) ; le mail n'existe nulle
-part, et 015 est amendée sur ces deux points.
+le classement, eux, se relèvent — 028, et ils vivent dans le socle, pas ici :
+un nom fédéral n'a pas une version vue par `capitanat` et une autre vue par
+`mon-profil`. Le mail n'existe nulle part, et 015 est amendée sur ces deux
+points. Le sexe reste au CSV : il n'est ni sur la fiche, ni dans les 85 clés de
+l'action `classement`, ni dans les résultats — qui rendent une discipline et une
+série, jamais `SH` ni `SD`.
 
 L'import se fait depuis `/sources`, l'écran d'exploitation, comme la passe de
 001 : le contenu du fichier est posté en `text/csv` par dix lignes de JS et lu
@@ -206,6 +238,13 @@ sa raison. Et **remplacement intégral** : un coéquipier absent du fichier est
 supprimé, avec ses relevés de classement — garder « au cas où » les
 coordonnées de quelqu'un qui ne joue plus ici est précisément ce qui rendrait
 une fuite impardonnable.
+
+L'import enchaîne une passe : on dépose huit lignes, on lit huit noms. C'est ce
+qui rend visible une licence bien formée mais erronée — elle rapporte le nom et
+le classement de quelqu'un d'autre, et seul le nom affiché le dit. Le parseur
+refuse d'ailleurs la fiche qui répond pour une autre licence que celle
+demandée : c'est le seul contrôle qui sépare « je me suis trompé de numéro » de
+« j'ai attribué un classement à la mauvaise personne ».
 
 ## Ce qui n'est pas encore là
 

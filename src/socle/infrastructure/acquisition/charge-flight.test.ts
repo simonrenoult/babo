@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { lireLaChargeFlight, ligneQuiPorte } from "./charge-flight.ts";
+import { lireLaChargeFlight, objetQuiPorte } from "./charge-flight.ts";
 
 /**
  * Les exemples sont des réponses réelles de myffbad, relevées le 1er septembre
@@ -29,7 +29,7 @@ describe("la charge flight d'une Server Action", () => {
 
   it("rend le classement tel que myffbad l'écrit", () => {
     const charge = lireLaChargeFlight(exemple("myffbad-classement"));
-    const classement = ligneQuiPorte(charge, ["SimpleSubLevel", "DoubleSubLevel", "MixteSubLevel"]);
+    const classement = objetQuiPorte(charge, ["SimpleSubLevel", "DoubleSubLevel", "MixteSubLevel"]);
 
     assert.partialDeepStrictEqual(classement, {
       RankingDate: "2026-09-01",
@@ -83,6 +83,6 @@ describe("la charge flight d'une Server Action", () => {
   it("ne trouve rien plutôt que d'inventer, quand la forme attendue a disparu", () => {
     const charge = lireLaChargeFlight(exemple("myffbad-resultats"));
 
-    assert.equal(ligneQuiPorte(charge, ["SimpleSubLevel"]), null);
+    assert.equal(objetQuiPorte(charge, ["SimpleSubLevel"]), null);
   });
 });

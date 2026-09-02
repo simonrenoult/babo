@@ -10,18 +10,61 @@
     <code>licence;sexe;telephone</code>, en-tête comprise, en UTF-8.
   </p>
 <% } else { %>
+  <%
+    // Une case vide ne doit jamais pouvoir se lire comme « non classé » : tant
+    // qu'aucune passe n'a abouti, on le dit en toutes lettres (028, dans
+    // l'esprit de 001 qui refuse le tableau de tirets).
+    const releves = equipe.filter((membre) => membre.nom !== null).length;
+  %>
+
   <p>
     <%= equipe.length %> membre<%= equipe.length > 1 ? "s" : "" %>, moi compris.
-    Le sexe et le téléphone viennent du fichier ; le nom et le classement
-    viendront de myffbad (spec 028). L'import remplace la liste entière.
+    Le sexe et le téléphone viennent du fichier ; le nom et le classement sont
+    relevés sur myffbad chaque vendredi (spec 028). L'import remplace la liste
+    entière.
   </p>
 
+  <% if (releves === 0) { %>
+    <p class="etat">
+      Noms et classements non encore relevés. La passe se lance depuis
+      <a href="/sources">l'écran des sources</a>.
+    </p>
+  <% } else if (releves < equipe.length) { %>
+    <p class="etat">
+      <%= equipe.length - releves %> membre<%= equipe.length - releves > 1 ? "s" : "" %>
+      sans relevé : la dernière passe ne les a pas trouvés sur myffbad. Le
+      rapport en donne la raison sur <a href="/sources">l'écran des sources</a>.
+    </p>
+  <% } %>
+
   <table>
-    <tr><th>Licence</th><th>Sexe</th><th>Téléphone</th><th>Fiche</th></tr>
+    <tr>
+      <th>Nom</th><th>Licence</th><th>Sexe</th>
+      <th>Simple</th><th>Double</th><th>Mixte</th>
+      <th>Relevé le</th><th>Téléphone</th><th>Fiche</th>
+    </tr>
     <% for (const membre of equipe) { %>
+      <%
+        const parDiscipline = new Map(
+          membre.classements.map((classement) => [classement.discipline, classement]),
+        );
+      %>
       <tr>
+        <td><%= membre.nom ?? "—" %></td>
         <td><%= membre.licence %></td>
         <td><%= membre.sexe %></td>
+        <% for (const discipline of ["simple", "double", "mixte"]) { %>
+          <% const classement = parDiscipline.get(discipline); %>
+          <td>
+            <% if (classement === undefined) { %>
+              <span class="etat"><%= membre.nom === null ? "non relevé" : "non joué" %></span>
+            <% } else { %>
+              <%= classement.lettre %>
+              <span class="etat"><%= classement.cpph.toLocaleString("fr-FR") %></span>
+            <% } %>
+          </td>
+        <% } %>
+        <td><%= membre.vuLe === null ? "—" : membre.vuLe.toLocaleDateString("fr-FR") %></td>
         <td><a href="tel:<%= membre.appel %>"><%= membre.telephone %></a></td>
         <td>
           <a href="<%= membre.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>
@@ -33,7 +76,6 @@
 
 <h3>Ce qui viendra ici</h3>
 <ul>
-  <li>Nom et classement des membres — spec 028</li>
   <li>Performance individuelle — spec 006</li>
   <li>Ratio victoire/défaite de l'équipe — spec 007</li>
   <li>Disponibilités et taux de sollicitation — specs 008 et 009</li>

@@ -1,5 +1,7 @@
 import type { Source } from "./source.ts";
 import type { Classement } from "./classement.ts";
+import type { Identite } from "./identite.ts";
+import type { Licence } from "./licence.ts";
 import type { DepotCaptures } from "./capture.ts";
 import type { DepotBuilds } from "./build.ts";
 import type { Horloge } from "./horloge.ts";
@@ -332,13 +334,27 @@ export type ModuleDAcquisition = {
    * ensemble et dans le module du site : le socle n'a jamais à savoir qu'une
    * fiche s'appelle une fiche.
    *
-   * `requete` rend `null` quand la session ne permet pas de la composer —
-   * l'action prend un identifiant interne que myffbad ne met que dans le
-   * jeton. Un `null` explicite plutôt qu'une requête qui échouerait.
+   * **Aucune session.** 015 croyait l'identifiant interne réservé au jeton, et
+   * 001 exigeait donc une session valide pour partir. La sonde du 2 septembre
+   * 2026 a montré le contraire : la fiche publique porte ce `personId`, et
+   * l'action répond à froid, à l'octet près. 028 retire l'exigence, ce qui
+   * supprime un mode de panne entier — le vendredi où le jeton est mort, le
+   * classement est relevé quand même.
    */
   readonly classement?: {
-    requete(jeton: string): Requete | null;
+    requete(licence: Licence, personId: number): Requete;
     lire(reponse: Reponse): readonly Classement[];
+  };
+  /**
+   * De quoi lire qui est derrière une licence — spec 028.
+   *
+   * La fiche `/joueur/<licence>` répond sans cookie et porte le nom **et** le
+   * `personId` que l'action ci-dessus exige. C'est elle qui ouvre la chaîne, et
+   * c'est ce qui la rend entièrement anonyme.
+   */
+  readonly identite?: {
+    requete(licence: Licence): Requete;
+    lire(reponse: Reponse, licence: Licence): Identite;
   };
   /**
    * L'échéance que le jeton porte lui-même, quand la source en donne une.

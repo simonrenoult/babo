@@ -28,8 +28,9 @@ CPPH — dans l'ordre simple, double, mixte.
 
 Vérifié de deux façons : le parseur rejoué sur une capture réelle archivée,
 sans réseau ; et une passe réelle constatée une fois à la mise en service.
-La première seule ne prouverait que le parseur, pas la chaîne session →
-requête → base → page.
+La première seule ne prouverait que le parseur, pas la chaîne ~~session →~~
+requête → base → page. **Amendée par
+[[028__nom-et-classement-de-l-equipe]] : la chaîne n'a plus de session.**
 
 ## Solutions envisagées
 
@@ -83,9 +84,28 @@ donne, `NC` compris, sans rien inventer.
 
 ## Notes
 
-Une seule licence, la mienne, lue dans la configuration. Les classements des
+~~Une seule licence, la mienne, lue dans la configuration. Les classements des
 coéquipiers relèvent de [[005__liste-des-membres-de-l-equipe]], dans
-`capitanat`, qui partage la source de données sans partager le modèle joueur.
+`capitanat`, qui partage la source de données sans partager le modèle joueur.~~
+
+**Amendée par [[028__nom-et-classement-de-l-equipe]] sur deux points, et c'est
+la même découverte qui les emporte tous les deux.**
+
+*La session.* Cette passe exigeait un jeton myffbad valide et refusait de partir
+sans, au motif que l'action `classement` prend un `personId` que seul le JWT
+porterait. La sonde du 2 septembre 2026 a montré le contraire : la fiche
+publique `/joueur/<licence>` porte ce `personId`, répond avec
+`isAuthenticated:false`, et l'action rend ensuite 2229 octets à froid — la même
+taille qu'archivée sous session. L'exigence est retirée. Elle supprime un mode
+de panne entier : le vendredi où le jeton est mort, le classement est relevé
+quand même.
+
+*Une seule licence.* Puisque la chaîne est anonyme et prend une licence en
+entrée, rien ne justifiait plus une passe par joueur. Il n'y en a qu'une, qui
+boucle sur les licences suivies — la mienne et celles de l'équipe, dédoublonnées.
+Un seul relevé, un seul rapport, une seule date affichée. `capitanat` continue
+de ne pas partager le modèle joueur : ce qui descend dans le socle, c'est le
+nom et le classement, deux faits fédéraux — jamais `Joueur`.
 
 Avant la première passe réussie, la page affiche « aucun relevé : la première
 passe myffbad n'a pas encore abouti » — jamais un tableau de tirets, qui se
