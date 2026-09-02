@@ -219,7 +219,7 @@ const application = creerApplication({
 });
 
 const serveur = application.listen(configuration.port, () => {
-  console.log(`[socle] Bado écoute sur le port ${configuration.port}`);
+  console.log(`[socle] Bado est disponible à l'adresse http://localhost:${configuration.port}`);
 });
 
 // L'application tourne en service supervisé, relancé automatiquement en cas
