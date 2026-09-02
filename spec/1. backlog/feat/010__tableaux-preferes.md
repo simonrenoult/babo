@@ -38,3 +38,17 @@ Retenue : préférences structurées.
 ## Notes
 
 Dépend de [[005__liste-des-membres-de-l-equipe]].
+
+**Frontière avec [[030__paires-et-preferences-du-capitaine]].** 030 porte un
+marqueur que *le capitaine* pose sur une paire qu'il a assemblée, ou sur un
+joueur pour un tableau donné. Cette spec-ci porte ce que *le joueur déclare* de
+lui-même — ses tableaux souhaités, ses tableaux refusés, ses partenaires
+privilégiés à lui. Elle ne perd donc rien au profit de 030 : ce sont deux
+informations différentes, et 030 n'a pas attendu celle-ci parce qu'un capitaine
+n'a besoin de personne pour savoir qui il veut aligner.
+
+Les deux **peuvent se contredire**, et ce désaccord est lui-même une
+information : un joueur qui se déclare à l'aise dans une paire que le capitaine
+n'aligne jamais se voit en mettant les deux côte à côte. Elles s'affichent donc
+l'une à côté de l'autre, jamais fusionnées en une préférence unique — la fusion
+ferait disparaître précisément ce qu'on veut lire.

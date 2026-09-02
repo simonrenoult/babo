@@ -79,6 +79,14 @@ fabriquer un fait fédéral à partir d'une saisie manuelle, là où
 donne. Le sexe sert à [[011__composition-de-journee]], pas à réétiqueter un
 classement.
 
+**Amendé par [[029__forces-par-tableau]].** L'interdit tient pour ce que *cette*
+page affiche : `/capitanat` montre les trois disciplines de la fiche, et rien
+d'autre. Il ne tient pas pour un écran qui range des joueurs par tableau, parce
+que celui-là ne présente aucun fait fédéral — il classe pour le capitaine qui a
+lui-même saisi le sexe, et le dit. La frontière n'est donc pas « d'où vient la
+donnée » mais « qu'est-ce qu'on prétend afficher » : réétiqueter un classement
+reste interdit, s'en servir pour trier ne l'est pas.
+
 ## Questions
 
 Aucune. Les deux qui restaient — le `personId` et le régime anonyme — ont été
