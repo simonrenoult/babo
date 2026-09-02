@@ -165,6 +165,12 @@ un `Tableau` » avant qu'on ait vu la fiche ; elle est amendée. Le sexe qu'un
 CSV importe depuis 005 ne change rien à cela : c'est une saisie manuelle, et
 en tirer une série serait fabriquer un fait fédéral (028).
 
+029 s'en sert pourtant pour ranger l'équipe tableau par tableau, et l'interdit
+tient quand même : la frontière n'est pas d'où vient la donnée, mais ce que la
+page prétend afficher. Réétiqueter un classement en `SH` reste interdit ; s'en
+servir pour trier des joueurs devant le capitaine qui a saisi ce sexe lui-même
+ne l'est pas — et ces pages-là le disent en toutes lettres.
+
 Une ligne par changement de valeur, jamais une par passe : le classement ne
 bouge qu'à la publication hebdomadaire du CPPH. Chaque ligne porte `apparu_le` —
 l'entrée dans le palier, que 024 lira — et `vu_le`, la dernière passe qui a
@@ -337,6 +343,42 @@ le classement de quelqu'un d'autre, et seul le nom affiché le dit. Le parseur
 refuse d'ailleurs la fiche qui répond pour une autre licence que celle
 demandée : c'est le seul contrôle qui sépare « je me suis trompé de numéro » de
 « j'ai attribué un classement à la mauvaise personne ».
+
+## Les forces par tableau
+
+Première lecture qui ne se contente pas d'afficher ce qui est en base : elle en
+dérive — spec 029. `/capitanat` est devenu un index, et cinq pages s'ouvrent
+sous `/capitanat/tableau/<code>`, une par tableau de la feuille de match.
+
+| Pièce | Où |
+|-------|-----|
+| l'intitulé d'un tableau | `socle/core/tableau.ts` |
+| le format, l'éligibilité, l'ordre, le manque | `capitanat/core/forces-par-tableau.ts` |
+| l'accord grammatical des places | `capitanat/presentation/mots.ts` |
+| l'index et la page d'un tableau | `capitanat/presentation/vues/` |
+
+Aucune table, aucune saisie, aucune source nouvelle : le sexe vient du CSV de
+005, la cote et la lettre de la passe de 028. C'est ce qui sépare cette spec de
+010, qui attend une déclaration des joueurs, et de 011, qui attend le règlement
+modélisé.
+
+**L'unité de compte est la place, pas le match.** Deux SH sont deux matchs à un
+joueur chacun, un DH un seul match à deux joueurs, et les deux réclament
+pourtant deux hommes. Le manque se compte donc par sexe — seule façon de dire
+qu'un mixte de trois hommes reste infaisable. Six matchs, cinq tableaux, neuf
+places : le format de la division est écrit en dur dans `FORMAT`, et 029 laisse
+ouverte la question de savoir si 011 le portera le jour où la division change.
+
+**Le sexe décide qui est concerné, le classement décide seulement du rang.**
+Une femme n'est pas « écartée du DH faute de classement » : elle n'y joue pas.
+Un homme sans classement en simple, lui, est nommé à part et jamais rangé
+dernier — en début de saison, c'est presque toujours une licence fausse, pas un
+joueur faible, et les deux motifs sont distingués à l'écran.
+
+**Les cinq listes ne se cumulent pas**, et les pages le disent : un joueur
+figure dans tous les tableaux où il est éligible sans faire pour autant les six
+matchs. Les additionner surestimerait la profondeur de l'effectif, ce qui serait
+le pire défaut d'un écran censé montrer des manques.
 
 ## Ce qui n'est pas encore là
 

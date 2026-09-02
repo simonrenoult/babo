@@ -300,6 +300,52 @@ describe("l'application assemblée", () => {
     assert.match(corps, /non relevé/);
   });
 
+  /**
+   * Les cinq tableaux, sur l'assemblage réel — spec 029.
+   *
+   * L'équipe importée plus haut est celle d'un début de saison : un homme
+   * relevé sur ses trois disciplines, une femme dont la licence reste muette.
+   * C'est exactement l'effectif qui rend les manques visibles.
+   */
+  it("nomme sur l'index les tableaux que l'effectif ne permet pas de remplir", async () => {
+    const corps = await (await visiter(`/capitanat`)).text();
+
+    assert.match(corps, /5 tableaux\s+que l'effectif ne permet pas de remplir/);
+    assert.match(corps, /Double dames \(il manque deux femmes classées en double\)/);
+    assert.match(corps, /Double mixte \(il manque une femme classée en mixte\)/);
+    assert.match(corps, /href="\/capitanat\/tableau\/DH"/, "et chaque tableau a sa page");
+    assert.match(corps, /ne se cumulent pas/, "sans laisser additionner les cinq listes");
+  });
+
+  it("range sur la page d'un tableau les alignables, cote et lettre telles quelles", async () => {
+    const corps = await (await visiter(`/capitanat/tableau/DH`)).text();
+
+    assert.match(corps, /Double hommes/);
+    assert.match(corps, /Simon RENOULT/);
+    assert.match(corps, /1\s?311/, "la cote, formatée en français mais jamais convertie");
+    assert.match(corps, /D8/);
+    assert.match(corps, /il manque\s+un homme classé en double/);
+    assert.match(corps, /pas classement officiel/, "le sexe vient du fichier, la page le dit");
+  });
+
+  it("nomme à part, sur le tableau, le joueur sans classement dans la discipline", async () => {
+    // Une licence muette est presque toujours une licence fausse, pas un joueur
+    // faible : la ranger dernière ferait disparaître l'anomalie (029).
+    const corps = await (await visiter(`/capitanat/tableau/SD`)).text();
+
+    assert.match(corps, /Hors de l'ordre/);
+    assert.match(corps, /02345678/);
+    assert.match(corps, /aucune passe n'a abouti pour cette licence/);
+  });
+
+  it("accepte un tableau tapé en minuscules, et ignore ce qui n'en est pas un", async () => {
+    assert.equal((await visiter(`/capitanat/tableau/mx`)).status, 200);
+
+    const inconnu = await visiter(`/capitanat/tableau/XY`);
+    assert.equal(inconnu.status, 404, "le 404 du socle, pas une page vide de sens");
+    assert.match(await inconnu.text(), /Page inconnue/);
+  });
+
   it("n'a présenté aucun cookie pour relever l'équipe", async () => {
     // Le cœur de 028 : la passe hebdomadaire ne dépend plus d'une session, donc
     // le vendredi où le jeton est mort, le classement est relevé quand même.
@@ -343,7 +389,16 @@ describe("l'application assemblée", () => {
     const sansCookie = (chemin: string, options: RequestInit = {}) =>
       fetch(`${base}${chemin}`, { redirect: "manual", ...options });
 
-    for (const chemin of ["/", "/mon-profil", "/capitanat", "/veille", "/sources"]) {
+    for (const chemin of [
+      "/",
+      "/mon-profil",
+      "/capitanat",
+      // Une page ajoutée après le garde ne peut pas l'oublier (021) : 029 en a
+      // ajouté cinq d'un coup, celle-ci les représente.
+      "/capitanat/tableau/SH",
+      "/veille",
+      "/sources",
+    ]) {
       it(`refuse ${chemin} sans session`, async () => {
         const reponse = await sansCookie(chemin);
 

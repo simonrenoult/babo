@@ -1,15 +1,68 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
 
-<h3>Mon équipe</h3>
-
 <% if (equipe.length === 0) { %>
+  <h3>Mon équipe</h3>
   <p class="etat">
     Aucune équipe importée. Le fichier se dépose depuis
     <a href="/sources">l'écran des sources</a> : une ligne par joueur,
     <code>licence;sexe;telephone</code>, en-tête comprise, en UTF-8.
   </p>
 <% } else { %>
+  <h3>Les cinq tableaux</h3>
+
+  <p>
+    Une rencontre se joue en <strong>six matchs répartis sur cinq tableaux</strong> :
+    deux simples hommes, un simple dames, un double hommes, un double dames, un
+    mixte. Chaque tableau a sa page, qui range les joueurs éligibles du plus fort
+    au plus faible (spec 029).
+  </p>
+
+  <%
+    // Nommer les tableaux en manque, pas les compter : c'est la question que se
+    // pose un capitaine avant une journée, et la seule que cet index tranche.
+    const infaisables = forces.filter((force) => force.manques.length > 0);
+  %>
+
+  <% if (infaisables.length === 0) { %>
+    <p class="etat">L'effectif permet de remplir les cinq tableaux.</p>
+  <% } else { %>
+    <p class="etat">
+      <%= infaisables.length %> tableau<%= infaisables.length > 1 ? "x" : "" %>
+      que l'effectif ne permet pas de remplir :
+      <%= infaisables
+            .map((force) => `${force.intitule} (il manque ${joueursRequis(force.manques, force.discipline)})`)
+            .join(", ") %>.
+    </p>
+  <% } %>
+
+  <table>
+    <tr>
+      <th>Tableau</th><th>Matchs</th><th>Il faut</th><th>Alignables</th><th>Manque</th>
+    </tr>
+    <% for (const force of forces) { %>
+      <tr>
+        <td>
+          <a href="/capitanat/tableau/<%= force.tableau %>"><%= force.intitule %></a>
+          <span class="etat"><%= force.tableau %></span>
+        </td>
+        <td><%= force.matchs %></td>
+        <td><%= joueursRequis(force.places, force.discipline) %></td>
+        <td><%= force.alignables.length %></td>
+        <td><%= force.manques.length === 0 ? "—" : enJoueurs(force.manques) %></td>
+      </tr>
+    <% } %>
+  </table>
+
+  <p>
+    <strong>Les cinq listes ne se cumulent pas.</strong> Un joueur figure dans
+    tous les tableaux où il est éligible, et ne fera pourtant pas les six matchs :
+    les additionner surestimerait la profondeur de l'effectif. Le plafond de
+    matchs par joueur viendra avec la composition de journée (spec 011).
+  </p>
+
+  <h3>Mon équipe</h3>
+
   <%
     // Une case vide ne doit jamais pouvoir se lire comme « non classé » : tant
     // qu'aucune passe n'a abouti, on le dit en toutes lettres (028, dans
@@ -79,7 +132,8 @@
   <li>Performance individuelle — spec 006</li>
   <li>Ratio victoire/défaite de l'équipe — spec 007</li>
   <li>Disponibilités et taux de sollicitation — specs 008 et 009</li>
-  <li>Tableaux préférés — spec 010</li>
+  <li>Tableaux préférés du joueur — spec 010</li>
+  <li>Paires et préférences du capitaine — spec 030</li>
   <li>Composition de journée — spec 011</li>
 </ul>
 <%- include("pied") %>

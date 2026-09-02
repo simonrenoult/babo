@@ -11,6 +11,7 @@
   - Ratio victoire/défaite par tableau
 - Aide au capitanat : 
   - Lister les membres de mon équipe (nom, classement, licence, sexe, téléphone, lien myffbad)
+  - Voir ses forces tableau par tableau, et les tableaux que l'effectif ne remplit pas
   - Performance individuelle
   - Ratio victoire/défaite
   - Disponibilités aux interclubs
@@ -49,6 +50,14 @@ cliquable et lien vers la fiche fédérale (specs 005 et 028). L'équipe s'impor
 depuis `/sources` par un CSV `licence;sexe;telephone` en UTF-8, qui remplace la
 liste entière ou est refusé en entier ; l'import enchaîne aussitôt une passe, si
 bien qu'on dépose huit lignes et qu'on lit huit noms.
+
+`/capitanat` est aussi devenu un **index sur cinq pages**, une par tableau de la
+feuille de match — deux SH, un SD, un DH, un DD, un MX (spec 029). Chacune range
+les joueurs éligibles du plus fort au plus faible, cote et lettre affichées
+telles qu'elles ont été relevées, et nomme à part ceux qui n'ont pas de
+classement dans la discipline. L'index dit lesquels des cinq tableaux l'effectif
+ne permet pas de remplir. Rien de tout cela n'est saisi : le sexe vient du CSV,
+la cote et la lettre de la passe hebdomadaire.
 
 Cette passe relève noms et classements pour tout le monde d'un coup, et
 **sans aucune session** : la fiche myffbad et l'action qui porte le classement

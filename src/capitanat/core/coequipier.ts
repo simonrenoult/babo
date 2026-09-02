@@ -155,6 +155,12 @@ export function listeDeLEquipe(
   return [...membres].sort(parNom);
 }
 
+/** Ce qu'il faut pour être trié : un nom relevé ou pas, et le numéro qui le remplace. */
+export type Nommable = {
+  readonly nom: string | null;
+  readonly licence: Licence;
+};
+
 /**
  * Le tri de 028 : sur le nom tel que myffbad le rend — « Simon RENOULT »,
  * prénom puis nom.
@@ -165,8 +171,12 @@ export function listeDeLEquipe(
  * Les membres pas encore relevés passent en fin de liste, par licence : c'est
  * l'ordre provisoire de 005, et le tenir séparé évite qu'un membre change de
  * place à mesure que la passe avance.
+ *
+ * Exporté depuis 029, qui range les mêmes joueurs sur cinq autres pages : deux
+ * tris départageant les homonymes différemment feraient bouger un joueur d'une
+ * page à l'autre sans raison lisible.
  */
-function parNom(un: MembreDeLEquipe, autre: MembreDeLEquipe): number {
+export function parNom(un: Nommable, autre: Nommable): number {
   if (un.nom === null || autre.nom === null) {
     if (un.nom !== autre.nom) return un.nom === null ? 1 : -1;
     return un.licence.localeCompare(autre.licence);

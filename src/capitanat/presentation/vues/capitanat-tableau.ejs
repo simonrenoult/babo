@@ -1,0 +1,91 @@
+<%- include("entete", { titre }) %>
+<p><a href="/capitanat">← Capitanat</a></p>
+<h2><%= force.intitule %> <span class="etat"><%= force.tableau %></span></h2>
+
+<p>
+  <%= force.matchs === 1 ? "Un match" : `${force.matchs} matchs` %> sur les six de
+  la rencontre. Il faut <strong><%= joueursRequis(force.places, force.discipline) %></strong>.
+  <% if (force.releveLe !== null) { %>
+    Classements relevés le <%= force.releveLe.toLocaleDateString("fr-FR") %>.
+  <% } %>
+</p>
+
+<% if (force.manques.length > 0) { %>
+  <p class="etat">
+    L'effectif ne permet pas de remplir ce tableau : il manque
+    <%= joueursRequis(force.manques, force.discipline) %>.
+  </p>
+<% } %>
+
+<% if (force.alignables.length === 0) { %>
+  <p class="etat">
+    Aucun joueur alignable. L'équipe s'importe depuis
+    <a href="/sources">l'écran des sources</a>, et c'est la passe hebdomadaire
+    qui en relève les classements.
+  </p>
+<% } else { %>
+  <table>
+    <tr>
+      <th>Rang</th><th>Nom</th><th>Sexe</th><th>Cote</th><th>Lettre</th>
+      <th>Licence</th><th>Fiche</th>
+    </tr>
+    <% force.alignables.forEach((joueur, rang) => { %>
+      <tr>
+        <td><%= rang + 1 %></td>
+        <td><%= joueur.nom ?? "—" %></td>
+        <td><%= joueur.sexe %></td>
+        <%# La cote d'abord : c'est elle qui fait l'ordre. Ni l'une ni l'autre %>
+        <%# n'est convertie — myffbad rend les deux, la page les affiche (001). %>
+        <td><%= joueur.cpph.toLocaleString("fr-FR") %></td>
+        <td><%= joueur.lettre %></td>
+        <td><%= joueur.licence %></td>
+        <td>
+          <a href="<%= joueur.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>
+        </td>
+      </tr>
+    <% }) %>
+  </table>
+<% } %>
+
+<% if (force.ecartes.length > 0) { %>
+  <h3>Hors de l'ordre</h3>
+  <p>
+    <%= force.ecartes.length %> joueur<%= force.ecartes.length > 1 ? "s" : "" %>
+    sans classement en <%= force.discipline %>, donc sans place dans l'ordre de
+    force — et nommé<%= force.ecartes.length > 1 ? "s" : "" %> ici plutôt que
+    rangé<%= force.ecartes.length > 1 ? "s" : "" %>
+    dernier<%= force.ecartes.length > 1 ? "s" : "" %> : en début de saison,
+    c'est presque toujours une licence fausse, pas un joueur faible.
+  </p>
+  <ul>
+    <% for (const joueur of force.ecartes) { %>
+      <li>
+        <%= joueur.nom ?? joueur.licence %>
+        <span class="etat">
+          <% if (joueur.motif === "jamais-releve") { %>
+            aucune passe n'a abouti pour cette licence
+          <% } else { %>
+            relevé, mais jamais classé en <%= force.discipline %>
+          <% } %>
+        </span>
+        — <a href="<%= joueur.fiche %>" rel="noreferrer noopener" target="_blank">fiche myffbad</a>
+      </li>
+    <% } %>
+  </ul>
+<% } %>
+
+<p class="etat">
+  <strong>Aide à la décision, pas classement officiel.</strong> Le sexe qui range
+  les joueurs entre <code>SH</code> et <code>SD</code> vient du fichier importé,
+  pas de myffbad, qui ne le publie nulle part : cette page trie l'équipe pour son
+  capitaine, elle ne présente aucun fait fédéral (spec 029, amendant 028). La
+  cote et la lettre, elles, sont relevées et affichées telles quelles.
+</p>
+
+<p>
+  Les cinq listes ne se cumulent pas : un joueur figure dans tous les tableaux où
+  il est éligible, et ne fera pourtant pas les six matchs de la rencontre. La
+  <a href="/capitanat">page d'index</a> les montre côte à côte ; c'est la
+  composition de journée (spec 011) qui plafonnera les matchs par joueur.
+</p>
+<%- include("pied") %>

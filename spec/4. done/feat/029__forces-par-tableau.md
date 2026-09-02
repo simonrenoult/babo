@@ -76,7 +76,12 @@ presque toujours une licence fausse, pas un joueur faible.
 
 - Le format à six matchs est celui de la division actuelle et s'écrit en dur.
   Faudra-t-il le rendre configurable le jour où la division change, ou 011
-  portera-t-il le règlement, format compris ?
+  portera-t-il le règlement, format compris ? **Toujours ouverte.** Le format
+  est la constante `FORMAT` de `capitanat/core/forces-par-tableau.ts` : cinq
+  lignes à relire, au même endroit que ce qui les consomme. Une constante que
+  l'on relit vaut mieux qu'un réglage que personne n'a jamais changé, et le
+  jour où la division change, la question se posera avec le règlement de 011
+  sous les yeux plutôt qu'avant.
 
 ## Notes
 
@@ -87,3 +92,53 @@ saisies et les marques du capitaine — c'est là que la persistance apparaît, 
 c'est pourquoi les deux specs sont séparées.
 
 Prépare [[011__composition-de-journee]], qui composera pour de bon.
+
+## Fait
+
+**Cinq pages sous un index, le 3 septembre 2026.** `/capitanat` garde l'équipe
+et gagne l'index des cinq tableaux ; chacun a sa page sous
+`/capitanat/tableau/<code>` — `SH`, `SD`, `DH`, `DD`, `MX`, tolérants à la
+casse parce qu'une URL qu'on met en favori se retape aussi à la main. Ce qui
+n'est pas un tableau tombe sur le 404 du socle plutôt que de rendre une page
+vide de sens. Aucune table, aucune migration, aucune requête réseau : tout se
+dérive du sexe importé par 005 et de la passe de 028.
+
+**L'unité de compte est la place, pas le match.** Décidé en écrivant : deux SH
+sont deux matchs à un joueur chacun, un DH un seul match à deux joueurs, et les
+deux réclament pourtant deux hommes. Compter les matchs aurait rendu le DH
+faisable à un joueur. Le manque se compte donc par sexe — six matchs, cinq
+tableaux, neuf places — et c'est la seule façon de dire qu'un mixte de trois
+hommes reste infaisable, ce que le total des éligibles laisserait passer.
+
+**Le sexe décide qui est concerné, le classement décide seulement du rang.**
+Une femme n'est pas « écartée du DH faute de classement » : elle n'y joue pas,
+et la nommer là serait un reproche adressé à la mauvaise personne. Seuls les
+joueurs du bon sexe sont écartés, et leur motif est distingué : `jamais-releve`
+— aucune passe n'a abouti, le cas qui sent la licence fausse — ou
+`discipline-absente`, un joueur relevé qui n'a jamais joué cette discipline en
+compétition. Les deux ne veulent pas dire la même chose et l'écran les sépare.
+
+**Trois pièces mises en commun plutôt que dupliquées.** L'intitulé d'un tableau
+(« Double mixte ») descend dans `socle/core/tableau.ts` avec `Tableau` : il n'en
+existe pas une version vue par `capitanat` et une autre par `veille`. Le tri par
+nom de 028 est exporté et sert à départager deux joueurs à la même cote — deux
+tris qui départageraient les homonymes différemment feraient bouger un joueur
+d'une page à l'autre sans raison lisible. Et l'accord grammatical des places
+(« une femme classée en double », « un homme et une femme classés en mixte »)
+sort dans `presentation/mots.ts` : une page qui écrit mal ce qu'elle a compté
+fait douter du compte.
+
+**Une chose que la spec ne demandait pas** : la page porte la date du dernier
+relevé des joueurs qu'elle liste. Un ordre de force calculé sur un relevé de
+trois semaines n'est pas faux, mais la page qui se tait là-dessus laisse croire
+qu'il est d'aujourd'hui — c'est la règle de 001, reprise ici.
+
+Vérifié sur deux plans. Le cœur pour lui-même : l'ordre à la cote, l'éligibilité
+par sexe, le mixte qui réclame un de chaque, le décompte des manques, les
+écartés et leurs deux motifs, la cote et la lettre jamais converties, et le
+non-cumul — un même homme alignable en SH, DH et MX. Puis l'assemblage réel,
+avec l'équipe de début de saison de 028 : l'index nomme les cinq tableaux
+infaisables, `/capitanat/tableau/DH` range Simon RENOULT avec 1 311 et D8,
+`/capitanat/tableau/SD` nomme à part la licence muette, `/capitanat/tableau/mx`
+répond et `/capitanat/tableau/XY` rend 404. La porte de 021 couvre ces pages
+sans qu'on l'ait branchée : le garde est monté avant les routes.

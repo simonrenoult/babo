@@ -22,6 +22,12 @@ import type { Licence } from "./licence.ts";
  * d'afficher ce que la source donne. Le sexe que 005 importe est une saisie
  * manuelle, et 028 écarte d'en tirer une série pour cette raison même. `Tableau` reste ce qu'il
  * est — le tableau d'une compétition, celui de 004, 010 et 012.
+ *
+ * 029 se sert pourtant de ce sexe pour ranger l'équipe tableau par tableau, et
+ * l'interdit tient quand même : la frontière n'est pas d'où vient la donnée
+ * mais ce que la page prétend afficher. Réétiqueter un classement en `SH`
+ * reste interdit ; s'en servir pour trier des joueurs devant un capitaine qui a
+ * saisi ce sexe lui-même ne l'est pas, et ses pages le disent.
  */
 export const DISCIPLINES = ["simple", "double", "mixte"] as const;
 
