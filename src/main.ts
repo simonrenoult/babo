@@ -14,6 +14,7 @@ import { sonder } from "./socle/core/sonde.ts";
 import { plafondDeLaPasse, releverLesClassements } from "./socle/core/passe-classement.ts";
 import { seConnecter } from "./socle/core/connexion.ts";
 import { horlogeSysteme } from "./socle/core/horloge.ts";
+import { creerOrdonnanceur, type TacheOrdonnancee } from "./socle/core/ordonnancement.ts";
 import type { Licence } from "./socle/core/licence.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
@@ -105,6 +106,43 @@ const relever = () => {
     horloge: horlogeSysteme,
   });
 };
+
+/**
+ * Les tâches qui se déclenchent seules — spec 018.
+ *
+ * Une seule aujourd'hui : la passe de classement, hebdomadaire, le vendredi à
+ * 1 h du matin parce que le CPPH est publié une fois par semaine. Les
+ * acquisitions quotidiennes de 015 et le battement de 019 s'ajouteront ici, à
+ * une ligne chacune — c'est tout ce que le planificateur demande.
+ *
+ * L'identifiant est celui sous lequel la passe consigne déjà son rapport
+ * (`acquisition:myffbad`) : l'écran met ainsi la prochaine échéance en regard
+ * de la dernière exécution sans table de correspondance.
+ *
+ * Grâce de 48 h : une passe hebdomadaire manquée pendant un week-end d'arrêt
+ * vaut la peine d'être rejouée le lundi — la donnée est périmée, pas fausse —
+ * alors qu'attendre la passe suivante coûterait une semaine de classement.
+ */
+const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
+  {
+    tache: tacheDAcquisition("myffbad"),
+    intitule: "Relever noms et classements (myffbad)",
+    reglageParDefaut: {
+      cadence: { nature: "hebdomadaire", jour: 5, heure: 1, minute: 0 },
+      graceMinutes: 48 * 60,
+      active: true,
+    },
+    executer: relever,
+  },
+];
+
+const ordonnanceur = creerOrdonnanceur({
+  taches: tachesOrdonnancees,
+  reglages: persistance.reglages,
+  echeances: persistance.echeances,
+  rapports: persistance.rapports,
+  horloge: horlogeSysteme,
+});
 
 const application = creerApplication({
   configuration,
@@ -211,10 +249,13 @@ const application = creerApplication({
         horloge: horlogeSysteme,
       }),
 
-    // La passe de 001, élargie à l'équipe par 028, déclenchée à la main tant
-    // que 018 n'ordonnance rien. C'est la même fonction que l'ordonnanceur
-    // appellera : le bouton disparaîtra, la passe restera.
+    // La passe de 001, élargie à l'équipe par 028. C'est exactement la
+    // fonction que l'ordonnanceur appelle chaque vendredi (018) : le bouton
+    // n'est plus qu'un dépannage, la passe est la même.
     relever,
+
+    ordonnancement: () => ordonnanceur.etat(),
+    reglerLaTache: (reglage) => ordonnanceur.regler(reglage),
   },
 });
 
@@ -222,12 +263,21 @@ const serveur = application.listen(configuration.port, () => {
   console.log(`[socle] Bado est disponible à l'adresse http://localhost:${configuration.port}`);
 });
 
+// Après le serveur, pas avant : le premier réveil du planificateur est le
+// rattrapage de ce qui était dû pendant l'arrêt (018), et il peut lancer une
+// passe de plusieurs minutes — autant que l'écran qui en montre le rapport soit
+// déjà joignable.
+ordonnanceur.demarrer();
+
 // L'application tourne en service supervisé, relancé automatiquement en cas
 // d'arrêt (spec 020). Encore faut-il qu'elle s'arrête proprement : une base
 // fermée à la volée laisse un journal WAL à rejouer au redémarrage.
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     console.log(`[socle] ${signal} reçu, arrêt`);
+    // Le planificateur en premier : une minuterie qui se réveille pendant la
+    // fermeture ouvrirait une passe sur une base qu'on est en train de fermer.
+    ordonnanceur.arreter();
     serveur.close(() => {
       persistance.fermer();
       process.exit(0);

@@ -36,6 +36,8 @@ const aucuneSource: AccesAuxSources = {
   sonder: () => Promise.resolve([]),
   relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
   importerLEquipe: () => Promise.resolve({ issue: "refusee", motifs: [] }),
+  ordonnancement: () => [],
+  reglerLaTache: () => {},
 };
 
 function applicationDEssai() {

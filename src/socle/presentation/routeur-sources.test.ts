@@ -6,6 +6,7 @@ import type { Configuration } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
 import type { RapportArchive } from "../core/rapport-execution.ts";
+import type { EtatDeLaTache, ReglageDeTache } from "../core/ordonnancement.ts";
 import type { Source } from "../core/source.ts";
 
 const CONFIGURATION: Configuration = {
@@ -50,6 +51,29 @@ const RAPPORT: RapportArchive = {
   detail: "8 relevé(s) sur 8",
 };
 
+/** Ce que l'écran affiche du planificateur — spec 018. */
+const TACHES: readonly EtatDeLaTache[] = [
+  {
+    tache: "acquisition:myffbad",
+    intitule: "Relever noms et classements (myffbad)",
+    reglage: {
+      tache: "acquisition:myffbad",
+      cadence: { nature: "hebdomadaire", jour: 5, heure: 1, minute: 0 },
+      graceMinutes: 2880,
+      active: true,
+    },
+    prochaine: {
+      id: 3,
+      tache: "acquisition:myffbad",
+      prevueLe: new Date("2026-09-04T01:00:00"),
+      tentatives: 0,
+      prochaineTentativeLe: new Date("2026-09-04T01:00:00"),
+      etat: "en-attente",
+    },
+    dernierRapport: RAPPORT,
+  },
+];
+
 type Trace = {
   enregistres: [Source, string][];
   oublies: Source[];
@@ -57,6 +81,7 @@ type Trace = {
   connectes: Source[];
   releves: number;
   importes: string[];
+  reglages: ReglageDeTache[];
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
@@ -67,11 +92,14 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     connectes: [],
     releves: 0,
     importes: [],
+    reglages: [],
   };
   return {
     trace,
     acces: {
       etats: () => ETATS,
+      ordonnancement: () => TACHES,
+      reglerLaTache: (reglage) => void trace.reglages.push(reglage),
       deploiements: () => [
         {
           source: "myffbad",
@@ -276,6 +304,82 @@ describe("l'écran des sources", () => {
     assert.equal(trace.releves, 1);
     assert.match(reponse.corps, /8 relevé\(s\) sur 8/, "le décompte que 028 exige");
     assert.match(reponse.corps, /24 disciplines relevées/, "le volume, pas le nombre de pages");
+  });
+});
+
+describe("l'ordonnancement", () => {
+  it("affiche la cadence, la grâce et la prochaine échéance", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/sources");
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /chaque vendredi à 01 h 00/);
+    assert.match(reponse.corps, /2880 min/, "la grâce se lit en minutes");
+    assert.match(reponse.corps, /04\/09\/2026/, "la prochaine échéance est datée");
+  });
+
+  it("enregistre une cadence changée depuis l'écran, sans redéploiement", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(
+      acces,
+      "/sources/ordonnancement",
+      new URLSearchParams({
+        tache: "acquisition:myffbad",
+        nature: "hebdomadaire",
+        jour: "6",
+        heure: "3",
+        minute: "30",
+        grace: "120",
+        active: "on",
+      }),
+    );
+
+    assert.equal(reponse.redirection, "/sources");
+    assert.deepEqual(trace.reglages, [
+      {
+        tache: "acquisition:myffbad",
+        cadence: { nature: "hebdomadaire", jour: 6, heure: 3, minute: 30 },
+        graceMinutes: 120,
+        active: true,
+      },
+    ]);
+  });
+
+  it("suspend une tâche quand la case n'est pas cochée", async () => {
+    const { acces, trace } = ecran();
+    await interroger(
+      acces,
+      "/sources/ordonnancement",
+      new URLSearchParams({
+        tache: "acquisition:myffbad",
+        nature: "quotidienne",
+        heure: "1",
+        minute: "0",
+        grace: "720",
+      }),
+    );
+
+    assert.deepEqual(trace.reglages[0]?.cadence, { nature: "quotidienne", heure: 1, minute: 0 });
+    assert.equal(trace.reglages[0]?.active, false);
+  });
+
+  it("refuse une cadence hors bornes plutôt que d'écrire n'importe quelle heure", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(
+      acces,
+      "/sources/ordonnancement",
+      new URLSearchParams({
+        tache: "acquisition:myffbad",
+        nature: "hebdomadaire",
+        jour: "5",
+        heure: "25",
+        minute: "0",
+        grace: "60",
+      }),
+    );
+
+    assert.equal(reponse.statut, 400);
+    assert.deepEqual(trace.reglages, [], "rien n'est écrit sur un refus");
   });
 });
 

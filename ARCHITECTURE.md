@@ -12,7 +12,7 @@ et leurs raisons.
 Un processus Node, une seule instance, rendu côté serveur avec Express et EJS.
 Pas de client riche, pas d'API publique, pas de travailleur séparé.
 
-Une seule instance, ce n'est pas un oubli : le planificateur vivra dans le
+Une seule instance, ce n'est pas un oubli : le planificateur vit dans le
 processus (018), la base est un fichier unique (017), et le jeton de session
 myffbad doit survivre aux redémarrages (015). La montée en charge horizontale
 est exclue par construction.
@@ -109,8 +109,9 @@ démarrage par `src/socle/infrastructure/base/persistance.ts`. Aucune feature ne
 persiste quoi que ce soit en dehors.
 
 Le schéma porte le jeton de session, les captures brutes, les rapports
-d'exécution, les déploiements observés, le classement, l'équipe et l'identité
-de chaque licence suivie. Celui des
+d'exécution, les déploiements observés, le classement, l'équipe, l'identité
+de chaque licence suivie, et les fréquences et échéances du planificateur.
+Celui des
 matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
 lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
 `src/socle/infrastructure/base/migrations/`, appliqués une fois, dans l'ordre
@@ -195,10 +196,52 @@ un seul coéquipier qui change de club ferait tomber le classement de toute
 l'équipe. Le succès vide de 019 descend du même coup au niveau du joueur — celui
 dont l'action ne rend rien est muet, même si les autres parlent.
 
-La passe n'a pas encore de déclencheur : 018 la portera. En attendant,
-`/sources` la lance à la main — sur l'écran d'exploitation, jamais sur
+Le planificateur la déclenche chaque vendredi à 1 h du matin (018). `/sources`
+la lance aussi à la main, en dépannage — sur l'écran d'exploitation, jamais sur
 `/mon-profil`, où un bouton mettrait le plafond d'un passage par jour entre les
 mains de l'utilisateur —, et l'import de l'équipe l'enchaîne.
+
+## Le planificateur
+
+Un seul, dans le processus, pour les deux natures de tâches — spec 018 :
+`socle/core/ordonnancement.ts`, ses deux dépôts dans
+`socle/infrastructure/base/`, sa table de bord sur `/sources`.
+
+| Pièce | Où |
+|-------|-----|
+| cadences, fenêtre de grâce, réessais, boucle de réveil | `socle/core/ordonnancement.ts` |
+| le réglage d'une tâche, en base | `depot-reglages-sqlite.ts` |
+| ce qui reste à exécuter | `depot-echeances-sqlite.ts` |
+| les deux tables | `migrations/007__ordonnancement.sql` |
+| la déclaration des tâches | `src/main.ts` |
+
+Il ne connaît aucune tâche : `main.ts` les lui donne, comme il donne ses modules
+au serveur. Une seule aujourd'hui — la passe de classement —, et les
+acquisitions quotidiennes de 015, le battement de 019 et les rappels de 014
+s'ajouteront à une ligne chacune.
+
+**Tout passe par une échéance**, périodique ou ponctuelle : une ligne en base,
+unique sur (tâche, heure prévue). C'est cet index, et rien d'autre, qui tient
+la promesse de 018 — un redémarrage ne perd pas un rappel et ne le renvoie pas.
+Une occurrence close ne redevient jamais due, même réinscrite.
+
+**La fenêtre de grâce décide du rattrapage.** Au réveil, une échéance dépassée
+de plus que sa grâce est abandonnée sans être exécutée, et consignée en échec :
+un rappel J-1 envoyé à J+2 est pire qu'un rappel manquant. Large pour une passe
+dont la donnée est simplement périmée (48 h pour le classement), nulle pour le
+battement de 019, qui mentirait s'il était rattrapé. Nulle veut dire « à l'heure
+dite », pas « impossible » : la tolérance ne descend jamais sous un battement,
+parce que le planificateur ne se réveille qu'à la minute.
+
+**Un échec est rejoué deux fois, à une heure puis à quatre**, chaque tentative
+laissant son rapport. Borné : un scraper qui boucle vaut un compte banni (015).
+Un *succès vide* au sens de 019, lui, n'est pas rejoué — une classe CSS qui a
+changé ne se répare pas en réessayant, et le rapport suffit à le dire.
+
+Les cadences et les grâces sont des données, modifiables depuis `/sources` :
+c'est ce qui a fait écarter le cron système, dont la configuration s'édite hors
+de l'application. Les valeurs de départ sont posées au premier démarrage et ne
+recouvrent jamais un réglage modifié depuis.
 
 ## L'équipe
 
@@ -249,8 +292,8 @@ demandée : c'est le seul contrôle qui sépare « je me suis trompé de numéro
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
-sur les pages désormais observées. L'envoi de mail (016),
-l'ordonnancement (018) — sans lequel la passe de classement n'a d'autre
-déclencheur qu'un bouton —, les rapports et le battement hebdomadaire (019),
-l'authentification (021) et la sauvegarde (023). **L'application ne doit pas
-être joignable depuis internet tant que 021 n'est pas faite.**
+sur les pages désormais observées. L'envoi de mail (016), les rapports par mail
+et le battement hebdomadaire (019) — le planificateur les portera, sa cadence
+n'attend qu'une ligne dans `main.ts` —, l'authentification (021) et la
+sauvegarde (023). **L'application ne doit pas être joignable depuis internet
+tant que 021 n'est pas faite.**

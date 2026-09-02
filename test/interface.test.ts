@@ -151,6 +151,10 @@ describe("l'application assemblée", () => {
         sonder: () => Promise.resolve([]),
         // La passe touche au réseau : idem, l'assemblage vérifie le montage.
         relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
+        // L'ordonnancement se teste sur son propre cœur (018) : ici on vérifie
+        // que l'écran le monte, pas que la minuterie bat.
+        ordonnancement: () => [],
+        reglerLaTache: () => {},
         // L'import enchaîne la passe (028), et le tout est vrai sauf le
         // réseau : parseurs, dépôts, passe, page. C'est la chaîne entière, du
         // téléversement à l'affichage, que ce test tient.
