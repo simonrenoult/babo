@@ -36,4 +36,6 @@ Retenue : réutiliser l'historique complet, avec un filtre interclub.
 
 ## Notes
 
-Dépend de [[005__liste-des-membres-de-l-equipe]].
+Dépend de [[028__nom-et-classement-de-l-equipe]] — donc de
+[[005__liste-des-membres-de-l-equipe]], qui la précède — pour la liste des
+joueurs et l'évolution de leur classement.

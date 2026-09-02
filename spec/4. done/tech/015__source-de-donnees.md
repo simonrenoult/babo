@@ -31,10 +31,25 @@ Chaque donnée a une source et une seule :
 
 | Donnée | Source | Acquisition | Fraîcheur |
 |--------|--------|-------------|-----------|
-| Équipe : licence, mail, téléphone, sexe | fichier de configuration | saisie manuelle | saison |
-| Classement par tableau, à moi et à mes coéquipiers | myffbad, compte personnel | scraping | hebdomadaire, vendredi 1 h |
+| Équipe : licence, sexe, téléphone | CSV importé en base | téléversement manuel | saison |
+| Classement, à moi et à mes coéquipiers | myffbad, **fiche publique** | scraping **anonyme** | hebdomadaire, vendredi 1 h |
 | Matchs : score, partenaire, adversaire, tableau, compétition | myffbad, compte personnel | scraping | quotidien |
 | Tournois : dates, lieu, tableaux, séries, date limite | badnet, **recherche publique** | scraping anonyme | quotidien |
+
+**Corrigé le 2 septembre 2026, deux lignes de ce tableau**
+([[005__liste-des-membres-de-l-equipe]] et
+[[028__nom-et-classement-de-l-equipe]]) :
+
+- l'équipe n'est pas un fichier de configuration mais une **table**, alimentée
+  par un CSV téléversé depuis `/sources`. Un fichier lu au démarrage serait la
+  seule donnée personnelle de tiers en clair sur le disque, alors que la base
+  est chiffrée au repos. Et il ne porte **pas de mail** : myffbad ne publie pas
+  les coordonnées de ses licenciés, et une colonne sans usage ne se stocke pas.
+- le classement des coéquipiers **ne passe pas par le compte personnel**. La
+  fiche `/joueur/<licence>` et l'action `classement` répondent toutes deux sans
+  jeton : relever l'équipe entière ne touche donc pas au compte dont cette spec
+  assume le bannissement. Deux requêtes par joueur, la première n'existant que
+  pour traduire la licence en `personId` — seul argument que l'action accepte.
 
 Il n'y a donc aucun arbitrage à faire entre sources, et pas d'interface
 unifiée à écrire : deux modules d'acquisition indépendants, un par site.
@@ -187,5 +202,5 @@ avant d'avoir vu les pages serait la même erreur que de concevoir une interface
 avant ses adaptateurs.
 
 Bloque [[001__classement]], [[002__prochains-tournois]],
-[[003__historique-de-matchs]], [[005__liste-des-membres-de-l-equipe]] et
+[[003__historique-de-matchs]], [[028__nom-et-classement-de-l-equipe]] et
 [[012__recherche-de-tournois]]. À traiter en premier.

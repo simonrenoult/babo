@@ -78,9 +78,11 @@ Contraintes :
 Extraite de [[017__persistance-sqlite]], qui présentait la sauvegarde comme une
 propriété du format sans jamais la déclencher.
 
-Ne concerne que la base : le fichier de configuration de l'équipe
-([[005__liste-des-membres-de-l-equipe]]) est une entrée, versionnée ailleurs, et
-le code vit dans git.
+Ne concerne que la base — mais elle porte désormais l'équipe, ce que
+[[005__liste-des-membres-de-l-equipe]] a changé : son CSV est téléversé et ne
+touche jamais le disque du serveur, il n'est donc versionné nulle part. Une
+base perdue se rattrape par un réimport depuis le tableur du club, à condition
+qu'il existe encore. Le code, lui, vit dans git.
 
 Sans urgence tant que la base est vide, mais à traiter avant la première saison
 complète : c'est l'accumulation d'historique qui crée la valeur à perdre.

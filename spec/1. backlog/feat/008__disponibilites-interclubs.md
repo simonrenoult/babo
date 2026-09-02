@@ -39,11 +39,20 @@ réponses, le capitaine les reporte.
 ## Questions
 
 - Faut-il gérer une disponibilité partielle (« oui si je joue en double ») ?
-- « Relancer les silencieux » se fait-il par un mail depuis l'outil
-  ([[016__envoi-de-mail]]), ou reste-t-il à la main du capitaine ?
+- ~~« Relancer les silencieux » se fait-il par un mail depuis l'outil
+  ([[016__envoi-de-mail]]) ?~~ **Non : à la main du capitaine.** L'outil n'a
+  pas les mails — voir Notes.
 - Le lien du questionnaire est-il stocké par journée d'interclub ?
 
 ## Notes
+
+**Bado n'a pas les mails des coéquipiers.**
+[[005__liste-des-membres-de-l-equipe]] a retiré le mail de la fiche d'équipe :
+myffbad ne publie pas les coordonnées de ses licenciés, et une colonne sans
+usage ne se stocke pas. « Relancer les silencieux » ne peut donc pas partir de
+l'outil — c'est un geste manuel, par téléphone ou par le fil du club, et
+l'outil se borne à afficher qui n'a pas répondu. Rouvrir la question suppose de
+remettre une colonne mail dans l'import.
 
 Alimente [[011__composition-de-journee]] et
 [[009__taux-de-sollicitation]]. Réutilise l'envoi de mails de
