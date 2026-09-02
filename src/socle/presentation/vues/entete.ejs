@@ -25,12 +25,20 @@
 </head>
 <body>
 <header>
-  <h1><a href="/">Bado</a></h1>
-  <nav>
-    <% for (const module of modules) { %>
-      <a href="<%= module.chemin %>"><%= module.intitule %></a>
-    <% } %>
-    <a href="/sources">Sources</a>
-  </nav>
+  <h1><% if (locals.nu) { %>Bado<% } else { %><a href="/">Bado</a><% } %></h1>
+  <%# La page de connexion n'affiche aucune navigation : tout y mènerait à la %>
+  <%# même redirection, et lister les écrans à qui n'est pas entré n'apprend %>
+  <%# rien d'utile à celui qui a le mot de passe (spec 021). %>
+  <% if (!locals.nu) { %>
+    <nav>
+      <% for (const module of modules) { %>
+        <a href="<%= module.chemin %>"><%= module.intitule %></a>
+      <% } %>
+      <a href="/sources">Sources</a>
+    </nav>
+    <form method="post" action="/connexion/deconnexion">
+      <button type="submit">Se déconnecter</button>
+    </form>
+  <% } %>
 </header>
 <main>

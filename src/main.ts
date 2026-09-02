@@ -15,6 +15,9 @@ import { plafondDeLaPasse, releverLesClassements } from "./socle/core/passe-clas
 import { seConnecter } from "./socle/core/connexion.ts";
 import { horlogeSysteme } from "./socle/core/horloge.ts";
 import { creerOrdonnanceur, type TacheOrdonnancee } from "./socle/core/ordonnancement.ts";
+import { creerAuthentification } from "./socle/core/authentification.ts";
+import { jetonHmac } from "./socle/infrastructure/authentification/jeton-hmac.ts";
+import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de-passe-scrypt.ts";
 import type { Licence } from "./socle/core/licence.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
@@ -144,7 +147,27 @@ const ordonnanceur = creerOrdonnanceur({
   horloge: horlogeSysteme,
 });
 
+/**
+ * La porte — spec 021.
+ *
+ * Posée avant le serveur, et le compte avec elle : il n'y a pas d'inscription,
+ * la configuration fait foi. Changer `BABO_MOT_DE_PASSE` et redémarrer suffit à
+ * changer de mot de passe, ce qui dispense d'un écran de changement et du
+ * chemin de récupération qu'il faudrait avec.
+ */
+const authentification = creerAuthentification({
+  comptes: persistance.compte,
+  hachage: motDePasseScrypt(),
+  signature: jetonHmac(configuration.secretDuJeton),
+  horloge: horlogeSysteme,
+});
+
+if (authentification.poserLeCompte(configuration.licence, configuration.motDePasse)) {
+  console.log("[socle] mot de passe posé depuis la configuration");
+}
+
 const application = creerApplication({
+  authentification,
   configuration,
   modules: [
     creerModuleMonProfil({

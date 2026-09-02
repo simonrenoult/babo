@@ -1,6 +1,8 @@
 import express, { type Express, type Router } from "express";
 import type { Configuration } from "../core/configuration.ts";
 import { routeurSources, type AccesAuxSources } from "./routeur-sources.ts";
+import { garde, routeurConnexion } from "./routeur-connexion.ts";
+import type { Authentification } from "../core/authentification.ts";
 
 /**
  * Un module de feature branché sur l'interface.
@@ -34,8 +36,10 @@ export function creerApplication(options: {
   readonly modules: readonly ModuleWeb[];
   readonly etatDuSocle: () => EtatDuSocle;
   readonly sources: AccesAuxSources;
+  /** La porte — spec 021. Sans elle, rien de tout cela ne doit être joignable. */
+  readonly authentification: Authentification;
 }): Express {
-  const { configuration, modules, etatDuSocle, sources } = options;
+  const { configuration, modules, etatDuSocle, sources, authentification } = options;
   const application = express();
   application.disable("x-powered-by");
 
@@ -56,9 +60,19 @@ export function creerApplication(options: {
     suite();
   });
 
+  // Le garde passe avant tout le reste : c'est lui qui décide ce qui répond
+  // sans jeton, et il n'ouvre que `/connexion` et `/sante` (spec 021). Monté
+  // ici, aucune route ajoutée plus bas ne peut l'oublier.
+  application.use(garde(authentification, configuration.derriereUnProxy));
+  application.use("/connexion", routeurConnexion(authentification, configuration.derriereUnProxy));
+
   // Sonde de vie : c'est par elle que le superviseur constate que le processus
-  // répond, et pas seulement qu'il existe (spec 020).
+  // répond, et pas seulement qu'il existe (spec 020). Ouverte, parce que le
+  // superviseur n'a pas de session — mais réduite à un mot tant qu'on n'est
+  // pas entré : la taille de la base et le nombre de captures ne regardent
+  // personne d'autre (021).
   application.get("/sante", (_requete, reponse) => {
+    if (reponse.locals["authentifie"] !== true) return reponse.json({ statut: "ok" });
     reponse.json({ statut: "ok", ...etatDuSocle() });
   });
 

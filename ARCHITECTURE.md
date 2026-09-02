@@ -126,7 +126,7 @@ du gestionnaire de service.
 
 ```sh
 npm install
-cp .env.example .env         # puis y coller une clé : openssl rand -base64 32
+cp .env.example .env         # deux clés à tirer (base, jetons) et un mot de passe
 npm start                    # ou npm run dev
 npm run verifier   # types, lint d'architecture, tests
 ```
@@ -200,6 +200,55 @@ Le planificateur la déclenche chaque vendredi à 1 h du matin (018). `/sources`
 la lance aussi à la main, en dépannage — sur l'écran d'exploitation, jamais sur
 `/mon-profil`, où un bouton mettrait le plafond d'un passage par jour entre les
 mains de l'utilisateur —, et l'import de l'équipe l'enchaîne.
+
+## La porte
+
+Fermée — spec 021. `socle/core/authentification.ts` porte la politique, ses deux
+adaptateurs le chiffrement, `routeur-connexion.ts` le garde et le formulaire.
+
+| Pièce | Où |
+|-------|-----|
+| fenêtre de session, plafond, portier | `socle/core/authentification.ts` |
+| le jeton signé (JWT HS256) | `infrastructure/authentification/jeton-hmac.ts` |
+| le haché du mot de passe (scrypt) | `infrastructure/authentification/mot-de-passe-scrypt.ts` |
+| le compte unique | `base/depot-compte-sqlite.ts`, `migrations/008__compte.sql` |
+| le garde et le formulaire | `presentation/routeur-connexion.ts` |
+
+Le garde est monté avant toutes les routes, dans `serveur.ts` : aucune route
+ajoutée ensuite ne peut l'oublier. Deux chemins seulement répondent sans jeton —
+`/connexion`, et `/sante`, que le superviseur interroge sans session. `/sante`
+est d'ailleurs réduite à `{"statut":"ok"}` tant qu'on n'est pas entré : la
+taille de la base ne regarde personne d'autre.
+
+**Aucune session en base.** La vérification est une signature, pas une lecture.
+Le jeton porte deux dates et c'est tout le mécanisme : `exp` glisse de 30 jours
+à chaque visite, `cnx` ne bouge jamais et plafonne la session à 90 jours. Sans
+ce plafond, une échéance glissante serait une échéance infinie, et un cookie
+volé dont le voleur se sert tous les jours ne mourrait jamais. Le cookie est
+`HttpOnly`, `Secure`, `SameSite=Strict` — ce dernier faisant aussi office de
+protection CSRF pour tous les formulaires de `/sources`.
+
+**La licence n'est pas un secret** : elle est sur myffbad et dans les résultats
+de tournoi. Tout tient donc au mot de passe, d'où la limitation des tentatives —
+cinq échecs, puis un verrou d'une minute qui double jusqu'à un quart d'heure. Le
+compteur est global et en mémoire : il n'y a qu'un compte, compter par adresse
+se contourne en changeant d'adresse, et le prix assumé est qu'un tiers peut
+m'enfermer dehors quelques minutes.
+
+Le mot de passe vient de la configuration et y reste la référence :
+`BABO_MOT_DE_PASSE` est relu à chaque démarrage et le haché en base réécrit s'il
+a changé. Pas d'écran de changement, donc pas de chemin de récupération à
+inventer. Le secret de signature (`BABO_SECRET_JETON`) vit à côté ; le faire
+tourner invalide toutes les sessions d'un coup, et c'est le seul levier de
+révocation qu'un jeton sans état autorise.
+
+Ni `jsonwebtoken` ni `bcrypt` : un HMAC sur deux segments encodés et le scrypt
+de Node suffisent, et la dépendance coûterait plus à auditer que les quarante
+lignes qu'elle remplace. Trois précautions valent d'être connues, elles sont
+dans le code et dans ses tests : l'algorithme annoncé par le jeton n'est jamais
+cru sur parole — `alg: none` est refusé —, la comparaison des signatures est à
+temps constant, et un mot de passe est vérifié même quand le compte n'existe
+pas, pour que le temps de réponse ne renseigne personne.
 
 ## Le planificateur
 
@@ -294,6 +343,4 @@ demandée : c'est le seul contrôle qui sépare « je me suis trompé de numéro
 Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
 sur les pages désormais observées. L'envoi de mail (016), les rapports par mail
 et le battement hebdomadaire (019) — le planificateur les portera, sa cadence
-n'attend qu'une ligne dans `main.ts` —, l'authentification (021) et la
-sauvegarde (023). **L'application ne doit pas être joignable depuis internet
-tant que 021 n'est pas faite.**
+n'attend qu'une ligne dans `main.ts` —, et la sauvegarde (023).

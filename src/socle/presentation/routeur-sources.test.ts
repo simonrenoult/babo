@@ -8,13 +8,29 @@ import type { EtatDeLaSource } from "../core/acquisition.ts";
 import type { RapportArchive } from "../core/rapport-execution.ts";
 import type { EtatDeLaTache, ReglageDeTache } from "../core/ordonnancement.ts";
 import type { Source } from "../core/source.ts";
+import type { Authentification } from "../core/authentification.ts";
 
 const CONFIGURATION: Configuration = {
   port: 0,
   base: { chemin: ":memory:", cle: "peu-importe" },
   licence: licence("07194591"),
   motDePasseMyffbad: null,
+  motDePasse: "le-mot-de-passe-de-test",
+  secretDuJeton: "secret-de-test",
   derriereUnProxy: true,
+};
+
+/**
+ * La porte, grande ouverte — spec 021.
+ *
+ * Ces tests portent sur autre chose, et 021 se vérifie avec le vrai garde
+ * ailleurs. Une doublure ici évite d'ajouter un cookie à chaque requête pour
+ * tester un formulaire de session.
+ */
+const porteOuverte: Authentification = {
+  poserLeCompte: () => false,
+  connecter: () => ({ issue: "refusee" }),
+  reconnaitre: () => ({ verdict: "valide", renouvele: null }),
 };
 
 const ETATS: readonly EtatDeLaSource[] = [
@@ -168,6 +184,7 @@ async function interroger(
     modules: [],
     etatDuSocle: () => ({ tailleDeLaBase: 0, captures: 0 }),
     sources: acces,
+    authentification: porteOuverte,
   });
   const serveur = application.listen(0);
   try {

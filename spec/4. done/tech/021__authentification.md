@@ -67,16 +67,49 @@ Contraintes :
   ouverte à plusieurs joueurs, mais 008 a explicitement refusé d'ouvrir l'outil
   aux coéquipiers : tant que cette décision tient, il n'y a rien à gérer.
 
+### La fenêtre de session : glissante, mais plafonnée
+
+Le jeton porte **deux** dates, et c'est tout le mécanisme. `exp` vaut trente
+jours et se repousse d'autant à chaque visite, si bien qu'on ne se reconnecte
+jamais en usage normal. `connecteLe` ne bouge jamais et plafonne la session à
+quatre-vingt-dix jours : passé ce délai, le mot de passe est redemandé, quelle
+que soit l'assiduité des visites.
+
+Ni l'une ni l'autre seule ne suffisait. Une échéance fixe et courte fait
+ressaisir un mot de passe long sur un téléphone en tournoi — c'est exactement ce
+qui pousse à en choisir un court. Une échéance glissante sans plafond est une
+échéance infinie : un cookie volé dont le voleur se sert tous les jours ne
+mourrait jamais, et le seul recours resterait la rotation du secret, qui
+déconnecte aussi le téléphone.
+
+Le renouvellement n'a lieu qu'à la moitié de la validité consommée : réécrire le
+cookie sur chaque page ne prolongerait rien de plus et poserait un `Set-Cookie`
+sur chaque réponse, journal du proxy compris.
+
+### Le mot de passe : la configuration fait foi
+
+`BABO_MOT_DE_PASSE` est relu à chaque démarrage, et le haché en base réécrit
+s'il a changé. Changer de mot de passe, c'est donc éditer la configuration et
+redémarrer — ce que le service supervisé de [[020__architecture-applicative]]
+rend trivial.
+
+Pas d'écran de changement, donc pas de chemin de récupération à inventer, et pas
+non plus de mot de passe oublié qui ne se répare qu'en éditant une base
+chiffrée. Le clair vit dans la configuration du serveur, là où vivent déjà la
+clé de la base et le mot de passe myffbad : le haché en base reste, comme la
+spec l'exige, ce que la vérification consulte.
+
 ## Questions
 
-- Quelle durée de validité du jeton ? Courte, elle oblige à ressaisir le mot de
-  passe depuis un téléphone en tournoi ; longue, elle prolonge d'autant la
-  fenêtre d'un cookie volé.
-- Le jeton est-il prolongé à chaque visite, ou expire-t-il à date fixe depuis
-  la connexion ?
+- ~~Quelle durée de validité du jeton ?~~ Trente jours, glissants.
+- ~~Le jeton est-il prolongé à chaque visite, ou expire-t-il à date fixe depuis
+  la connexion ?~~ Les deux, et c'est le point : glissant à trente jours, plafonné
+  à quatre-vingt-dix depuis la connexion.
 - Une tentative de connexion échouée est-elle signalée par mail
   ([[016__envoi-de-mail]]) ? C'est le seul moyen d'apprendre qu'on cherche à
-  entrer.
+  entrer. **Reste ouverte** : 016 n'est pas faite. Le verrou du portier est en
+  place et journalisé par le code de statut — 429 sur un verrou, 401 sur un
+  refus, ce que le journal du proxy distingue —, mais rien ne prévient encore.
 
 ## Notes
 
@@ -87,5 +120,22 @@ myffbad, tous rangés au même endroit.
 Extraite de [[020__architecture-applicative]], qui a désigné le socle comme
 porteur de l'authentification sans la décrire.
 
-Bloque la mise en ligne : tant qu'elle n'est pas faite, le service ne doit pas
-être joignable depuis internet.
+~~Bloque la mise en ligne~~ : faite. `socle/core/authentification.ts` porte la
+politique, `jeton-hmac.ts` et `mot-de-passe-scrypt.ts` le chiffrement,
+`routeur-connexion.ts` le garde et le formulaire, `migrations/008__compte.sql`
+le compte unique. Voir [ARCHITECTURE.md](../../../ARCHITECTURE.md), section
+« La porte ».
+
+Deux décisions prises en écrivant, que la spec ne posait pas :
+
+- **`/sante` reste ouverte, mais muette.** Le superviseur n'a pas de session, et
+  la sonde de vie de 020 doit répondre sans. Elle est donc réduite à
+  `{"statut":"ok"}` tant qu'on n'est pas entré : la taille de la base et le
+  nombre de captures ne regardent personne d'autre.
+- **Ni `jsonwebtoken` ni `bcrypt`.** Un HMAC sur deux segments encodés et le
+  scrypt de Node suffisent, et la dépendance coûterait plus à auditer que les
+  quarante lignes qu'elle remplace — la règle qui avait déjà fait refuser
+  `multer` à 005. Les trois précautions qui comptent sont testées nommément :
+  l'algorithme annoncé par le jeton n'est jamais cru sur parole, la comparaison
+  des signatures est à temps constant, et un mot de passe est vérifié même quand
+  le compte n'existe pas.

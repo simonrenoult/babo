@@ -5,12 +5,15 @@ import { creerApplication, type ModuleWeb } from "./serveur.ts";
 import type { Configuration } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 import type { AccesAuxSources } from "./routeur-sources.ts";
+import type { Authentification } from "../core/authentification.ts";
 
 const CONFIGURATION: Configuration = {
   port: 0,
   base: { chemin: ":memory:", cle: "peu-importe" },
   licence: licence("07194591"),
   motDePasseMyffbad: null,
+  motDePasse: "le-mot-de-passe-de-test",
+  secretDuJeton: "secret-de-test",
   derriereUnProxy: true,
 };
 
@@ -23,6 +26,19 @@ const moduleQuelconque: ModuleWeb = {
     reponse.send("page du module témoin");
   }),
   vues: new URL("vues/", import.meta.url).pathname,
+};
+
+/**
+ * La porte, grande ouverte — spec 021.
+ *
+ * Ces tests portent sur autre chose, et 021 se vérifie avec le vrai garde
+ * ailleurs. Une doublure ici évite d'ajouter un cookie à chaque requête pour
+ * tester un formulaire de session.
+ */
+const porteOuverte: Authentification = {
+  poserLeCompte: () => false,
+  connecter: () => ({ issue: "refusee" }),
+  reconnaitre: () => ({ verdict: "valide", renouvele: null }),
 };
 
 // Aucune source branchée : l'écran de 015 se teste avec ses propres doublures,
@@ -46,6 +62,7 @@ function applicationDEssai() {
     modules: [moduleQuelconque],
     etatDuSocle: () => ({ tailleDeLaBase: 40960, captures: 3 }),
     sources: aucuneSource,
+    authentification: porteOuverte,
   });
 }
 

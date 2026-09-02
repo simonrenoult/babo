@@ -28,6 +28,8 @@
 npm install
 cp .env.example .env
 openssl rand -base64 32      # à recopier dans BABO_BASE_CLE : la base est chiffrée au repos
+openssl rand -base64 32      # et dans BABO_SECRET_JETON : il signe les sessions
+                             # puis choisir un BABO_MOT_DE_PASSE, long
 npm start                    # http://localhost:3000
 ```
 
@@ -64,5 +66,13 @@ Voir
 [ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et
 [`spec/`](spec/) pour les décisions.
 
-> **Pas encore joignable depuis internet** : l'authentification (spec 021)
-> n'est pas faite.
+L'accès est fermé (spec 021). L'identifiant est le numéro de licence — qui n'est
+pas un secret, il est sur myffbad —, le mot de passe vient de la configuration,
+et la session est un jeton signé déposé en cookie, sans rien en base. Elle dure
+30 jours et se prolonge à chaque visite, sans jamais dépasser 90 jours depuis la
+connexion : passé ce plafond, le mot de passe est redemandé. Cinq échecs
+ferment la porte quelques minutes.
+
+Changer de mot de passe, c'est éditer `BABO_MOT_DE_PASSE` et redémarrer. Annuler
+une session, c'est faire tourner `BABO_SECRET_JETON` — ce qui les annule toutes,
+la seule granularité qu'un jeton sans état sache offrir.

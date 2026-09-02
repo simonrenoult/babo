@@ -1,0 +1,39 @@
+<%- include("entete", { titre, nu: true }) %>
+
+<h2>Connexion</h2>
+<p>
+  Bado est un service personnel (spec 021). Il sert les coordonnées de mes
+  coéquipiers et l'écran de session myffbad : rien n'y répond sans mot de passe.
+</p>
+
+<% if (erreur) { %>
+  <p class="etat"><strong><%= erreur %></strong></p>
+<% } else if (motif) { %>
+  <p class="etat"><%= motif %></p>
+<% } %>
+
+<form method="post" action="/connexion">
+  <% if (suite) { %>
+    <input type="hidden" name="suite" value="<%= suite %>">
+  <% } %>
+  <p>
+    <label for="licence">Numéro de licence</label><br>
+    <input id="licence" name="licence" inputmode="numeric" autocomplete="username"
+           size="20" autofocus required>
+  </p>
+  <p>
+    <label for="motDePasse">Mot de passe</label><br>
+    <input id="motDePasse" name="motDePasse" type="password"
+           autocomplete="current-password" size="30" required>
+  </p>
+  <button type="submit">Entrer</button>
+</form>
+
+<p>
+  La session dure 30 jours et se prolonge à chaque visite, sans jamais dépasser
+  90 jours depuis cette connexion. Passé ce plafond, le mot de passe est
+  redemandé — c'est la seule borne qu'un jeton sans état sache opposer à un
+  cookie volé.
+</p>
+
+<%- include("pied") %>

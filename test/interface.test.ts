@@ -21,6 +21,9 @@ import { creerModuleMyffbad } from "../src/socle/infrastructure/acquisition/myff
 import { plafondDeLaPasse, releverLesClassements } from "../src/socle/core/passe-classement.ts";
 import { horlogeSysteme } from "../src/socle/core/horloge.ts";
 import type { RapportArchive } from "../src/socle/core/rapport-execution.ts";
+import { creerAuthentification } from "../src/socle/core/authentification.ts";
+import { jetonHmac } from "../src/socle/infrastructure/authentification/jeton-hmac.ts";
+import { motDePasseScrypt } from "../src/socle/infrastructure/authentification/mot-de-passe-scrypt.ts";
 
 /**
  * L'assemblage réel, tel que `main.ts` le monte : c'est le seul endroit du
@@ -34,6 +37,9 @@ import type { RapportArchive } from "../src/socle/core/rapport-execution.ts";
  * myffbad — et parce que 015 assume un risque de bannissement qu'une suite de
  * tests n'a pas à consommer.
  */
+/** Long à dessein : la licence n'étant pas un secret, tout tient au mot de passe (021). */
+const MOT_DE_PASSE = "un-mot-de-passe-de-test-suffisamment-long";
+
 const CAPTURES = {
   fiche: readFileSync(
     new URL("../src/socle/infrastructure/acquisition/exemples/myffbad-fiche.html", import.meta.url),
@@ -77,12 +83,31 @@ describe("l'application assemblée", () => {
 
   let reseau: ReturnType<typeof reseauRejoue>;
   let passe: () => Promise<RapportArchive>;
+  let cookie: string;
+  let authentification: ReturnType<typeof creerAuthentification>;
+
+  /** Toute requête porte le cookie : la porte de 021 est réelle dans ce montage. */
+  function visiter(chemin: string, options: RequestInit = {}): Promise<Response> {
+    return fetch(`${base}${chemin}`, {
+      ...options,
+      headers: { ...(options.headers ?? {}), cookie },
+      redirect: "manual",
+    });
+  }
 
   before(async () => {
     dossier = mkdtempSync(join(tmpdir(), "babo-interface-"));
     persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
     coequipiers = depotCoequipiersSqlite(persistance.base);
     reseau = reseauRejoue();
+
+    authentification = creerAuthentification({
+      comptes: persistance.compte,
+      hachage: motDePasseScrypt(),
+      signature: jetonHmac("secret-de-test"),
+      horloge: horlogeSysteme,
+    });
+    authentification.poserLeCompte(licence("07194591"), MOT_DE_PASSE);
 
     const moduleMyffbad = creerModuleMyffbad(licence("07194591"));
     passe = () => {
@@ -108,7 +133,11 @@ describe("l'application assemblée", () => {
         base: { chemin: join(dossier, "babo.db"), cle: "clé-de-test" },
         licence: licence("07194591"),
         motDePasseMyffbad: null,
-        derriereUnProxy: true,
+        motDePasse: MOT_DE_PASSE,
+        secretDuJeton: "secret-de-test",
+        // `false` : le test parle en clair à 127.0.0.1, et un cookie `Secure`
+        // n'y reviendrait jamais. En production le proxy de 020 impose HTTPS.
+        derriereUnProxy: false,
       },
       modules: [
         creerModuleMonProfil({
@@ -126,6 +155,7 @@ describe("l'application assemblée", () => {
         tailleDeLaBase: persistance.taille(),
         captures: persistance.captures.compter(),
       }),
+      authentification,
       sources: {
         etats: () =>
           SOURCES.map((source) =>
@@ -177,6 +207,12 @@ describe("l'application assemblée", () => {
     const adresse = serveur.address();
     if (adresse === null || typeof adresse === "string") throw new Error("port inattendu");
     base = `http://127.0.0.1:${adresse.port}`;
+
+    // La porte est vraie dans cet assemblage (021) : le reste des tests entre
+    // par la même route qu'un navigateur, cookie compris.
+    const connexion = authentification.connecter("07194591", MOT_DE_PASSE);
+    if (connexion.issue !== "ouverte") throw new Error("connexion refusée à la mise en place");
+    cookie = `bado_session=${connexion.jeton}`;
   });
 
   after(() => {
@@ -186,14 +222,14 @@ describe("l'application assemblée", () => {
   });
 
   it("sert l'accueil avec l'état réel de la base", async () => {
-    const reponse = await fetch(`${base}/`);
+    const reponse = await visiter(`/`);
     assert.equal(reponse.status, 200);
     assert.match(await reponse.text(), /Captures archivées/);
   });
 
   it("dit sur mon profil qu'aucune passe n'a abouti, plutôt qu'un tableau de tirets", async () => {
     // Un tableau de tirets se confondrait avec un joueur non classé (spec 001).
-    const reponse = await fetch(`${base}/mon-profil`);
+    const reponse = await visiter(`/mon-profil`);
 
     assert.match(await reponse.text(), /aucun relevé/i);
   });
@@ -210,7 +246,7 @@ describe("l'application assemblée", () => {
       new Date("2026-09-01T05:00:00Z"),
     );
 
-    const corps = await (await fetch(`${base}/mon-profil`)).text();
+    const corps = await (await visiter(`/mon-profil`)).text();
 
     assert.match(corps, /07194591/);
     assert.match(corps, /D9/);
@@ -219,14 +255,14 @@ describe("l'application assemblée", () => {
   });
 
   it("dit sur le capitanat qu'aucune équipe n'est importée", async () => {
-    const reponse = await fetch(`${base}/capitanat`);
+    const reponse = await visiter(`/capitanat`);
 
     assert.match(await reponse.text(), /Aucune équipe importée/);
   });
 
   it("importe un CSV déposé depuis les sources, et l'affiche sur le capitanat", async () => {
     // La chaîne entière : téléversement en `text/csv`, parseur, base, page.
-    const reponse = await fetch(`${base}/sources/equipe`, {
+    const reponse = await visiter(`/sources/equipe`, {
       method: "POST",
       headers: { "content-type": "text/csv; charset=utf-8" },
       body: "licence;sexe;telephone\n07194591;M;06 12 34 56 78\n02345678;F;0612345679\n",
@@ -234,7 +270,7 @@ describe("l'application assemblée", () => {
     assert.equal(reponse.status, 200);
     assert.match(await reponse.text(), /2<\/strong>\s*membres importés/);
 
-    const corps = await (await fetch(`${base}/capitanat`)).text();
+    const corps = await (await visiter(`/capitanat`)).text();
 
     assert.match(corps, /tel:0612345678/, "le téléphone est cliquable");
     assert.match(corps, /https:\/\/www\.myffbad\.fr\/joueur\/07194591/, "et la fiche liée");
@@ -245,7 +281,7 @@ describe("l'application assemblée", () => {
   it("relève le nom et le classement dans la foulée de l'import", async () => {
     // La deuxième vérification que 028 exige : pas seulement les parseurs
     // rejoués, mais la chaîne fiche → personId → action → base → page.
-    const corps = await (await fetch(`${base}/capitanat`)).text();
+    const corps = await (await visiter(`/capitanat`)).text();
 
     assert.match(corps, /Simon RENOULT/, "le nom relevé sur la fiche publique");
     assert.match(corps, /D9/);
@@ -258,7 +294,7 @@ describe("l'application assemblée", () => {
     // 02345678 reçoit donc la fiche de quelqu'un d'autre, et c'est le contrôle
     // de licence du parseur qui la laisse muette (028). Une case vide ne doit
     // jamais pouvoir se lire comme « non classé ».
-    const corps = await (await fetch(`${base}/capitanat`)).text();
+    const corps = await (await visiter(`/capitanat`)).text();
 
     assert.match(corps, /1 membre\s+sans relevé/);
     assert.match(corps, /non relevé/);
@@ -272,7 +308,7 @@ describe("l'application assemblée", () => {
   });
 
   it("refuse l'import entier sur une ligne fautive, sans toucher à l'équipe en base", async () => {
-    const reponse = await fetch(`${base}/sources/equipe`, {
+    const reponse = await visiter(`/sources/equipe`, {
       method: "POST",
       headers: { "content-type": "text/csv; charset=utf-8" },
       body: "licence;sexe;telephone\n07194591;M;0612345678\n0719;M;0612345679\n",
@@ -289,9 +325,120 @@ describe("l'application assemblée", () => {
     ["/veille", /Veille de tournois/],
   ] as const) {
     it(`sert ${chemin}, monté par le point de composition`, async () => {
-      const reponse = await fetch(`${base}${chemin}`);
+      const reponse = await visiter(`${chemin}`);
       assert.equal(reponse.status, 200);
       assert.match(await reponse.text(), attendu);
     });
   }
+
+  /**
+   * La porte, sur l'assemblage réel — spec 021.
+   *
+   * Le reste de ce fichier entre avec un cookie valide ; ici on frappe sans.
+   * C'est le seul endroit où l'on vérifie que la fermeture tient sur
+   * l'application entière, montée comme `main.ts` la monte, et pas seulement
+   * sur une route prise à part.
+   */
+  describe("la porte", () => {
+    const sansCookie = (chemin: string, options: RequestInit = {}) =>
+      fetch(`${base}${chemin}`, { redirect: "manual", ...options });
+
+    for (const chemin of ["/", "/mon-profil", "/capitanat", "/veille", "/sources"]) {
+      it(`refuse ${chemin} sans session`, async () => {
+        const reponse = await sansCookie(chemin);
+
+        assert.equal(reponse.status, 302);
+        assert.match(reponse.headers.get("location") ?? "", /^\/connexion\?motif=absente/);
+      });
+    }
+
+    it("refuse un formulaire posté sans session, sans le rejouer après connexion", async () => {
+      // Un 302 renverrait vers la connexion et perdrait le corps en route.
+      // Mieux vaut le dire : 401, et c'est le rechargement qui redemandera.
+      const reponse = await sansCookie("/sources/equipe", {
+        method: "POST",
+        headers: { "content-type": "text/csv; charset=utf-8" },
+        body: "licence;sexe;telephone\n",
+      });
+
+      assert.equal(reponse.status, 401);
+      assert.equal(coequipiers.tous().length, 2, "rien n'a été écrit");
+    });
+
+    it("laisse la page de connexion répondre, elle", async () => {
+      const reponse = await sansCookie("/connexion");
+
+      assert.equal(reponse.status, 200);
+      const corps = await reponse.text();
+      assert.match(corps, /Numéro de licence/);
+      assert.doesNotMatch(corps, /Capitanat/, "aucune navigation avant d'être entré");
+    });
+
+    it("laisse la sonde de vie répondre, mais sans rien dire de la base", async () => {
+      // Le superviseur n'a pas de session (020) ; la taille de la base et le
+      // nombre de captures ne regardent personne d'autre.
+      const dehors = await (await sansCookie("/sante")).json();
+      assert.deepEqual(dehors, { statut: "ok" });
+
+      const dedans = (await (await visiter("/sante")).json()) as Record<string, unknown>;
+      assert.equal(dedans["statut"], "ok");
+      assert.ok(typeof dedans["tailleDeLaBase"] === "number");
+    });
+
+    it("refuse le mauvais mot de passe en 401, sans dire laquelle des deux moitiés cloche", async () => {
+      const reponse = await sansCookie("/connexion", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ licence: "07194591", motDePasse: "faux" }),
+      });
+
+      assert.equal(reponse.status, 401);
+      assert.match(await reponse.text(), /Licence ou mot de passe incorrect/);
+      assert.equal(reponse.headers.get("set-cookie"), null);
+    });
+
+    it("ouvre sur le bon mot de passe, et pose un cookie inaccessible au JavaScript", async () => {
+      const reponse = await sansCookie("/connexion", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ licence: "07194591", motDePasse: MOT_DE_PASSE }),
+      });
+
+      assert.equal(reponse.status, 302);
+      assert.equal(reponse.headers.get("location"), "/");
+
+      const pose = reponse.headers.get("set-cookie") ?? "";
+      assert.match(pose, /^bado_session=/);
+      assert.match(pose, /HttpOnly/i);
+      assert.match(pose, /SameSite=Strict/i);
+
+      // Et ce cookie ouvre réellement les pages fermées.
+      const jeton = pose.split(";")[0] ?? "";
+      const page = await fetch(`${base}/capitanat`, { headers: { cookie: jeton } });
+      assert.equal(page.status, 200);
+    });
+
+    it("ramène là où on allait, mais jamais ailleurs que chez soi", async () => {
+      const entrer = (suite: string) =>
+        sansCookie("/connexion", {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ licence: "07194591", motDePasse: MOT_DE_PASSE, suite }),
+        });
+
+      assert.equal((await entrer("/sources")).headers.get("location"), "/sources");
+      // `//ailleurs.test` est une URL absolue pour un navigateur : la suivre
+      // ferait de la page de connexion un tremplin vers n'importe quel site.
+      assert.equal((await entrer("//ailleurs.test")).headers.get("location"), "/");
+      assert.equal((await entrer("https://ailleurs.test")).headers.get("location"), "/");
+    });
+
+    it("efface le cookie à la déconnexion", async () => {
+      const reponse = await visiter("/connexion/deconnexion", { method: "POST" });
+
+      assert.equal(reponse.status, 302);
+      assert.equal(reponse.headers.get("location"), "/connexion");
+      assert.match(reponse.headers.get("set-cookie") ?? "", /^bado_session=;/);
+    });
+  });
 });
