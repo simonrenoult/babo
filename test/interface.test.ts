@@ -7,7 +7,10 @@ import type { Server } from "node:http";
 import { ouvrirLaPersistance } from "../src/socle/infrastructure/base/persistance.ts";
 import { creerApplication } from "../src/socle/presentation/serveur.ts";
 import { creerModuleMonProfil } from "../src/mon-profil/presentation/module-web.ts";
-import { moduleCapitanat } from "../src/capitanat/presentation/module-web.ts";
+import { creerModuleCapitanat } from "../src/capitanat/presentation/module-web.ts";
+import { depotCoequipiersSqlite } from "../src/capitanat/infrastructure/depot-coequipiers-sqlite.ts";
+import { lireLeCsvDeLEquipe } from "../src/capitanat/infrastructure/csv-equipe.ts";
+import { ImportRefuse } from "../src/capitanat/core/coequipier.ts";
 import { moduleVeille } from "../src/veille/presentation/module-web.ts";
 import { etatDeLaSource, tacheDAcquisition } from "../src/socle/core/acquisition.ts";
 import { SOURCES } from "../src/socle/core/source.ts";
@@ -22,10 +25,12 @@ describe("l'application assemblée", () => {
   let serveur: Server;
   let base: string;
   let persistance: ReturnType<typeof ouvrirLaPersistance>;
+  let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
 
   before(async () => {
     dossier = mkdtempSync(join(tmpdir(), "babo-interface-"));
     persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
+    coequipiers = depotCoequipiersSqlite(persistance.base);
 
     const application = creerApplication({
       configuration: {
@@ -40,7 +45,7 @@ describe("l'application assemblée", () => {
           licence: licence("07194591"),
           classements: persistance.classements,
         }),
-        moduleCapitanat,
+        creerModuleCapitanat({ coequipiers }),
         moduleVeille,
       ],
       etatDuSocle: () => ({
@@ -72,6 +77,18 @@ describe("l'application assemblée", () => {
         sonder: () => Promise.resolve([]),
         // La passe touche au réseau : idem, l'assemblage vérifie le montage.
         relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
+        // L'import, lui, n'appelle personne : c'est la chaîne entière, du
+        // téléversement à la page, qui se vérifie ici (spec 005).
+        importerLEquipe: (csv) => {
+          try {
+            const equipe = lireLeCsvDeLEquipe(csv);
+            coequipiers.remplacer(equipe);
+            return { issue: "importee", membres: equipe.length };
+          } catch (erreur) {
+            if (erreur instanceof ImportRefuse) return { issue: "refusee", motifs: erreur.motifs };
+            throw erreur;
+          }
+        },
       },
     });
 
@@ -119,6 +136,42 @@ describe("l'application assemblée", () => {
     assert.match(corps, /D9/);
     assert.match(corps, /1\s?311/, "le CPPH, formaté en français");
     assert.doesNotMatch(corps, /aucun relevé/i);
+  });
+
+  it("dit sur le capitanat qu'aucune équipe n'est importée", async () => {
+    const reponse = await fetch(`${base}/capitanat`);
+
+    assert.match(await reponse.text(), /Aucune équipe importée/);
+  });
+
+  it("importe un CSV déposé depuis les sources, et l'affiche sur le capitanat", async () => {
+    // La chaîne entière : téléversement en `text/csv`, parseur, base, page.
+    const reponse = await fetch(`${base}/sources/equipe`, {
+      method: "POST",
+      headers: { "content-type": "text/csv; charset=utf-8" },
+      body: "licence;sexe;telephone\n07194591;M;06 12 34 56 78\n02345678;F;0612345679\n",
+    });
+    assert.equal(reponse.status, 200);
+    assert.match(await reponse.text(), /2<\/strong>\s*membres importés/);
+
+    const corps = await (await fetch(`${base}/capitanat`)).text();
+
+    assert.match(corps, /tel:0612345678/, "le téléphone est cliquable");
+    assert.match(corps, /https:\/\/www\.myffbad\.fr\/joueur\/07194591/, "et la fiche liée");
+    assert.match(corps, /02345678/);
+    assert.doesNotMatch(corps, /Aucune équipe importée/);
+  });
+
+  it("refuse l'import entier sur une ligne fautive, sans toucher à l'équipe en base", async () => {
+    const reponse = await fetch(`${base}/sources/equipe`, {
+      method: "POST",
+      headers: { "content-type": "text/csv; charset=utf-8" },
+      body: "licence;sexe;telephone\n07194591;M;0612345678\n0719;M;0612345679\n",
+    });
+
+    assert.equal(reponse.status, 400);
+    assert.match(await reponse.text(), /licence invalide/);
+    assert.equal(coequipiers.tous().length, 2, "l'équipe précédente est intacte");
   });
 
   for (const [chemin, attendu] of [

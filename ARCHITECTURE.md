@@ -105,8 +105,8 @@ démarrage par `src/socle/infrastructure/base/persistance.ts`. Aucune feature ne
 persiste quoi que ce soit en dehors.
 
 Le schéma porte le jeton de session, les captures brutes, les rapports
-d'exécution, les déploiements observés et le classement. Celui des matchs et
-des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
+d'exécution, les déploiements observés, le classement et l'équipe. Celui des
+matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
 lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
 `src/socle/infrastructure/base/migrations/`, appliqués une fois, dans l'ordre
 des noms, chacun dans une transaction.
@@ -153,8 +153,10 @@ dupliqué.
 
 Trois disciplines — simple, double, mixte — et non les cinq tableaux de
 `Tableau`. C'est ce que la fiche expose, et en déduire `SH` ou `SD`
-demanderait un sexe que rien ne configure. 001 disait « rattachés à un
-`Tableau` » avant qu'on ait vu la fiche ; elle est amendée.
+demanderait un sexe que myffbad ne publie nulle part. 001 disait « rattachés à
+un `Tableau` » avant qu'on ait vu la fiche ; elle est amendée. Le sexe qu'un
+CSV importe depuis 005 ne change rien à cela : c'est une saisie manuelle, et
+en tirer une série serait fabriquer un fait fédéral (028).
 
 Une ligne par changement de valeur, jamais une par passe : le classement ne
 bouge qu'à la publication hebdomadaire du CPPH. Chaque ligne porte `apparu_le` —
@@ -169,6 +171,41 @@ La passe n'a pas encore de déclencheur : 018 la portera. En attendant,
 `/sources` la lance à la main — sur l'écran d'exploitation, jamais sur
 `/mon-profil`, où un bouton mettrait le plafond d'un passage par jour entre les
 mains de l'utilisateur.
+
+## L'équipe
+
+Deuxième donnée métier, et la première d'une feature — spec 005. Elle vit dans
+`capitanat`, qui garde son `Coequipier` sans le faire monter dans le socle
+(022) :
+
+| Pièce | Où |
+|-------|-----|
+| la notion — licence, sexe, téléphone — et son port | `capitanat/core/coequipier.ts` |
+| le parseur du CSV | `capitanat/infrastructure/csv-equipe.ts` |
+| le dépôt | `capitanat/infrastructure/depot-coequipiers-sqlite.ts` |
+| la table | `socle/infrastructure/base/migrations/004__coequipier.sql` |
+| la page | `capitanat/presentation/` |
+
+Le dépôt n'est pas monté par la persistance du socle, qui ne connaît aucune
+feature : c'est `main.ts` qui lui passe la base — la même base, la seule.
+La migration, elle, est dans le socle, parce qu'aucune feature ne persiste
+hors de là.
+
+Trois colonnes, et exactement celles que myffbad ne publie pas : la sonde de
+015 a montré que la fiche ne porte aucun genre et aucune coordonnée. Le nom et
+le classement des coéquipiers se relèveront (028) ; le mail n'existe nulle
+part, et 015 est amendée sur ces deux points.
+
+L'import se fait depuis `/sources`, l'écran d'exploitation, comme la passe de
+001 : le contenu du fichier est posté en `text/csv` par dix lignes de JS et lu
+par `express.text()` — pas de multipart, donc pas de `multer`, et le fichier de
+coordonnées n'atterrit jamais sur le disque. **Tout ou rien** : une licence mal
+formée, un sexe hors `F`/`M`, un téléphone vide, un doublon ou un octet qui
+n'est pas de l'UTF-8 refusent l'import entier, l'écran nommant chaque ligne et
+sa raison. Et **remplacement intégral** : un coéquipier absent du fichier est
+supprimé, avec ses relevés de classement — garder « au cas où » les
+coordonnées de quelqu'un qui ne joue plus ici est précisément ce qui rendrait
+une fuite impardonnable.
 
 ## Ce qui n'est pas encore là
 

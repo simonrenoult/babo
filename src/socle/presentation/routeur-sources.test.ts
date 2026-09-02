@@ -44,10 +44,18 @@ type Trace = {
   sondes: number;
   connectes: Source[];
   releves: number;
+  importes: string[];
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
-  const trace: Trace = { enregistres: [], oublies: [], sondes: 0, connectes: [], releves: 0 };
+  const trace: Trace = {
+    enregistres: [],
+    oublies: [],
+    sondes: 0,
+    connectes: [],
+    releves: 0,
+    importes: [],
+  };
   return {
     trace,
     acces: {
@@ -69,6 +77,14 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         },
       ],
       enregistrer: (source, valeur) => void trace.enregistres.push([source, valeur]),
+      importerLEquipe: (csv) => {
+        trace.importes.push(csv);
+        // Le socle ne sait pas lire un CSV d'équipe et n'a pas à l'apprendre
+        // (022) : la doublure rend ce que `main.ts` rendrait.
+        return csv.includes("licence")
+          ? { issue: "importee", membres: 8 }
+          : { issue: "refusee", motifs: [{ ligne: 1, raison: "colonne « licence » absente." }] };
+      },
       oublier: (source) => void trace.oublies.push(source),
       connecter: (source) => {
         trace.connectes.push(source);
@@ -110,7 +126,7 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
 async function interroger(
   acces: AccesAuxSources,
   chemin: string,
-  corps?: URLSearchParams,
+  corps?: URLSearchParams | string,
 ): Promise<{ statut: number; corps: string; redirection: string | null }> {
   const application = creerApplication({
     configuration: CONFIGURATION,
@@ -130,7 +146,12 @@ async function interroger(
         ? {}
         : {
             method: "POST",
-            headers: { "content-type": "application/x-www-form-urlencoded" },
+            headers: {
+              "content-type":
+                typeof corps === "string"
+                  ? "text/csv; charset=utf-8"
+                  : "application/x-www-form-urlencoded",
+            },
             body: corps,
           }),
     });
@@ -247,6 +268,37 @@ describe("l'écran des sources", () => {
     assert.equal(reponse.statut, 200);
     assert.equal(trace.releves, 1);
     assert.match(reponse.corps, /simple D9, double D8, mixte D9/);
+  });
+});
+
+describe("l'import de l'équipe", () => {
+  it("passe le contenu du CSV et rend le décompte", async () => {
+    // Le fichier n'atterrit jamais sur le serveur : c'est son contenu qui est
+    // posté en `text/csv`, sans multipart et sans `multer` (spec 005).
+    const { acces, trace } = ecran();
+    const reponse = await interroger(acces, "/sources/equipe", "licence;sexe;telephone\n");
+
+    assert.equal(reponse.statut, 200);
+    assert.deepEqual(trace.importes, ["licence;sexe;telephone\n"]);
+    assert.match(reponse.corps, /8<\/strong>\s*membres importés/);
+  });
+
+  it("rend chaque anomalie avec sa ligne, et refuse en 400", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/sources/equipe", "n'importe quoi\n");
+
+    assert.equal(reponse.statut, 400);
+    assert.match(reponse.corps, /rien n'a été écrit/);
+    assert.match(reponse.corps, /colonne « licence » absente/);
+  });
+
+  it("dit à l'écran que l'import remplace la liste entière", async () => {
+    // La suppression du partant, relevés compris, est la contrepartie assumée
+    // de 005 : elle doit être écrite là où on clique, pas seulement en spec.
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/sources");
+
+    assert.match(reponse.corps, /remplace la liste entière/);
   });
 });
 

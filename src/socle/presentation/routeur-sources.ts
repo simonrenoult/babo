@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+import { Router, text, type Response } from "express";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
 import type { EtatDuDeploiement } from "../core/build.ts";
 import type { RapportArchive } from "../core/rapport-execution.ts";
@@ -35,6 +35,32 @@ export type AccesAuxSources = {
    * le rend inutile en déclenchant la même passe chaque vendredi à 1 h.
    */
   relever(): Promise<RapportArchive>;
+  /**
+   * Remplace l'équipe par le contenu d'un CSV — spec 005.
+   *
+   * Le socle ne sait pas ce qu'est un coéquipier et n'a pas à l'apprendre
+   * (022) : il reçoit du texte, rend un décompte ou des motifs de refus, et
+   * `main.ts` branche le module `capitanat` derrière. Le geste est ici parce
+   * que `/sources` est l'écran d'exploitation, celui de la passe de 001.
+   */
+  importerLEquipe(csv: string): ResultatDImport;
+};
+
+/**
+ * Ce que l'écran dit d'un import — spec 005.
+ *
+ * Tout ou rien : une équipe entièrement remplacée, ou rien d'écrit et la liste
+ * des anomalies, chacune avec sa ligne. Pas d'état intermédiaire, donc pas
+ * d'import partiel à défaire à la main.
+ */
+export type ResultatDImport =
+  | { readonly issue: "importee"; readonly membres: number }
+  | { readonly issue: "refusee"; readonly motifs: readonly MotifDeRefus[] };
+
+export type MotifDeRefus = {
+  /** Ligne du fichier, en-tête comprise. `null` quand c'est le fichier entier. */
+  readonly ligne: number | null;
+  readonly raison: string;
 };
 
 /**
@@ -54,7 +80,11 @@ export function routeurSources(acces: AccesAuxSources): Router {
 
   const ecran = (
     reponse: Response,
-    vue: { sonde?: readonly ResultatDeSonde[] | null; passe?: RapportArchive | null },
+    vue: {
+      sonde?: readonly ResultatDeSonde[] | null;
+      passe?: RapportArchive | null;
+      equipe?: ResultatDImport | null;
+    },
   ): void => {
     reponse.render("sources", {
       titre: "Sources",
@@ -62,6 +92,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
       deploiements: acces.deploiements(),
       sonde: vue.sonde ?? null,
       passe: vue.passe ?? null,
+      equipe: vue.equipe ?? null,
     });
   };
 
@@ -79,6 +110,26 @@ export function routeurSources(acces: AccesAuxSources): Router {
       .relever()
       .then((passe) => ecran(reponse, { passe }))
       .catch(suite);
+  });
+
+  /**
+   * L'import de l'équipe — spec 005.
+   *
+   * Le corps arrive en `text/csv` par dix lignes de JS, pas en multipart :
+   * Express ne sait pas lire le multipart, et ajouter `multer` pour un import
+   * annuel de huit lignes irait contre l'exigence qui a fait refuser 300 Mo de
+   * navigateur sans écran à 015. Le fichier, lui, n'atterrit jamais sur le
+   * serveur — seul son contenu passe.
+   *
+   * Le plafond est là pour qu'un fichier de dix mille lignes déposé par
+   * mégarde soit refusé par la porte, pas par la mémoire.
+   */
+  routeur.post("/equipe", text({ type: "text/csv", limit: "64kb" }), (requete, reponse) => {
+    const resultat = acces.importerLEquipe(typeof requete.body === "string" ? requete.body : "");
+
+    // 400 sur un refus : l'écran le dit, et le journal du proxy aussi.
+    reponse.status(resultat.issue === "refusee" ? 400 : 200);
+    ecran(reponse, { equipe: resultat });
   });
 
   routeur.post("/:source/jeton", (requete, reponse) => {

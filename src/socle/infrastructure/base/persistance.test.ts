@@ -28,6 +28,7 @@ describe("la base unique du socle", () => {
       "001__socle.sql",
       "002__build_source.sql",
       "003__classement.sql",
+      "004__coequipier.sql",
     ]);
     persistance.fermer();
   });

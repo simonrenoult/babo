@@ -18,7 +18,10 @@ import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts"
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
 import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
 import { creerModuleMonProfil } from "./mon-profil/presentation/module-web.ts";
-import { moduleCapitanat } from "./capitanat/presentation/module-web.ts";
+import { creerModuleCapitanat } from "./capitanat/presentation/module-web.ts";
+import { ImportRefuse } from "./capitanat/core/coequipier.ts";
+import { depotCoequipiersSqlite } from "./capitanat/infrastructure/depot-coequipiers-sqlite.ts";
+import { lireLeCsvDeLEquipe } from "./capitanat/infrastructure/csv-equipe.ts";
 import { moduleVeille } from "./veille/presentation/module-web.ts";
 
 /**
@@ -45,6 +48,15 @@ if (persistance.migrationsAppliquees.length > 0) {
  * avant analyse et le plafond de requêtes, et aucun des deux ne doit pouvoir
  * s'oublier ni se partager entre sources.
  */
+/**
+ * Le dépôt de `capitanat`, monté sur la même base que le reste — spec 005.
+ *
+ * Il n'est pas dans la persistance du socle : `Coequipier` est une notion de
+ * feature, et le socle ne connaît aucune feature (022). C'est ici, et
+ * seulement ici, que les deux se rencontrent.
+ */
+const coequipiers = depotCoequipiersSqlite(persistance.base);
+
 const modulesDAcquisition = [creerModuleMyffbad(configuration.licence), moduleBadnet];
 const reseau = clientFetch();
 
@@ -68,7 +80,7 @@ const application = creerApplication({
       licence: configuration.licence,
       classements: persistance.classements,
     }),
-    moduleCapitanat,
+    creerModuleCapitanat({ coequipiers }),
     moduleVeille,
   ],
   etatDuSocle: () => ({
@@ -115,6 +127,21 @@ const application = creerApplication({
       }),
 
     oublier: (source) => persistance.jetonMyffbad.effacer(source),
+
+    // L'import de l'équipe — spec 005. Le socle passe du texte et reçoit un
+    // décompte ou des motifs : c'est ici que le CSV devient des coéquipiers.
+    // Il n'appelle personne, volontairement : 005 doit pouvoir se vérifier
+    // sans source externe, et c'est 028 qui accrochera la passe ensuite.
+    importerLEquipe: (csv) => {
+      try {
+        const equipe = lireLeCsvDeLEquipe(csv);
+        coequipiers.remplacer(equipe);
+        return { issue: "importee", membres: equipe.length };
+      } catch (erreur) {
+        if (erreur instanceof ImportRefuse) return { issue: "refusee", motifs: erreur.motifs };
+        throw erreur;
+      }
+    },
 
     connecter: async (source) => {
       const module = modulesDAcquisition.find((candidat) => candidat.source === source);

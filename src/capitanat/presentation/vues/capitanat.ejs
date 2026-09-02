@@ -1,8 +1,39 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
-<p>Module en place, sans métier : les specs suivantes viendront le remplir.</p>
+
+<h3>Mon équipe</h3>
+
+<% if (equipe.length === 0) { %>
+  <p class="etat">
+    Aucune équipe importée. Le fichier se dépose depuis
+    <a href="/sources">l'écran des sources</a> : une ligne par joueur,
+    <code>licence;sexe;telephone</code>, en-tête comprise, en UTF-8.
+  </p>
+<% } else { %>
+  <p>
+    <%= equipe.length %> membre<%= equipe.length > 1 ? "s" : "" %>, moi compris.
+    Le sexe et le téléphone viennent du fichier ; le nom et le classement
+    viendront de myffbad (spec 028). L'import remplace la liste entière.
+  </p>
+
+  <table>
+    <tr><th>Licence</th><th>Sexe</th><th>Téléphone</th><th>Fiche</th></tr>
+    <% for (const membre of equipe) { %>
+      <tr>
+        <td><%= membre.licence %></td>
+        <td><%= membre.sexe %></td>
+        <td><a href="tel:<%= membre.appel %>"><%= membre.telephone %></a></td>
+        <td>
+          <a href="<%= membre.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>
+        </td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>
+
+<h3>Ce qui viendra ici</h3>
 <ul>
-  <li>Membres de l'équipe — spec 005</li>
+  <li>Nom et classement des membres — spec 028</li>
   <li>Performance individuelle — spec 006</li>
   <li>Ratio victoire/défaite de l'équipe — spec 007</li>
   <li>Disponibilités et taux de sollicitation — specs 008 et 009</li>

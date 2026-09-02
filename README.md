@@ -10,7 +10,7 @@
   - Historique de matchs
   - Ratio victoire/défaite par tableau
 - Aide au capitanat : 
-  - Lister les membres de mon équipe (sexe, licence, classement, mail, téléphone, lien myffbad)
+  - Lister les membres de mon équipe (licence, sexe, téléphone, lien myffbad, puis nom et classement)
   - Performance individuelle
   - Ratio victoire/défaite
   - Disponibilités aux interclubs
@@ -40,9 +40,14 @@ Bado se connecte seul à myffbad pour le classement et les matchs, et interroge
 la recherche publique de badnet, anonyme, pour les tournois. `/sources` porte
 les sessions, les déploiements observés et la sonde d'accès.
 
-Première feature en place : `/mon-profil` affiche mon classement, une ligne par
-discipline, avec la date de la passe qui l'a relevé (spec 001). La passe
-attend son ordonnanceur (spec 018) ; d'ici là elle se lance depuis `/sources`.
+Deux features en place. `/mon-profil` affiche mon classement, une ligne par
+discipline, avec la date de la passe qui l'a relevé (spec 001) ; la passe
+attend son ordonnanceur (spec 018), et d'ici là elle se lance depuis
+`/sources`. `/capitanat` affiche les membres de l'équipe — licence, sexe,
+téléphone cliquable et lien vers la fiche fédérale (spec 005). L'équipe
+s'importe depuis `/sources` par un CSV `licence;sexe;telephone` en UTF-8, qui
+remplace la liste entière ou est refusé en entier. Les noms et les classements
+des coéquipiers viendront de la spec 028.
 
 Voir
 [ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et

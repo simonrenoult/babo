@@ -18,8 +18,9 @@ import type { Licence } from "./licence.ts";
  * qu'on ait vu la fiche ; la sonde de 015 l'a montrée, et elle expose
  * `SimpleSubLevel`, `DoubleSubLevel`, `MixteSubLevel` — trois disciplines, pas
  * cinq tableaux. Passer de « simple » à `SH` demanderait le sexe du licencié,
- * que rien ne configure et que la fiche ne donne pas : ce serait inventer là
- * où 001 demande d'afficher ce que la source donne. `Tableau` reste ce qu'il
+ * que myffbad ne publie nulle part : ce serait inventer là où 001 demande
+ * d'afficher ce que la source donne. Le sexe que 005 importe est une saisie
+ * manuelle, et 028 écarte d'en tirer une série pour cette raison même. `Tableau` reste ce qu'il
  * est — le tableau d'une compétition, celui de 004, 010 et 012.
  */
 export const DISCIPLINES = ["simple", "double", "mixte"] as const;
