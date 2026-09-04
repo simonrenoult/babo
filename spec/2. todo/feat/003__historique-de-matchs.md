@@ -47,4 +47,18 @@ même compétition se confondent.
 Volume attendu : quelques centaines de matchs par joueur, pas un enjeu de
 performance.
 
-Bloquée par [[015__source-de-donnees]].
+~~Bloquée par [[015__source-de-donnees]].~~ **Faite** : la fiche et l'espace du
+licencié sont atteignables, et les captures sont archivées avant analyse.
+
+**Préalable : la table des matchs n'existe pas.**
+[[017__persistance-sqlite]] a délibérément laissé ce schéma à dessiner, et 015 a
+fixé l'ordre — la sonde d'abord, sur des pages réellement observées, le schéma
+ensuite, « le dessiner avant d'avoir vu les pages serait la même erreur que de
+concevoir une interface avant ses adaptateurs ». La sonde a livré :
+`myffbad-resultats.txt` est dans le dépôt, à côté des tests.
+
+Cette spec est seule sur cette table, et trois autres la liront telle quelle :
+[[004__ratio-victoire-defaite-par-tableau]],
+[[006__performance-individuelle]] et
+[[007__ratio-victoire-defaite-equipe]] n'ont pas d'autre source. C'est ce qui
+fait d'elle le meilleur point d'entrée du backlog.

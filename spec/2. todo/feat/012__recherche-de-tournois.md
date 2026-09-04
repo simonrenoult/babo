@@ -41,4 +41,18 @@ Retenue : indexation quotidienne depuis badnet, conformément à
 Socle du module `veille`. Alimente [[002__prochains-tournois]] une fois
 l'inscription faite.
 
-Bloquée par [[015__source-de-donnees]].
+~~Bloquée par [[015__source-de-donnees]].~~ **Faite**, et mieux que prévu : la
+recherche badnet est **publique et anonyme** — un POST sur `/index.php`, sans
+cookie, dont la réponse embarque la liste en JSON dans `div.b-markers`. C'est la
+seule requête du projet qui ne dépende d'aucune session, et elle ne doit jamais
+passer sous session, sous peine de mettre la veille quotidienne sous le même
+risque de bannissement que le reste.
+
+**Préalable : la table des tournois n'existe pas.**
+[[017__persistance-sqlite]] a délibérément laissé ce schéma à dessiner, et 015 a
+fixé l'ordre — la sonde d'abord, le schéma ensuite. La sonde a livré :
+`badnet-recherche.html` est dans le dépôt, à côté des tests.
+
+Cette spec dessine donc l'index des tournois. Elle partage avec
+[[002__prochains-tournois]] la description d'un tournoi : la première des deux
+traitée la paiera pour l'autre.

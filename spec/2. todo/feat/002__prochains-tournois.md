@@ -41,4 +41,18 @@ donnée du backlog dont on ignore encore si la source la porte.
 Recoupe [[012__recherche-de-tournois]] : un tournoi trouvé par la veille doit
 pouvoir devenir un engagement.
 
-Bloquée par [[015__source-de-donnees]].
+~~Bloquée par [[015__source-de-donnees]].~~ **Faite** : l'accès aux deux
+sources est en place, sessions, plafond de requêtes et archivage des captures
+compris.
+
+**Préalable : la table des engagements n'existe pas.**
+[[017__persistance-sqlite]] a délibérément laissé le schéma des matchs et des
+tournois à dessiner, et 015 a fixé l'ordre — « une base minimale, puis la sonde
+d'accès jusqu'à extraire un match et un tournoi réels, puis seulement le schéma
+définitif ». La sonde a livré : `badnet-recherche.html` est dans le dépôt, à
+côté des tests.
+
+C'est donc cette spec qui dessine la table des engagements — celle que
+[[027__engagements-badnet]] viendra ensuite remplir sans la main. Elle partage
+avec [[012__recherche-de-tournois]] la description d'un tournoi : la première
+des deux traitée la paiera pour l'autre.
