@@ -9,6 +9,7 @@ import { creerApplication } from "../src/socle/presentation/serveur.ts";
 import { creerModuleMonProfil } from "../src/mon-profil/presentation/module-web.ts";
 import { creerModuleCapitanat } from "../src/capitanat/presentation/module-web.ts";
 import { depotCoequipiersSqlite } from "../src/capitanat/infrastructure/depot-coequipiers-sqlite.ts";
+import { depotPreferencesSqlite } from "../src/capitanat/infrastructure/depot-preferences-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "../src/capitanat/infrastructure/csv-equipe.ts";
 import { ImportRefuse } from "../src/capitanat/core/coequipier.ts";
 import { moduleVeille } from "../src/veille/presentation/module-web.ts";
@@ -80,6 +81,7 @@ describe("l'application assemblée", () => {
   let base: string;
   let persistance: ReturnType<typeof ouvrirLaPersistance>;
   let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
+  let preferences: ReturnType<typeof depotPreferencesSqlite>;
 
   let reseau: ReturnType<typeof reseauRejoue>;
   let passe: () => Promise<RapportArchive>;
@@ -99,6 +101,7 @@ describe("l'application assemblée", () => {
     dossier = mkdtempSync(join(tmpdir(), "babo-interface-"));
     persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
     coequipiers = depotCoequipiersSqlite(persistance.base);
+    preferences = depotPreferencesSqlite(persistance.base);
     reseau = reseauRejoue();
 
     authentification = creerAuthentification({
@@ -149,6 +152,8 @@ describe("l'application assemblée", () => {
           coequipiers,
           identites: persistance.identites,
           classements: persistance.classements,
+          preferences,
+          horloge: horlogeSysteme,
         }),
         moduleVeille,
       ],
@@ -352,6 +357,84 @@ describe("l'application assemblée", () => {
     const inconnu = await visiter(`/capitanat/tableau/XY`);
     assert.equal(inconnu.status, 404, "le 404 du socle, pas une page vide de sens");
     assert.match(await inconnu.text(), /Page inconnue/);
+  });
+
+  /**
+   * La chaîne entière de 030 : le formulaire, la vérification, la base, la
+   * page. La coéquipière étant restée muette, la paire n'a pas de moyenne — et
+   * elle est nommée à part plutôt que rangée dernière (029).
+   */
+  it("saisit une paire de mixte, l'affiche, la marque, puis l'oublie", async () => {
+    const saisie = await visiter(`/capitanat/tableau/MX/paires`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "licence=07194591&licence=02345678",
+    });
+    assert.equal(saisie.status, 302);
+    assert.equal(saisie.headers.get("location"), "/capitanat/tableau/MX");
+
+    const avecLaPaire = await (await visiter(`/capitanat/tableau/MX`)).text();
+    assert.match(avecLaPaire, /Paires hors de l'ordre/);
+    // Les deux licences sont rangées en base — c'est l'invariant qui rend le
+    // doublon visible —, donc 02345678 s'écrit avant 07194591.
+    assert.match(avecLaPaire, /02345678 &amp; Simon RENOULT/);
+
+    const identifiant = /\/capitanat\/paires\/(\d+)\/marque/.exec(avecLaPaire)?.[1];
+    assert.ok(identifiant, "la paire porte un identifiant dans ses formulaires");
+
+    const marquage = await visiter(`/capitanat/paires/${identifiant}/marque`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ tableau: "MX", valeur: "1" }),
+    });
+    assert.equal(marquage.status, 302);
+    assert.match(await (await visiter(`/capitanat/tableau/MX`)).text(), /privilégiée/);
+
+    // Et on remet la page dans l'état où on l'a trouvée.
+    await visiter(`/capitanat/paires/${identifiant}/suppression`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ tableau: "MX" }),
+    });
+    assert.match(await (await visiter(`/capitanat/tableau/MX`)).text(), /Aucune paire saisie/);
+  });
+
+  it("refuse une paire qui appartiendrait à un autre tableau que la page", async () => {
+    // Deux hommes postés sur la page du mixte : le tableau se déduit des sexes,
+    // il ne se choisit pas.
+    const reponse = await visiter(`/capitanat/tableau/MX/paires`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "licence=07194591&licence=07194591",
+    });
+
+    assert.equal(reponse.status, 400);
+    assert.match(await reponse.text(), /Paire refusée/);
+  });
+
+  it("marque un joueur sur un tableau sans le marquer sur les autres", async () => {
+    const marquer = (tableau: string, valeur: string) =>
+      visiter(`/capitanat/tableau/${tableau}/joueurs/07194591/marque`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ valeur }),
+      });
+
+    assert.equal((await marquer("DH", "1")).status, 302);
+    assert.match(await (await visiter(`/capitanat/tableau/DH`)).text(), /Ne plus privilégier/);
+    assert.match(await (await visiter(`/capitanat/tableau/SH`)).text(), />Privilégier</);
+
+    await marquer("DH", "0");
+  });
+
+  it("ne marque pas une licence absente de l'équipe", async () => {
+    const reponse = await visiter(`/capitanat/tableau/DH/joueurs/99999999/marque`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ valeur: "1" }),
+    });
+
+    assert.equal(reponse.status, 400);
   });
 
   it("n'a présenté aucun cookie pour relever l'équipe", async () => {

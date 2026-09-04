@@ -16,6 +16,14 @@ export function depotCoequipiersSqlite(base: BaseSqlite): DepotCoequipiers {
   const licencesActuelles = base.prepare("select licence from coequipier");
   const oublierLesClassements = base.prepare("delete from classement where licence = ?");
   const oublierLIdentite = base.prepare("delete from identite where licence = ?");
+  // Les paires et les marques du partant s'en vont avec lui — spec 030, pour la
+  // raison déjà écrite par 005 : ne rien garder « au cas où » de quelqu'un qui
+  // ne joue plus ici. Une paire, en plus, désigne *deux* personnes ; en garder
+  // une moitié orpheline n'aurait même pas de sens à l'écran.
+  const oublierLesPaires = base.prepare(
+    "delete from paire where licence_a = ? or licence_b = ?",
+  );
+  const oublierLesMarques = base.prepare("delete from marque_joueur where licence = ?");
   const viderLEquipe = base.prepare("delete from coequipier");
   const ajouter = base.prepare(
     "insert into coequipier (licence, sexe, telephone) values (?, ?, ?)",
@@ -38,6 +46,8 @@ export function depotCoequipiersSqlite(base: BaseSqlite): DepotCoequipiers {
       if (gardees.has(licence)) continue;
       oublierLesClassements.run(licence);
       oublierLIdentite.run(licence);
+      oublierLesPaires.run(licence, licence);
+      oublierLesMarques.run(licence);
     }
 
     viderLEquipe.run();

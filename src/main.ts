@@ -28,6 +28,7 @@ import { creerModuleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { creerModuleCapitanat } from "./capitanat/presentation/module-web.ts";
 import { ImportRefuse } from "./capitanat/core/coequipier.ts";
 import { depotCoequipiersSqlite } from "./capitanat/infrastructure/depot-coequipiers-sqlite.ts";
+import { depotPreferencesSqlite } from "./capitanat/infrastructure/depot-preferences-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "./capitanat/infrastructure/csv-equipe.ts";
 import { moduleVeille } from "./veille/presentation/module-web.ts";
 
@@ -56,6 +57,14 @@ if (persistance.migrationsAppliquees.length > 0) {
  * seulement ici, que les deux se rencontrent.
  */
 const coequipiers = depotCoequipiersSqlite(persistance.base);
+
+/**
+ * Les paires et les marques du capitaine — spec 030.
+ *
+ * Même base, même raison qu'au-dessus : une paire est une décision de
+ * capitaine, donc une notion de feature, et le socle n'en connaît aucune (022).
+ */
+const preferencesDuCapitaine = depotPreferencesSqlite(persistance.base);
 
 const modulesDAcquisition = [creerModuleMyffbad(configuration.licence), moduleBadnet];
 const reseau = clientFetch();
@@ -227,6 +236,8 @@ const application = creerApplication({
       coequipiers,
       identites: persistance.identites,
       classements: persistance.classements,
+      preferences: preferencesDuCapitaine,
+      horloge: horlogeSysteme,
     }),
     moduleVeille,
   ],

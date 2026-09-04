@@ -15,7 +15,19 @@
     Une rencontre se joue en <strong>six matchs répartis sur cinq tableaux</strong> :
     deux simples hommes, un simple dames, un double hommes, un double dames, un
     mixte. Chaque tableau a sa page, qui range les joueurs éligibles du plus fort
-    au plus faible (spec 029).
+    au plus faible (spec 029), porte les paires du double et du mixte, et fait
+    remonter en tête ce que je privilégie (spec 030).
+  </p>
+
+  <p class="etat">
+    <% if (paires === 0) { %>
+      Aucune paire saisie. Elles se saisissent sur la page du double hommes, du
+      double dames ou du mixte : une paire n'a pas de classement fédéral, et son
+      ordre est la moyenne des deux cotes.
+    <% } else { %>
+      <%= paires %> paire<%= paires > 1 ? "s" : "" %> saisie<%= paires > 1 ? "s" : "" %>,
+      réparties sur les pages du double hommes, du double dames et du mixte.
+    <% } %>
   </p>
 
   <%
@@ -133,7 +145,6 @@
   <li>Ratio victoire/défaite de l'équipe — spec 007</li>
   <li>Disponibilités et taux de sollicitation — specs 008 et 009</li>
   <li>Tableaux préférés du joueur — spec 010</li>
-  <li>Paires et préférences du capitaine — spec 030</li>
   <li>Composition de journée — spec 011</li>
 </ul>
 <%- include("pied") %>

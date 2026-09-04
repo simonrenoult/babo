@@ -82,11 +82,65 @@ et supprime le membre absent, avec ses relevés. Ses paires et ses marques
 partent de même : c'est la règle déjà retenue par 005, pour la raison déjà
 écrite — ne rien garder « au cas où » de quelqu'un qui ne joue plus ici.
 
+## Ce qui a été fait
+
+Deux tables, `paire` et `marque_joueur` (migration `010__paire.sql`). La paire
+range ses deux licences — `licence_a < licence_b`, contrainte en base — et c'est
+cet ordre, avec l'index d'unicité, qui rend le doublon impossible : « Dupont
+avec Martin » et « Martin avec Dupont » sont la même décision. Le tableau n'est
+pas stocké. La marque d'un joueur est la **présence d'une ligne** : un booléen à
+deux valeurs dans une table à deux clés n'aurait ajouté qu'une troisième façon
+de dire non.
+
+**Les cinq pages de 029 sont enrichies, pas réécrites.** `forces-par-tableau.ts`
+n'a pas bougé : `paires.ts` prend son résultat et pose une couche par-dessus —
+le rang en deux blocs, et les paires sur les trois tableaux qui se jouent à
+deux. Les deux blocs s'obtiennent par un tri qui ne compare que la marque, en
+s'appuyant sur la stabilité garantie de `Array.prototype.sort` : la liste entre
+déjà rangée à la cote, et cet ordre reste intact à l'intérieur de chaque bloc.
+
+**Une paire dont un membre n'est pas classé dans la discipline sort de
+l'ordre**, nommée à part. Ce n'était pas écrit dans la spec, et c'est la
+transposition littérale de ce que 029 décide de ses joueurs écartés : sans les
+deux cotes il n'y a pas de moyenne, et remplacer celle qui manque par zéro
+rangerait la paire dernière — ce qui ferait disparaître l'anomalie qu'on veut
+voir. Une telle paire se marque quand même : une paire est une intention, pas un
+calcul.
+
+**Le formulaire de saisie a un champ par place à pourvoir**, filtré au sexe de
+la place — deux hommes pour le DH, un de chaque pour le MX. C'est la même
+garantie que la déduction, mais côté écran ; le serveur revérifie que les deux
+sexes donnent bien le tableau de la page, pour qu'une saisie postée depuis la
+page du DD ne puisse pas y faire apparaître deux hommes. Les candidats sont
+**toute l'équipe du bon sexe, classés ou non** : on peut vouloir essayer
+quelqu'un que la passe n'a pas encore relevé.
+
+**Les marques se posent sur les seuls alignables.** Les joueurs que 029 écarte
+faute de classement n'ont pas de bouton : cette liste-là est un signalement
+d'anomalie, pas une liste de sélection, et une marque n'y déplacerait rien.
+
+**Ce sont les premières écritures de la feature.** Jusqu'ici `capitanat` lisait
+et affichait, tout geste d'écriture vivant sur `/sources`. La frontière n'a pas
+bougé : `/sources` porte l'exploitation — charger un fichier, relancer une
+passe —, alors que saisir une paire *est* la feature. La mettre sur l'écran
+d'exploitation aurait séparé la décision de ce qu'elle éclaire. Pas de jeton
+anti-CSRF : le cookie de session est `SameSite=Strict` (021), ce qui couvre tous
+les formulaires.
+
+**Un formulaire poste la valeur voulue, jamais « l'inverse de ce qui est
+écrit ».** Un double envoi ne fait donc pas clignoter la marque.
+
+L'amendement annoncé à [[010__tableaux-preferes]] était déjà en place : la
+frontière y figure dans les Notes, écrite au moment où 030 l'a posée.
+
 ## Questions
 
 - La marque est la seule partie stable de la page, l'ordre bougeant chaque
   semaine. Faut-il, à terme, dater une marque pour savoir depuis quand elle
-  tient ?
+  tient ? **Reste ouverte, mais la date est déjà écrite** : `paire.saisie_le` et
+  `marque_joueur.marque_le` sont posées à chaque saisie et ne sont affichées
+  nulle part. C'est la question de l'écran qui reste ouverte, pas celle de la
+  donnée — le jour où on répond oui, il n'y aura rien à reconstituer.
 
 ## Notes
 

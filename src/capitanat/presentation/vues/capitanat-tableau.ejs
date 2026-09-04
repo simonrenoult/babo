@@ -17,6 +17,13 @@
   </p>
 <% } %>
 
+<%
+  // Le bouton de marque, identique partout : il poste la valeur voulue, jamais
+  // « l'inverse de ce qui est écrit ». Un double envoi du même formulaire ne
+  // fait donc pas clignoter la marque (spec 030).
+  const marque = (privilegie) => (privilegie ? "Ne plus privilégier" : "Privilégier");
+%>
+
 <% if (force.alignables.length === 0) { %>
   <p class="etat">
     Aucun joueur alignable. L'équipe s'importe depuis
@@ -27,9 +34,9 @@
   <table>
     <tr>
       <th>Rang</th><th>Nom</th><th>Sexe</th><th>Cote</th><th>Lettre</th>
-      <th>Licence</th><th>Fiche</th>
+      <th>Licence</th><th>Fiche</th><th>Privilégié</th>
     </tr>
-    <% force.alignables.forEach((joueur, rang) => { %>
+    <% page.joueurs.forEach((joueur, rang) => { %>
       <tr>
         <td><%= rang + 1 %></td>
         <td><%= joueur.nom ?? "—" %></td>
@@ -42,9 +49,161 @@
         <td>
           <a href="<%= joueur.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>
         </td>
+        <td>
+          <%= joueur.privilegie ? "oui" : "—" %>
+          <form method="post"
+                action="/capitanat/tableau/<%= force.tableau %>/joueurs/<%= joueur.licence %>/marque">
+            <input type="hidden" name="valeur" value="<%= joueur.privilegie ? "0" : "1" %>">
+            <button type="submit"><%= marque(joueur.privilegie) %></button>
+          </form>
+        </td>
       </tr>
     <% }) %>
   </table>
+
+  <p class="etat">
+    <strong>Deux blocs, pas un bonus de points.</strong> Ce que je privilégie
+    remonte en tête, et chaque bloc reste rangé à la cote : la comparaison ne se
+    perd pas, le meilleur non marqué reste en tête de son bloc. Un bonus aurait
+    produit un ordre qui ne serait ni celui du classement, ni le mien (spec 030).
+  </p>
+<% } %>
+
+<% if (page.enPaires) { %>
+  <h3>Paires</h3>
+
+  <p>
+    Ce tableau se joue en paires, et <strong>une paire n'a pas de classement
+    fédéral</strong> : son ordre est la moyenne des deux cotes en
+    <%= force.discipline %>. La moyenne plutôt que la somme parce qu'elle se
+    compare à une cote individuelle, et sur les cotes plutôt que sur les séries
+    parce que deux paires « D8 + D9 » peuvent valoir deux cent cinquante points
+    d'écart — c'est justement l'écart qu'on cherche. Cet ordre bouge à chaque
+    publication hebdomadaire du CPPH (spec 030).
+  </p>
+
+  <% if (page.paires.length === 0 && page.pairesHorsOrdre.length === 0) { %>
+    <p class="etat">
+      Aucune paire saisie. Les paires ne sont pas énumérées : une équipe de seize
+      en produirait soixante-quatre en mixte, et soixante-quatre lignes pour en
+      retenir trois sont du bruit. Une paire saisie enregistre une intention, là
+      où une paire calculée n'enregistre rien.
+    </p>
+  <% } %>
+
+  <% if (page.paires.length > 0) { %>
+    <table>
+      <tr>
+        <th>Rang</th><th>Paire</th><th>Cotes</th><th>Moyenne</th>
+        <th>Privilégiée</th><th></th>
+      </tr>
+      <% page.paires.forEach((paire, rang) => { %>
+        <tr>
+          <td><%= rang + 1 %></td>
+          <td>
+            <% paire.joueurs.forEach((joueur, index) => { %>
+              <%= index === 0 ? "" : " & " %>
+              <a href="<%= joueur.fiche %>" rel="noreferrer noopener" target="_blank">
+                <%= joueur.nom ?? joueur.licence %>
+              </a>
+            <% }) %>
+          </td>
+          <td>
+            <%= paire.joueurs
+                  .map((joueur) => `${joueur.lettre} ${joueur.cote.toLocaleString("fr-FR")}`)
+                  .join(" · ") %>
+          </td>
+          <td><%= paire.cote.toLocaleString("fr-FR") %></td>
+          <td>
+            <%= paire.privilegiee ? "oui" : "—" %>
+            <form method="post" action="/capitanat/paires/<%= paire.id %>/marque">
+              <input type="hidden" name="tableau" value="<%= force.tableau %>">
+              <input type="hidden" name="valeur" value="<%= paire.privilegiee ? "0" : "1" %>">
+              <button type="submit"><%= marque(paire.privilegiee) %></button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="/capitanat/paires/<%= paire.id %>/suppression">
+              <input type="hidden" name="tableau" value="<%= force.tableau %>">
+              <button type="submit">Supprimer</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } %>
+
+  <% if (page.pairesHorsOrdre.length > 0) { %>
+    <h4>Paires hors de l'ordre</h4>
+    <p>
+      <%= page.pairesHorsOrdre.length %>
+      paire<%= page.pairesHorsOrdre.length > 1 ? "s" : "" %> dont un membre au
+      moins n'est pas classé en <%= force.discipline %>. Sans les deux cotes, il
+      n'y a pas de moyenne — et les ranger dernières ferait disparaître
+      l'anomalie qu'on veut voir : en début de saison, un joueur sans classement
+      est presque toujours une licence fausse, pas un joueur faible (spec 029).
+    </p>
+    <ul>
+      <% for (const paire of page.pairesHorsOrdre) { %>
+        <li>
+          <%= paire.joueurs.map((joueur) => joueur.nom ?? joueur.licence).join(" & ") %>
+          <span class="etat">
+            sans cote en <%= force.discipline %> :
+            <%= paire.joueurs
+                  .filter((joueur) => joueur.cote === null)
+                  .map((joueur) => joueur.nom ?? joueur.licence)
+                  .join(", ") %>
+          </span>
+          <% if (paire.privilegiee) { %><strong>privilégiée</strong><% } %>
+          <form method="post" action="/capitanat/paires/<%= paire.id %>/marque">
+            <input type="hidden" name="tableau" value="<%= force.tableau %>">
+            <input type="hidden" name="valeur" value="<%= paire.privilegiee ? "0" : "1" %>">
+            <button type="submit"><%= marque(paire.privilegiee) %></button>
+          </form>
+          <form method="post" action="/capitanat/paires/<%= paire.id %>/suppression">
+            <input type="hidden" name="tableau" value="<%= force.tableau %>">
+            <button type="submit">Supprimer</button>
+          </form>
+        </li>
+      <% } %>
+    </ul>
+  <% } %>
+
+  <h4>Saisir une paire</h4>
+  <% if (page.emplacements.some((emplacement) => emplacement.candidats.length === 0)) { %>
+    <p class="etat">
+      L'équipe ne compte personne du sexe requis pour ce tableau : il n'y a
+      aucune paire à composer tant que l'import n'a pas apporté les joueurs
+      manquants.
+    </p>
+  <% } else { %>
+    <form method="post" action="/capitanat/tableau/<%= force.tableau %>/paires">
+      <p>
+        <% page.emplacements.forEach((emplacement, index) => { %>
+          <label for="licence-<%= index %>">
+            <%= emplacement.sexe === "F" ? "Joueuse" : "Joueur" %>
+          </label>
+          <select id="licence-<%= index %>" name="licence" required>
+            <option value="">—</option>
+            <% for (const candidat of emplacement.candidats) { %>
+              <option value="<%= candidat.licence %>">
+                <%= candidat.nom ?? candidat.licence %>
+              </option>
+            <% } %>
+          </select>
+        <% }) %>
+        <button type="submit">Saisir la paire</button>
+      </p>
+    </form>
+    <p class="etat">
+      Le tableau ne se choisit pas : il se déduit des sexes — deux hommes DH,
+      deux femmes DD, un de chaque MX. Un joueur peut appartenir à plusieurs
+      paires du même tableau : c'est le geste de début de saison, essayer
+      quelqu'un avec l'un puis avec l'autre et comparer. <strong>Ces paires ne
+      se cumulent donc pas</strong> plus que les cinq tableaux : les deux
+      premières peuvent partager un joueur.
+    </p>
+  <% } %>
 <% } %>
 
 <% if (force.ecartes.length > 0) { %>
@@ -80,6 +239,14 @@
   pas de myffbad, qui ne le publie nulle part : cette page trie l'équipe pour son
   capitaine, elle ne présente aucun fait fédéral (spec 029, amendant 028). La
   cote et la lettre, elles, sont relevées et affichées telles quelles.
+</p>
+
+<p class="etat">
+  <strong>Ce que je marque ici est ma décision, pas la déclaration du joueur.</strong>
+  Les tableaux souhaités ou refusés par le joueur lui-même, et ses partenaires
+  privilégiés à lui, relèveront de la spec 010. Les deux peuvent se contredire,
+  et ce désaccord est lui-même une information : il se voit en mettant les deux
+  côte à côte, jamais en les fusionnant (spec 030).
 </p>
 
 <p>

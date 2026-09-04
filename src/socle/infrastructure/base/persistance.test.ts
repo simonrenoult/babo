@@ -34,6 +34,7 @@ describe("la base unique du socle", () => {
       "007__ordonnancement.sql",
       "008__compte.sql",
       "009__courrier.sql",
+      "010__paire.sql",
     ]);
     persistance.fermer();
   });

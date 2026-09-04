@@ -110,8 +110,8 @@ persiste quoi que ce soit en dehors.
 
 Le schéma porte le jeton de session, les captures brutes, les rapports
 d'exécution, les déploiements observés, le classement, l'équipe, l'identité
-de chaque licence suivie, les fréquences et échéances du planificateur, et la
-boîte d'envoi du courrier.
+de chaque licence suivie, les fréquences et échéances du planificateur, la
+boîte d'envoi du courrier, et les paires du capitaine.
 Celui des
 matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
 lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
@@ -442,6 +442,67 @@ joueur faible, et les deux motifs sont distingués à l'écran.
 figure dans tous les tableaux où il est éligible sans faire pour autant les six
 matchs. Les additionner surestimerait la profondeur de l'effectif, ce qui serait
 le pire défaut d'un écran censé montrer des manques.
+
+## Les paires du capitaine
+
+Spec 030. Les cinq pages de 029 rangeaient des joueurs ; le DH, le DD et le MX
+se jouent en paires, et **une paire n'a pas de classement fédéral**.
+
+| Pièce | Où |
+|-------|-----|
+| la paire, la marque, l'ordre en deux blocs | `capitanat/core/paires.ts` |
+| le dépôt | `capitanat/infrastructure/depot-preferences-sqlite.ts` |
+| les deux tables | `migrations/010__paire.sql` |
+| les routes d'écriture et les formulaires | `capitanat/presentation/` |
+
+**029 n'a pas bougé.** `paires.ts` prend son résultat et pose une couche
+par-dessus. C'est ce qui garde l'ordre de force lisible comme un fait : la marque
+s'ajoute à côté, elle ne le corrige pas.
+
+**Une paire est deux licences, rien de plus.** Son tableau se déduit des sexes —
+deux hommes DH, deux femmes DD, un de chaque MX —, et comme 005 n'accepte que
+`F` ou `M`, il n'existe pas de couple sans tableau. Le stocker permettrait de
+l'écrire faux ; le déduire rend la ligne fausse impossible. Les deux licences
+sont rangées en base, `licence_a < licence_b` : c'est cette contrainte, avec
+l'index d'unicité, qui fait voir le doublon — « Dupont avec Martin » et « Martin
+avec Dupont » sont la même décision.
+
+**L'ordre d'une paire est la moyenne des deux cotes**, dans la discipline du
+tableau. La moyenne parce qu'elle se compare à une cote individuelle ; sur les
+cotes et non sur les séries parce que deux paires « D8 + D9 » peuvent valoir
+deux cent cinquante points d'écart, et que c'est l'écart qu'on cherche. Cet
+ordre bouge à chaque publication du CPPH, et c'est assumé. Une paire dont un
+membre n'est pas classé dans la discipline sort de l'ordre et est nommée à part
+— même raison que les écartés de 029 : la ranger dernière ferait disparaître
+l'anomalie.
+
+**La marque range en deux blocs, les marqués d'abord**, chaque bloc gardant son
+ordre de cote. Ni une étoile — privilégier n'est pas décorer —, ni un bonus de
+points, qui produirait un ordre qui ne serait ni celui du classement ni celui du
+capitaine. Le mécanisme est un tri qui ne compare que la marque, appuyé sur la
+stabilité garantie de `Array.prototype.sort`. C'est un booléen : une échelle
+demande d'être calibrée et personne ne la recalibre. Il se pose sur une paire,
+ou sur un couple (joueur, tableau) — le même joueur se marque indépendamment en
+SH, en DH et en MX, parce que ce qu'on privilégie n'est pas un joueur mais un
+joueur à cette place.
+
+**Les premières écritures d'une feature.** Jusqu'ici `capitanat` lisait et
+affichait, tout geste d'écriture vivant sur `/sources`. La frontière n'a pas
+bougé : `/sources` porte l'exploitation — charger un fichier, relancer une
+passe —, alors que saisir une paire *est* la feature, et la mettre là-bas aurait
+séparé la décision de ce qu'elle éclaire. Aucun jeton anti-CSRF : le
+`SameSite=Strict` de 021 couvre ces formulaires comme les autres. Chacun poste
+la valeur voulue et non « l'inverse de ce qui est écrit », donc un double envoi
+ne fait pas clignoter la marque.
+
+**Ce qui disparaît avec le joueur.** L'import de 005 emporte ses paires et ses
+marques, comme il emportait déjà ses relevés et son nom. Une paire désigne deux
+personnes ; en garder une moitié orpheline n'aurait même pas de sens à l'écran.
+
+**Ce que le capitaine marque n'est pas ce que le joueur déclarera.** 010 portera
+les tableaux souhaités, refusés, et les partenaires privilégiés du joueur
+lui-même. Les deux peuvent se contredire, et ce désaccord est une information :
+il se lit en mettant les deux côte à côte, jamais en les fusionnant.
 
 ## Ce qui n'est pas encore là
 
