@@ -39,3 +39,14 @@ Retenue : réutiliser l'historique complet, avec un filtre interclub.
 Dépend de [[028__nom-et-classement-de-l-equipe]] — donc de
 [[005__liste-des-membres-de-l-equipe]], qui la précède — pour la liste des
 joueurs et l'évolution de leur classement.
+
+**Et de [[003__historique-de-matchs]]**, que ces Notes omettaient. La solution
+retenue plus haut est explicite : « réutiliser l'historique complet, avec un
+filtre interclub ». Deux des trois choses que cette spec promet d'afficher —
+les derniers matchs officiels et le bilan sur les N dernières rencontres —
+n'existent nulle part avant 003. Seule la troisième, l'évolution du classement,
+est disponible aujourd'hui, et c'est [[024__historique-du-classement]] qui la
+porte.
+
+Sans ce renvoi, 006 paraissait n'attendre que des specs faites, et serait sortie
+du backlog sur un tri qu'elle aurait fait mentir.
