@@ -55,5 +55,7 @@ l'outil se borne à afficher qui n'a pas répondu. Rouvrir la question suppose d
 remettre une colonne mail dans l'import.
 
 Alimente [[011__composition-de-journee]] et
-[[009__taux-de-sollicitation]]. Réutilise l'envoi de mails de
-[[016__envoi-de-mail]].
+[[009__taux-de-sollicitation]]. **N'appelle plus [[016__envoi-de-mail]]** : ce
+lien datait de la version où l'outil relançait lui-même les silencieux, que la
+question barrée ci-dessus a écartée. Sans adresse en base, il n'y a rien à
+envoyer — la brique de mail reste utile ailleurs, pas ici.
