@@ -138,6 +138,7 @@ describe("l'application assemblée", () => {
         // `false` : le test parle en clair à 127.0.0.1, et un cookie `Secure`
         // n'y reviendrait jamais. En production le proxy de 020 impose HTTPS.
         derriereUnProxy: false,
+        courrier: null,
       },
       modules: [
         creerModuleMonProfil({
@@ -183,6 +184,13 @@ describe("l'application assemblée", () => {
         relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
         // L'ordonnancement se teste sur son propre cœur (018) : ici on vérifie
         // que l'écran le monte, pas que la minuterie bat.
+        courrier: () => ({
+          configure: false,
+          destinataire: null,
+          enAttente: 0,
+          derniers: [],
+        }),
+        envoyerUnMailDeTest: () => Promise.reject(new Error("pas de courrier dans ce test")),
         ordonnancement: () => [],
         reglerLaTache: () => {},
         // L'import enchaîne la passe (028), et le tout est vrai sauf le

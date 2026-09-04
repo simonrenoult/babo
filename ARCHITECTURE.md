@@ -110,7 +110,8 @@ persiste quoi que ce soit en dehors.
 
 Le schéma porte le jeton de session, les captures brutes, les rapports
 d'exécution, les déploiements observés, le classement, l'équipe, l'identité
-de chaque licence suivie, et les fréquences et échéances du planificateur.
+de chaque licence suivie, les fréquences et échéances du planificateur, et la
+boîte d'envoi du courrier.
 Celui des
 matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
 lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
@@ -271,9 +272,9 @@ Un seul, dans le processus, pour les deux natures de tâches — spec 018 :
 | la déclaration des tâches | `src/main.ts` |
 
 Il ne connaît aucune tâche : `main.ts` les lui donne, comme il donne ses modules
-au serveur. Une seule aujourd'hui — la passe de classement —, et les
-acquisitions quotidiennes de 015, le battement de 019 et les rappels de 014
-s'ajouteront à une ligne chacune.
+au serveur. Deux aujourd'hui — la passe de classement, et le vidage quotidien de
+la boîte d'envoi (016) —, et les acquisitions quotidiennes de 015, le battement
+de 019 et les rappels de 014 s'ajouteront à une ligne chacune.
 
 **Tout passe par une échéance**, périodique ou ponctuelle : une ligne en base,
 unique sur (tâche, heure prévue). C'est cet index, et rien d'autre, qui tient
@@ -297,6 +298,68 @@ Les cadences et les grâces sont des données, modifiables depuis `/sources` :
 c'est ce qui a fait écarter le cron système, dont la configuration s'édite hors
 de l'application. Les valeurs de départ sont posées au premier démarrage et ne
 recouvrent jamais un réglage modifié depuis.
+
+## Le courrier
+
+L'envoi de mail — spec 016. `socle/core/courrier.ts` porte la boîte d'envoi,
+`infrastructure/courrier/` le transport, `/sources` la section « Courrier ».
+
+| Pièce | Où |
+|-------|-----|
+| la boîte d'envoi : dépôt, reprises, abandon | `socle/core/courrier.ts` |
+| le transport SMTP | `infrastructure/courrier/transport-nodemailer.ts` |
+| la file, en base | `base/depot-courrier-sqlite.ts`, `migrations/009__courrier.sql` |
+| le compte SMTP | `core/configuration.ts`, `BABO_SMTP_*` et `BABO_MAIL_*` |
+
+**Tout message est écrit en base avant d'être remis**, en développement comme
+en production. Le mode « écrit plutôt qu'envoyé » que 016 exige en test n'est
+donc pas un adaptateur de plus : c'est le cas où personne ne vide la file. Un
+seul chemin de code, et un réessai qui ne rejoue pas la tâche appelante — un
+mail raté pendant une passe de scraping ne doit pas relancer le scraping, ni le
+compte qui va avec (015).
+
+Un message est remis **dès son dépôt**. Une alerte de tournoi (013) vaut par les
+heures qu'elle fait gagner, et la faire patienter jusqu'au prochain réveil du
+planificateur serait une symétrie payée cher.
+
+**Les reprises sont des échéances ponctuelles**, à cinq puis à trente minutes,
+inscrites par le courrier lui-même. Cela donne l'espacement exact sans ajouter
+de cadence périodique à 018, cela survit à un redémarrage — ce sont des lignes
+en base —, et cela évite qu'un balayage toutes les cinq minutes écrive trois
+cents rapports par jour disant « rien à faire ». Toutes les reprises d'un même
+vidage tombent à la même seconde : l'index (tâche, date prévue) de 018 les fond
+en une seule échéance. Un balayage **quotidien** subsiste et ne ramasse que les
+orphelins — le message écrit juste avant un arrêt brutal, qui n'a eu ni
+tentative immédiate ni reprise inscrite. Trois tentatives, puis abandon
+consigné : sans plafond, une panne de transport devient une file qui grossit
+sans fin, et quinze alertes périmées partent d'un coup au retour du service.
+
+C'est ce vidage qui a demandé un amendement à 018 : `executer` rend désormais
+`RapportArchive | null`, et une tâche qui n'a rien eu à faire ne consigne rien.
+
+**Sans configuration SMTP, l'application démarre quand même** : les messages
+s'empilent, personne ne les remet, et `/sources` le dit. Motif de
+`BABO_MYFFBAD_MOT_DE_PASSE` — une capacité facultative se dégrade. La
+configuration est tout ou rien : une moitié de réglages ferait croire qu'on
+alerte alors qu'on n'alerte pas, le mode de panne même que 019 combat.
+
+Gmail exige un **mot de passe d'application**, donc la validation en deux étapes
+sur le compte. Le port 465 n'est pas un détail : le chiffrement s'en déduit, TLS
+dès le premier octet, sans bascule `STARTTLS` où les identifiants pourraient
+partir en clair. `nodemailer` a été pris parce qu'il n'a **aucune dépendance
+transitive** — l'argument qui avait condamné `jsonwebtoken` et `bcrypt` (021) ne
+tient pas contre lui.
+
+**Un seul destinataire, moi.** 008 a retiré les mails des coéquipiers de
+l'import de 005 ; il n'y a personne d'autre à qui écrire, et le critère de
+délivrabilité sur lequel 016 devait trancher s'est effondré avec. HTML
+obligatoire, texte facultatif, sujet préfixé de `[Bado] ` pour qu'un filtre s'y
+pose une fois pour toutes. Rien n'est purgé.
+
+Le dialogue SMTP est testé contre un faux serveur local, sur les deux façons
+dont une alerte se perdrait en silence : authentification refusée, connexion
+coupée en plein dialogue. Ce serveur écoute en clair — **TLS n'est pas
+couvert**, et c'est le trou assumé de ce choix.
 
 ## L'équipe
 
@@ -383,6 +446,6 @@ le pire défaut d'un écran censé montrer des manques.
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
-sur les pages désormais observées. L'envoi de mail (016), les rapports par mail
-et le battement hebdomadaire (019) — le planificateur les portera, sa cadence
-n'attend qu'une ligne dans `main.ts` —, et la sauvegarde (023).
+sur les pages désormais observées. Les rapports par mail et le battement
+hebdomadaire (019) — le courrier est là, le planificateur n'attend qu'une ligne
+dans `main.ts` —, et la sauvegarde (023).

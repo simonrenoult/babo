@@ -138,8 +138,13 @@ export type TacheOrdonnancee = {
    * L'exécution. Elle consigne son propre rapport — c'est ce que 019 demande
    * d'une passe — et le rend. Si elle lève, l'ordonnanceur consigne l'échec à
    * sa place : un planificateur n'a personne à qui remonter une exception.
+   *
+   * `null` quand il n'y avait rien à faire, et rien n'est alors consigné. Une
+   * tâche qui balaie une file (le courrier de 016) tournerait sinon à vide
+   * chaque jour et noierait l'historique que 019 doit rendre lisible. Une passe
+   * d'acquisition, elle, a toujours quelque chose à dire.
    */
-  executer(): Promise<RapportArchive>;
+  executer(): Promise<RapportArchive | null>;
 };
 
 /** Trois tentatives par échéance, pas une de plus : un scraper qui boucle vaut un compte banni (015). */
@@ -279,7 +284,7 @@ export function creerOrdonnanceur(options: {
 
   const executer = async (echeance: Echeance, tache: TacheOrdonnancee): Promise<Passage> => {
     const demarreLe = horloge.maintenant();
-    let rapport: RapportArchive;
+    let rapport: RapportArchive | null;
     try {
       rapport = await tache.executer();
     } catch (erreur) {
@@ -300,7 +305,10 @@ export function creerOrdonnanceur(options: {
     // panne passagère : rejouer trois fois ne réparerait pas une classe CSS
     // qui a changé, et consommerait le plafond de 015 pour rien. Le rapport le
     // dit, c'est à 019 d'en faire un mail.
-    const delai = rapport.issue === "echec" ? delaiDeReessai(tentatives) : null;
+    //
+    // Une tâche qui n'a rien eu à faire (`null`) n'est pas non plus rejouée :
+    // il n'y avait rien à rattraper.
+    const delai = rapport?.issue === "echec" ? delaiDeReessai(tentatives) : null;
 
     if (delai === null) {
       echeances.clore(echeance.id, "faite", horloge.maintenant());

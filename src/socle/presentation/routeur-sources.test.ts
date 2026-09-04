@@ -5,6 +5,7 @@ import type { AccesAuxSources } from "./routeur-sources.ts";
 import type { Configuration } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
+import type { MessageDepose } from "../core/courrier.ts";
 import type { RapportArchive } from "../core/rapport-execution.ts";
 import type { EtatDeLaTache, ReglageDeTache } from "../core/ordonnancement.ts";
 import type { Source } from "../core/source.ts";
@@ -18,6 +19,7 @@ const CONFIGURATION: Configuration = {
   motDePasse: "le-mot-de-passe-de-test",
   secretDuJeton: "secret-de-test",
   derriereUnProxy: true,
+  courrier: null,
 };
 
 /**
@@ -55,6 +57,19 @@ const ETATS: readonly EtatDeLaSource[] = [
     derniereIssue: null,
   },
 ];
+
+/** Un mail de test resté en attente : le SMTP n'est pas configuré (016). */
+const MAIL_DE_TEST: MessageDepose = {
+  id: 1,
+  sujet: "[Bado] Mail de test",
+  html: "<p>Le courrier fonctionne.</p>",
+  texte: "Le courrier fonctionne.",
+  deposeLe: new Date("2026-09-03T09:00:00Z"),
+  tentatives: 0,
+  prochaineTentativeLe: new Date("2026-09-03T09:00:00Z"),
+  etat: "en-attente",
+  dernierEchec: null,
+};
 
 /** Le rapport que la passe de 028 rend : une ligne par joueur, un décompte. */
 const RAPPORT: RapportArchive = {
@@ -98,6 +113,7 @@ type Trace = {
   releves: number;
   importes: string[];
   reglages: ReglageDeTache[];
+  mailsDeTest: number;
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
@@ -109,11 +125,24 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     releves: 0,
     importes: [],
     reglages: [],
+    mailsDeTest: 0,
   };
   return {
     trace,
     acces: {
       etats: () => ETATS,
+      // Un courrier non configuré : c'est l'état que l'écran doit savoir
+      // annoncer, faute de quoi on croirait alerter sans alerter (016).
+      courrier: () => ({
+        configure: false,
+        destinataire: null,
+        enAttente: trace.mailsDeTest,
+        derniers: Array.from({ length: trace.mailsDeTest }, () => MAIL_DE_TEST),
+      }),
+      envoyerUnMailDeTest: () => {
+        trace.mailsDeTest += 1;
+        return Promise.resolve(MAIL_DE_TEST);
+      },
       ordonnancement: () => TACHES,
       reglerLaTache: (reglage) => void trace.reglages.push(reglage),
       deploiements: () => [
@@ -298,6 +327,27 @@ describe("l'écran des sources", () => {
 
     assert.equal(reponse.statut, 404);
     assert.deepEqual(trace.enregistres, []);
+  });
+
+  /**
+   * Le bouton passe par la boîte d'envoi — spec 016. Sans lui, on découvrirait
+   * un mot de passe d'application faux au moment de la première panne.
+   */
+  it("dépose un mail de test et rend son état", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(acces, "/sources/courrier", new URLSearchParams());
+
+    assert.equal(reponse.statut, 200);
+    assert.equal(trace.mailsDeTest, 1);
+    assert.match(reponse.corps, /Mail de test <strong>en attente<\/strong>/);
+  });
+
+  it("annonce un courrier non configuré plutôt que de laisser croire qu'il alerte", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/sources");
+
+    assert.match(reponse.corps, /Courrier non configuré/);
+    assert.match(reponse.corps, /BABO_SMTP_MOT_DE_PASSE/);
   });
 
   it("rend le résultat de la sonde dans la page", async () => {

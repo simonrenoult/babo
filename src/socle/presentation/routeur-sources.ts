@@ -1,6 +1,7 @@
 import { Router, text, type Response } from "express";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
 import type { EtatDuDeploiement } from "../core/build.ts";
+import type { EtatDuCourrier, MessageDepose } from "../core/courrier.ts";
 import type { RapportArchive } from "../core/rapport-execution.ts";
 import type { EtatDeLaTache, JourDeLaSemaine, ReglageDeTache } from "../core/ordonnancement.ts";
 import type { ResultatDeSonde } from "../core/sonde.ts";
@@ -68,6 +69,21 @@ export type AccesAuxSources = {
    * corrigent sans redéploiement.
    */
   reglerLaTache(reglage: ReglageDeTache): void;
+  /**
+   * L'état du courrier — spec 016. File en attente, derniers messages, et si
+   * le SMTP est seulement configuré : sans lui les messages s'empilent sans
+   * partir, et rien d'autre que cet écran ne le dirait.
+   */
+  courrier(): EtatDuCourrier;
+  /**
+   * Dépose un mail de test, par le chemin normal.
+   *
+   * Un bouton qui emprunterait un autre chemin que celui qu'il prétend
+   * vérifier pourrait réussir pendant que le vrai chemin est cassé. Sans lui,
+   * on découvrirait un mot de passe d'application faux au moment de la
+   * première panne — c'est-à-dire au pire moment.
+   */
+  envoyerUnMailDeTest(): Promise<MessageDepose>;
 };
 
 /**
@@ -113,6 +129,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
       sonde?: readonly ResultatDeSonde[] | null;
       passe?: RapportArchive | null;
       equipe?: ResultatDImport | null;
+      mailDeTest?: MessageDepose | null;
     },
   ): void => {
     reponse.render("sources", {
@@ -120,9 +137,13 @@ export function routeurSources(acces: AccesAuxSources): Router {
       etats: acces.etats(),
       deploiements: acces.deploiements(),
       taches: acces.ordonnancement(),
+      // Relu après le geste, jamais avant : un mail de test déposé doit
+      // apparaître dans la file du même écran que le bouton qui l'a déposé.
+      courrier: acces.courrier(),
       sonde: vue.sonde ?? null,
       passe: vue.passe ?? null,
       equipe: vue.equipe ?? null,
+      mailDeTest: vue.mailDeTest ?? null,
     });
   };
 
@@ -132,6 +153,20 @@ export function routeurSources(acces: AccesAuxSources): Router {
     acces
       .sonder()
       .then((sonde) => ecran(reponse, { sonde }))
+      .catch(suite);
+  });
+
+  /**
+   * Le mail de test — spec 016.
+   *
+   * Il passe par la boîte d'envoi : écrit en base, puis remis tout de suite si
+   * le SMTP est configuré. L'écran rend le message tel qu'il est ressorti de la
+   * file, donc son état dit ce qui s'est réellement produit.
+   */
+  routeur.post("/courrier", (_requete, reponse, suite) => {
+    acces
+      .envoyerUnMailDeTest()
+      .then((mailDeTest) => ecran(reponse, { mailDeTest }))
       .catch(suite);
   });
 

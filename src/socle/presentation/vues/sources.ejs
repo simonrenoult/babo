@@ -149,6 +149,63 @@
   </p>
 <% } %>
 
+<h2>Courrier</h2>
+<p>
+  Les mails que Bado envoie : les alertes de panne et le battement de 019, les
+  alertes de tournoi de 013, les rappels de 014 (spec 016). Le SMTP est celui
+  d'un compte Gmail, et le seul destinataire est moi — 008 a retiré les mails
+  des coéquipiers, il n'y a personne d'autre à qui écrire.
+</p>
+<p>
+  <strong>Tout message est écrit en base avant d'être remis</strong>, puis
+  envoyé aussitôt. Un envoi qui échoue est repris à cinq puis à trente minutes,
+  et abandonné à la troisième tentative. Un échec d'envoi ne peut pas être
+  signalé par mail : il se lit ici, et dans les rapports d'exécution.
+</p>
+
+<p class="etat">
+  <% if (courrier.configure) { %>
+    Courrier configuré, à destination de <strong><%= courrier.destinataire %></strong>.
+  <% } else { %>
+    <strong>Courrier non configuré</strong> : les messages sont écrits en base
+    et personne ne les remet. Renseigner <code>BABO_SMTP_UTILISATEUR</code>,
+    <code>BABO_SMTP_MOT_DE_PASSE</code>, <code>BABO_MAIL_EXPEDITEUR</code> et
+    <code>BABO_MAIL_DESTINATAIRE</code> — voir <code>.env.example</code>. Le mot
+    de passe est un <em>mot de passe d'application</em> Google, jamais celui du
+    compte.
+  <% } %>
+  <%= courrier.enAttente %> message<%= courrier.enAttente > 1 ? "s" : "" %> en attente.
+</p>
+
+<form method="post" action="/sources/courrier"><button type="submit">Envoyer un mail de test</button></form>
+
+<% if (mailDeTest) { %>
+  <p class="etat">
+    Mail de test <strong><%= { "en-attente": "en attente", envoye: "remis", abandonne: "abandonné" }[mailDeTest.etat] %></strong>,
+    déposé le <%= mailDeTest.deposeLe.toLocaleString("fr-FR") %>.
+    <% if (mailDeTest.dernierEchec) { %>
+      <br><%= mailDeTest.dernierEchec %>
+    <% } %>
+  </p>
+<% } %>
+
+<% if (courrier.derniers.length > 0) { %>
+  <table>
+    <tr><th>Déposé le</th><th>Sujet</th><th>État</th><th>Tentatives</th><th>Dernier échec</th></tr>
+    <% for (const message of courrier.derniers) { %>
+      <tr>
+        <td><%= message.deposeLe.toLocaleString("fr-FR") %></td>
+        <td><%= message.sujet %></td>
+        <td>
+          <%= { "en-attente": "en attente", envoye: "remis", abandonne: "abandonné" }[message.etat] %>
+        </td>
+        <td><%= message.tentatives %></td>
+        <td><%= message.dernierEchec ?? "—" %></td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>
+
 <h2>Sonder l'accès</h2>
 <p>
   La sonde joue les requêtes qui portent les données, les archive telles

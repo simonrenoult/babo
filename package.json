@@ -18,12 +18,14 @@
   "dependencies": {
     "better-sqlite3-multiple-ciphers": "^12.4.1",
     "ejs": "^3.1.10",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "nodemailer": "^9.1.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "@types/express": "^5.0.3",
     "@types/node": "^24.7.0",
+    "@types/nodemailer": "^8.0.1",
     "eslint": "^9.37.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.0"

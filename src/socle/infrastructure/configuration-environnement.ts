@@ -1,4 +1,4 @@
-import type { Configuration } from "../core/configuration.ts";
+import type { Configuration, ConfigurationCourrier } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 
 /**
@@ -21,6 +21,37 @@ export function configurationDepuisEnvironnement(
       cle: obligatoire(environnement, "BABO_BASE_CLE"),
     },
     derriereUnProxy: environnement["BABO_DERRIERE_UN_PROXY"] !== "false",
+    courrier: courrier(environnement),
+  };
+}
+
+/**
+ * Le compte SMTP, ou `null` s'il manque quoi que ce soit — spec 016.
+ *
+ * Tout ou rien : un hôte sans mot de passe ou un expéditeur sans destinataire
+ * ne produit pas un courrier à moitié configuré, il produit un courrier absent,
+ * que l'écran annonce comme tel. Une configuration partielle qui démarrerait
+ * ferait croire qu'on alerte alors qu'on n'alerte pas — le mode de panne exact
+ * que 019 combat.
+ */
+function courrier(environnement: NodeJS.ProcessEnv): ConfigurationCourrier | null {
+  const hote = environnement["BABO_SMTP_HOTE"] ?? "smtp.gmail.com";
+  const utilisateur = environnement["BABO_SMTP_UTILISATEUR"] ?? "";
+  const motDePasse = environnement["BABO_SMTP_MOT_DE_PASSE"] ?? "";
+  const expediteur = environnement["BABO_MAIL_EXPEDITEUR"] ?? "";
+  const destinataire = environnement["BABO_MAIL_DESTINATAIRE"] ?? "";
+
+  if ([hote, utilisateur, motDePasse, expediteur, destinataire].some((valeur) => valeur === "")) {
+    return null;
+  }
+
+  return {
+    hote,
+    port: entier(environnement["BABO_SMTP_PORT"], 465),
+    utilisateur,
+    motDePasse,
+    expediteur,
+    destinataire,
   };
 }
 

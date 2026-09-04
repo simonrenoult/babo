@@ -16,6 +16,8 @@ import { seConnecter } from "./socle/core/connexion.ts";
 import { horlogeSysteme } from "./socle/core/horloge.ts";
 import { creerOrdonnanceur, type TacheOrdonnancee } from "./socle/core/ordonnancement.ts";
 import { creerAuthentification } from "./socle/core/authentification.ts";
+import { TACHE_COURRIER, creerCourrier, messageDeTest } from "./socle/core/courrier.ts";
+import { transportNodemailer } from "./socle/infrastructure/courrier/transport-nodemailer.ts";
 import { jetonHmac } from "./socle/infrastructure/authentification/jeton-hmac.ts";
 import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de-passe-scrypt.ts";
 import type { Licence } from "./socle/core/licence.ts";
@@ -79,6 +81,28 @@ const clientPour = (source: (typeof modulesDAcquisition)[number]["source"], plaf
 };
 
 /**
+ * Le courrier — spec 016.
+ *
+ * Sans configuration SMTP, `transport` reste `null` : l'application démarre,
+ * les messages s'empilent en base et `/sources` le dit. C'est le motif de
+ * `BABO_MYFFBAD_MOT_DE_PASSE` — une capacité facultative se dégrade, elle
+ * n'empêche pas de démarrer. Refuser de démarrer est réservé à ce sans quoi
+ * l'application serait dangereuse : une base non chiffrée, une porte sans
+ * serrure.
+ */
+const courrier = creerCourrier({
+  depot: persistance.courrier,
+  transport: configuration.courrier === null ? null : transportNodemailer(configuration.courrier),
+  rapports: persistance.rapports,
+  echeances: persistance.echeances,
+  horloge: horlogeSysteme,
+});
+
+if (configuration.courrier === null) {
+  console.log("[socle] courrier non configuré : les mails s'écrivent en base sans partir");
+}
+
+/**
  * Les licences suivies — spec 028.
  *
  * La mienne et celles de l'équipe, dédoublonnées : je suis dans le CSV comme
@@ -136,6 +160,31 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
       active: true,
     },
     executer: relever,
+  },
+  /**
+   * Le vidage de la boîte d'envoi — spec 016.
+   *
+   * Cadence quotidienne, mais ce n'est pas par elle que les mails partent :
+   * un message est remis dès son dépôt, et une reprise s'inscrit elle-même en
+   * échéance ponctuelle à cinq puis à trente minutes. Ce passage quotidien ne
+   * ramasse que les orphelins — le message écrit juste avant un arrêt brutal,
+   * qui n'a eu ni tentative immédiate ni reprise inscrite, et qui dormirait
+   * sinon en base pour toujours.
+   *
+   * Grâce de 24 h : une alerte de panne vaut encore quelque chose six heures
+   * plus tard, la panne durant toujours. Au-delà d'une journée, l'information
+   * est périmée — un tournoi s'est rempli — ou déjà remplacée par le battement
+   * hebdomadaire de 019.
+   */
+  {
+    tache: TACHE_COURRIER,
+    intitule: "Vider la boîte d'envoi (courrier)",
+    reglageParDefaut: {
+      cadence: { nature: "quotidienne", heure: 6, minute: 30 },
+      graceMinutes: 24 * 60,
+      active: true,
+    },
+    executer: () => courrier.vider(),
   },
 ];
 
@@ -279,6 +328,13 @@ const application = creerApplication({
 
     ordonnancement: () => ordonnanceur.etat(),
     reglerLaTache: (reglage) => ordonnanceur.regler(reglage),
+
+    courrier: () => courrier.etat(),
+
+    // Par la boîte d'envoi, comme tout le reste : un bouton qui emprunterait
+    // un autre chemin que celui qu'il prétend vérifier pourrait réussir
+    // pendant que le vrai chemin est cassé.
+    envoyerUnMailDeTest: () => courrier.deposer(messageDeTest(horlogeSysteme.maintenant())),
   },
 });
 

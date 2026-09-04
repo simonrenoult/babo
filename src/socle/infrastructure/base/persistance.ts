@@ -7,6 +7,7 @@ import type { DepotRapports } from "../../core/rapport-execution.ts";
 import type { DepotBuilds } from "../../core/build.ts";
 import type { DepotEcheances, DepotReglages } from "../../core/ordonnancement.ts";
 import type { DepotCompte } from "../../core/authentification.ts";
+import type { DepotCourrier } from "../../core/courrier.ts";
 import { ouvrirLaBase, tailleDeLaBase, type BaseSqlite } from "./connexion.ts";
 import { migrer } from "./migrateur.ts";
 import { depotCapturesSqlite } from "./depot-captures-sqlite.ts";
@@ -18,6 +19,7 @@ import { depotBuildsSqlite } from "./depot-builds-sqlite.ts";
 import { depotReglagesSqlite } from "./depot-reglages-sqlite.ts";
 import { depotEcheancesSqlite } from "./depot-echeances-sqlite.ts";
 import { depotCompteSqlite } from "./depot-compte-sqlite.ts";
+import { depotCourrierSqlite } from "./depot-courrier-sqlite.ts";
 
 /**
  * L'unique base de l'application, ouverte, migrée, et ses dépôts — spec 017.
@@ -40,6 +42,8 @@ export type Persistance = {
   readonly echeances: DepotEcheances;
   /** Le compte unique qui ouvre la porte — spec 021. */
   readonly compte: DepotCompte;
+  /** La boîte d'envoi : tout mail y est écrit avant d'être remis — spec 016. */
+  readonly courrier: DepotCourrier;
   taille(): number;
   fermer(): void;
 };
@@ -60,6 +64,7 @@ export function ouvrirLaPersistance(configuration: ConfigurationBase): Persistan
     reglages: depotReglagesSqlite(base),
     echeances: depotEcheancesSqlite(base),
     compte: depotCompteSqlite(base),
+    courrier: depotCourrierSqlite(base),
     taille: () => tailleDeLaBase(base),
     fermer: () => base.close(),
   };

@@ -15,6 +15,7 @@ const CONFIGURATION: Configuration = {
   motDePasse: "le-mot-de-passe-de-test",
   secretDuJeton: "secret-de-test",
   derriereUnProxy: true,
+  courrier: null,
 };
 
 // Le socle ne connaît aucune feature : il sait monter ce qu'on lui donne, et
@@ -52,6 +53,13 @@ const aucuneSource: AccesAuxSources = {
   sonder: () => Promise.resolve([]),
   relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
   importerLEquipe: () => Promise.resolve({ issue: "refusee", motifs: [] }),
+  courrier: () => ({
+    configure: false,
+    destinataire: null,
+    enAttente: 0,
+    derniers: [],
+  }),
+  envoyerUnMailDeTest: () => Promise.reject(new Error("pas de courrier dans ce test")),
   ordonnancement: () => [],
   reglerLaTache: () => {},
 };

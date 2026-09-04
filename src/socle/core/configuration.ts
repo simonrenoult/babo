@@ -41,6 +41,33 @@ export type Configuration = {
    * l'application est un jour exposée sans intermédiaire.
    */
   readonly derriereUnProxy: boolean;
+  /**
+   * Le SMTP par lequel les mails partent — spec 016. `null` quand il n'est pas
+   * configuré : l'application démarre quand même et les messages s'empilent en
+   * base, comme `motDePasseMyffbad` laisse la session s'enregistrer à la main.
+   * Refuser de démarrer est réservé à ce sans quoi l'application serait
+   * dangereuse — une base non chiffrée, une porte sans serrure.
+   */
+  readonly courrier: ConfigurationCourrier | null;
+};
+
+/**
+ * Le compte SMTP — spec 016.
+ *
+ * Le chiffrement n'est pas un réglage : il se déduit du port, 465 voulant dire
+ * TLS dès le premier octet. Deux réglages qui doivent s'accorder sont un
+ * réglage de trop, et celui qui se tromperait enverrait ses identifiants en
+ * clair.
+ */
+export type ConfigurationCourrier = {
+  readonly hote: string;
+  readonly port: number;
+  readonly utilisateur: string;
+  /** Un mot de passe d'application Google, jamais celui du compte. */
+  readonly motDePasse: string;
+  /** Gmail impose que l'expéditeur soit le compte authentifié ou l'un de ses alias. */
+  readonly expediteur: string;
+  readonly destinataire: string;
 };
 
 export type ConfigurationBase = {

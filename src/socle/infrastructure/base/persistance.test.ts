@@ -33,6 +33,7 @@ describe("la base unique du socle", () => {
       "006__licences_a_huit_chiffres.sql",
       "007__ordonnancement.sql",
       "008__compte.sql",
+      "009__courrier.sql",
     ]);
     persistance.fermer();
   });
