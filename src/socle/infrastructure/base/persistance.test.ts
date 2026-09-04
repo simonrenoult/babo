@@ -303,6 +303,36 @@ describe("le classement relevé", () => {
     persistance.fermer();
   });
 
+  /**
+   * La fenêtre que lit le battement hebdomadaire — spec 019. Elle borne sur
+   * `demarre_le`, la date à laquelle la passe a commencé : c'est celle qui
+   * situe la donnée, pas celle où le rapport a été écrit.
+   */
+  it("rend les rapports d'une fenêtre, du plus ancien au plus récent", () => {
+    const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
+    const quand = (jours: number) => new Date(Date.UTC(2026, 8, jours, 1, 0));
+
+    for (const jour of [1, 4, 8]) {
+      persistance.rapports.consigner({
+        tache: "acquisition:myffbad",
+        demarreLe: quand(jour),
+        termineLe: quand(jour),
+        issue: "succes",
+        volumeExtrait: jour,
+        detail: null,
+      });
+    }
+
+    const fenetre = persistance.rapports.depuis(quand(4));
+
+    assert.deepEqual(
+      fenetre.map(({ volumeExtrait }) => volumeExtrait),
+      [4, 8],
+      "bornes incluses, et dans l'ordre chronologique",
+    );
+    persistance.fermer();
+  });
+
   it("ne rend le classement de personne d'autre", () => {
     const persistance = ouvrirLaPersistance({ chemin, cle: CLE });
     persistance.classements.relever(

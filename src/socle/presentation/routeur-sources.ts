@@ -76,6 +76,14 @@ export type AccesAuxSources = {
    */
   courrier(): EtatDuCourrier;
   /**
+   * L'historique des exécutions — spec 019.
+   *
+   * Par mail seul, on ne voit que les échecs et jamais la semaine qui s'est
+   * bien passée : c'est cette liste qui distingue « rien ne s'est cassé » de
+   * « plus rien ne tourne ».
+   */
+  rapports(): readonly RapportArchive[];
+  /**
    * Dépose un mail de test, par le chemin normal.
    *
    * Un bouton qui emprunterait un autre chemin que celui qu'il prétend
@@ -137,6 +145,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
       etats: acces.etats(),
       deploiements: acces.deploiements(),
       taches: acces.ordonnancement(),
+      rapports: acces.rapports(),
       // Relu après le geste, jamais avant : un mail de test déposé doit
       // apparaître dans la file du même écran que le bouton qui l'a déposé.
       courrier: acces.courrier(),

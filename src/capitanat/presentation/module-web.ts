@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import type { ModuleWeb } from "../../socle/presentation/serveur.ts";
 import type { DepotClassements } from "../../socle/core/classement.ts";
 import type { Horloge } from "../../socle/core/horloge.ts";
+import type { Fraicheur } from "../../socle/core/fraicheur.ts";
 import type { DepotIdentites } from "../../socle/core/identite.ts";
 import type { Licence } from "../../socle/core/licence.ts";
 import { estUnTableau, type Tableau } from "../../socle/core/tableau.ts";
@@ -40,9 +41,11 @@ export function creerModuleCapitanat(options: {
   readonly classements: DepotClassements;
   /** Les paires et les marques du capitaine — spec 030. */
   readonly preferences: DepotPreferences;
+  /** L'ancienneté des classements, jugée sur la cadence de leur passe — spec 019. */
+  readonly fraicheur: (vuLe: Date | null) => Fraicheur;
   readonly horloge: Horloge;
 }): ModuleWeb {
-  const { coequipiers, identites, classements, preferences, horloge } = options;
+  const { coequipiers, identites, classements, preferences, fraicheur, horloge } = options;
   const routeur = Router();
 
   const equipe = () => listeDeLEquipe(coequipiers, identites, classements);
@@ -54,6 +57,7 @@ export function creerModuleCapitanat(options: {
       equipe: membres,
       forces: forcesParTableau(membres),
       paires: preferences.paires().length,
+      fraicheur: fraicheur(laPlusRecente(membres)),
       enJoueurs,
       joueursRequis,
     });
@@ -75,6 +79,7 @@ export function creerModuleCapitanat(options: {
       titre: page.force.intitule,
       page,
       force: page.force,
+      fraicheur: fraicheur(page.force.releveLe),
       enJoueurs,
       joueursRequis,
     });
@@ -167,6 +172,12 @@ export function creerModuleCapitanat(options: {
 function lireLeTableau(valeur: string | undefined): Tableau | null {
   const demande = (valeur ?? "").toUpperCase();
   return estUnTableau(demande) ? demande : null;
+}
+
+/** La passe la plus récente de l'équipe : c'est elle qui date la page d'index. */
+function laPlusRecente(membres: readonly { readonly vuLe: Date | null }[]): Date | null {
+  const dates = membres.flatMap(({ vuLe }) => (vuLe === null ? [] : [vuLe.getTime()]));
+  return dates.length === 0 ? null : new Date(Math.max(...dates));
 }
 
 function champ(corps: unknown, nom: string): string {

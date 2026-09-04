@@ -48,6 +48,7 @@ function rapportsEnMemoire(): DepotRapports & { consignes: RapportExecution[] } 
     },
     dernierRapport: () => null,
     derniers: () => [],
+    depuis: () => [],
   };
 }
 

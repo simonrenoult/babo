@@ -40,4 +40,11 @@ export type DepotRapports = {
   /** Ancienneté d'une source, affichée par l'interface même quand la donnée est périmée. */
   dernierRapport(tache: string): RapportArchive | null;
   derniers(combien: number): readonly RapportArchive[];
+  /**
+   * Tout ce qui a tourné depuis une date, du plus ancien au plus récent.
+   *
+   * C'est la matière du battement hebdomadaire : sans les succès, on ne
+   * distingue pas une semaine sans incident d'un planificateur arrêté.
+   */
+  depuis(quand: Date): readonly RapportArchive[];
 };

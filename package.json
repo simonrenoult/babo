@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env src/main.ts",
     "dev": "node --watch --env-file-if-exists=.env src/main.ts",
+    "capture": "node --env-file-if-exists=.env src/capture.ts",
     "test": "node --test \"src/**/*.test.ts\" \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

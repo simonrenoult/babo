@@ -10,6 +10,8 @@
   <% } %>
 </p>
 
+<%- include("peremption", { fraicheur }) %>
+
 <% if (force.manques.length > 0) { %>
   <p class="etat">
     L'effectif ne permet pas de remplir ce tableau : il manque

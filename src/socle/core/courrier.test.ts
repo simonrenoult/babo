@@ -85,6 +85,7 @@ function rapportsEnMemoire(): DepotRapports & { readonly tous: () => RapportArch
     },
     dernierRapport: (tache) => rapports.findLast((rapport) => rapport.tache === tache) ?? null,
     derniers: (combien) => [...rapports].reverse().slice(0, combien),
+    depuis: (quand) => rapports.filter(({ demarreLe }) => demarreLe >= quand),
   };
 }
 

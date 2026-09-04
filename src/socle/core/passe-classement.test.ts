@@ -60,6 +60,7 @@ function depotRapports(): DepotRapports & { consignes: RapportExecution[] } {
     },
     dernierRapport: () => null,
     derniers: () => [],
+    depuis: () => [],
   };
 }
 

@@ -60,6 +60,7 @@ const aucuneSource: AccesAuxSources = {
     derniers: [],
   }),
   envoyerUnMailDeTest: () => Promise.reject(new Error("pas de courrier dans ce test")),
+  rapports: () => [],
   ordonnancement: () => [],
   reglerLaTache: () => {},
 };

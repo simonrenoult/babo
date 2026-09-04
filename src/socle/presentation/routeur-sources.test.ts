@@ -143,6 +143,7 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         trace.mailsDeTest += 1;
         return Promise.resolve(MAIL_DE_TEST);
       },
+      rapports: () => [],
       ordonnancement: () => TACHES,
       reglerLaTache: (reglage) => void trace.reglages.push(reglage),
       deploiements: () => [

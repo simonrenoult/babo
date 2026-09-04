@@ -3,6 +3,8 @@
 
 <h3>Mon classement</h3>
 
+<%- include("peremption", { fraicheur }) %>
+
 <% if (classement.vuLe === null) { %>
   <p class="etat">
     Aucun relevé : la première passe myffbad n'a pas encore abouti. L'état de la

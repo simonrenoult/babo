@@ -21,6 +21,9 @@ import { sousPlafond } from "../src/socle/core/acquisition.ts";
 import { creerModuleMyffbad } from "../src/socle/infrastructure/acquisition/myffbad.ts";
 import { plafondDeLaPasse, releverLesClassements } from "../src/socle/core/passe-classement.ts";
 import { horlogeSysteme } from "../src/socle/core/horloge.ts";
+import { fraicheur } from "../src/socle/core/fraicheur.ts";
+import { creerCourrier, messageDeTest } from "../src/socle/core/courrier.ts";
+import { enAlertant } from "../src/socle/core/alerte.ts";
 import type { RapportArchive } from "../src/socle/core/rapport-execution.ts";
 import { creerAuthentification } from "../src/socle/core/authentification.ts";
 import { jetonHmac } from "../src/socle/infrastructure/authentification/jeton-hmac.ts";
@@ -39,6 +42,14 @@ import { motDePasseScrypt } from "../src/socle/infrastructure/authentification/m
  * tests n'a pas à consommer.
  */
 /** Long à dessein : la licence n'étant pas un secret, tout tient au mot de passe (021). */
+/**
+ * La cadence réelle de la passe de classement (018) : c'est elle qui sert de
+ * seuil de péremption (019), et la relire ici plutôt que d'inventer un nombre
+ * garde le test aligné sur ce que l'application fait.
+ */
+const fraicheurDeTest = (vuLe: Date | null) =>
+  fraicheur(vuLe, { nature: "hebdomadaire", jour: 5, heure: 1, minute: 0 }, new Date());
+
 const MOT_DE_PASSE = "un-mot-de-passe-de-test-suffisamment-long";
 
 const CAPTURES = {
@@ -82,6 +93,9 @@ describe("l'application assemblée", () => {
   let persistance: ReturnType<typeof ouvrirLaPersistance>;
   let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
   let preferences: ReturnType<typeof depotPreferencesSqlite>;
+  /** Le dépôt décoré de 019 : celui que `main.ts` donne aux passes. */
+  let rapports: ReturnType<typeof enAlertant>;
+  let courrier: ReturnType<typeof creerCourrier>;
 
   let reseau: ReturnType<typeof reseauRejoue>;
   let passe: () => Promise<RapportArchive>;
@@ -104,6 +118,19 @@ describe("l'application assemblée", () => {
     preferences = depotPreferencesSqlite(persistance.base);
     reseau = reseauRejoue();
 
+    // Le courrier sans transport : les messages s'écrivent en base et personne
+    // ne les remet (016). C'est exactement le mode de développement, et c'est
+    // ce qui permet de vérifier ici *qu'une alerte a bien été déposée* sans
+    // ouvrir la moindre connexion.
+    courrier = creerCourrier({
+      depot: persistance.courrier,
+      transport: null,
+      rapports: persistance.rapports,
+      echeances: persistance.echeances,
+      horloge: horlogeSysteme,
+    });
+    rapports = enAlertant(persistance.rapports, { courrier });
+
     authentification = creerAuthentification({
       comptes: persistance.compte,
       hachage: motDePasseScrypt(),
@@ -125,7 +152,7 @@ describe("l'application assemblée", () => {
         licences,
         identites: persistance.identites,
         classements: persistance.classements,
-        rapports: persistance.rapports,
+        rapports,
         horloge: horlogeSysteme,
       });
     };
@@ -147,12 +174,14 @@ describe("l'application assemblée", () => {
         creerModuleMonProfil({
           licence: licence("07194591"),
           classements: persistance.classements,
+          fraicheur: fraicheurDeTest,
         }),
         creerModuleCapitanat({
           coequipiers,
           identites: persistance.identites,
           classements: persistance.classements,
           preferences,
+          fraicheur: fraicheurDeTest,
           horloge: horlogeSysteme,
         }),
         moduleVeille,
@@ -189,13 +218,9 @@ describe("l'application assemblée", () => {
         relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
         // L'ordonnancement se teste sur son propre cœur (018) : ici on vérifie
         // que l'écran le monte, pas que la minuterie bat.
-        courrier: () => ({
-          configure: false,
-          destinataire: null,
-          enAttente: 0,
-          derniers: [],
-        }),
-        envoyerUnMailDeTest: () => Promise.reject(new Error("pas de courrier dans ce test")),
+        courrier: () => courrier.etat(),
+        envoyerUnMailDeTest: () => courrier.deposer(messageDeTest(horlogeSysteme.maintenant())),
+        rapports: () => rapports.derniers(50),
         ordonnancement: () => [],
         reglerLaTache: () => {},
         // L'import enchaîne la passe (028), et le tout est vrai sauf le
@@ -435,6 +460,62 @@ describe("l'application assemblée", () => {
     });
 
     assert.equal(reponse.status, 400);
+  });
+
+  /**
+   * La chaîne de 019, du rapport à la boîte d'envoi : le décorateur voit
+   * l'entrée en panne, compose l'alerte, le courrier l'écrit en base, et
+   * `/sources` la montre. Rien de tout cela n'ouvre de connexion — le transport
+   * est absent, donc le message reste en attente, ce qui est justement le mode
+   * de développement décrit par 016.
+   */
+  it("dépose une alerte à l'entrée en panne, et la montre sur les sources", async () => {
+    const quand = new Date();
+    rapports.consigner({
+      tache: "acquisition:badnet",
+      demarreLe: quand,
+      termineLe: quand,
+      // Le succès vide : la page a répondu, le parseur n'a rien tiré. C'est le
+      // mode de panne que 019 vise en premier, et celui qu'une exception ne
+      // couvre pas.
+      issue: "vide",
+      volumeExtrait: 0,
+      detail: "0 tournoi extrait alors que la passe précédente en rendait 42",
+    });
+    await new Promise((resoudre) => setImmediate(resoudre));
+
+    const corps = await (await visiter(`/sources`)).text();
+
+    assert.match(corps, /\[Bado\] Panne — acquisition:badnet/);
+    assert.match(corps, /Exécutions/, "et l'historique est là");
+    assert.match(corps, /extraction vide/, "nommée pour ce qu'elle est, pas « succès »");
+    assert.match(corps, /0 tournoi extrait/);
+  });
+
+  it("n'alerte pas une deuxième fois pour la même panne qui dure", async () => {
+    const avant = courrier.etat().derniers.length;
+    const quand = new Date();
+    rapports.consigner({
+      tache: "acquisition:badnet",
+      demarreLe: quand,
+      termineLe: quand,
+      issue: "echec",
+      volumeExtrait: 0,
+      detail: "toujours rien",
+    });
+    await new Promise((resoudre) => setImmediate(resoudre));
+
+    // Un mail quotidien identique se filtre en trois jours : c'est le battement
+    // hebdomadaire qui rappellera cette panne, pas une deuxième alerte.
+    assert.equal(courrier.etat().derniers.length, avant);
+  });
+
+  it("ne dit rien de la péremption tant que la donnée tient dans sa cadence", async () => {
+    // La passe vient de tourner : la mention ne doit pas apparaître, sans quoi
+    // elle deviendrait un élément de décor qu'on ne remarquerait plus.
+    for (const chemin of ["/mon-profil", "/capitanat", "/capitanat/tableau/DH"]) {
+      assert.doesNotMatch(await (await visiter(chemin)).text(), /Donnée périmée/, chemin);
+    }
   });
 
   it("n'a présenté aucun cookie pour relever l'équipe", async () => {

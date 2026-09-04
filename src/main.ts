@@ -17,6 +17,9 @@ import { horlogeSysteme } from "./socle/core/horloge.ts";
 import { creerOrdonnanceur, type TacheOrdonnancee } from "./socle/core/ordonnancement.ts";
 import { creerAuthentification } from "./socle/core/authentification.ts";
 import { TACHE_COURRIER, creerCourrier, messageDeTest } from "./socle/core/courrier.ts";
+import { enAlertant } from "./socle/core/alerte.ts";
+import { TACHE_BATTEMENT, battreLeCoeur, type TacheSuivie } from "./socle/core/battement.ts";
+import { fraicheur } from "./socle/core/fraicheur.ts";
 import { transportNodemailer } from "./socle/infrastructure/courrier/transport-nodemailer.ts";
 import { jetonHmac } from "./socle/infrastructure/authentification/jeton-hmac.ts";
 import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de-passe-scrypt.ts";
@@ -102,6 +105,9 @@ const clientPour = (source: (typeof modulesDAcquisition)[number]["source"], plaf
 const courrier = creerCourrier({
   depot: persistance.courrier,
   transport: configuration.courrier === null ? null : transportNodemailer(configuration.courrier),
+  // Le dépôt nu, et c'est voulu : un échec d'envoi ne peut pas être signalé par
+  // mail (016). L'ordre de construction le rend d'ailleurs impossible — le
+  // décorateur d'alerte a besoin du courrier, qui existe donc avant lui.
   rapports: persistance.rapports,
   echeances: persistance.echeances,
   horloge: horlogeSysteme,
@@ -110,6 +116,16 @@ const courrier = creerCourrier({
 if (configuration.courrier === null) {
   console.log("[socle] courrier non configuré : les mails s'écrivent en base sans partir");
 }
+
+/**
+ * Le dépôt de rapports qui prévient — spec 019.
+ *
+ * Posé ici, autour du dépôt nu, et c'est le seul que les passes recevront :
+ * aucune d'elles ne peut oublier d'alerter, comme aucune requête sortante ne
+ * peut oublier d'archiver sa réponse (015). Les passes de 015 s'y brancheront
+ * sans une ligne de plus.
+ */
+const rapports = enAlertant(persistance.rapports, { courrier });
 
 /**
  * Les licences suivies — spec 028.
@@ -138,7 +154,7 @@ const relever = () => {
     licences,
     identites: persistance.identites,
     classements: persistance.classements,
-    rapports: persistance.rapports,
+    rapports,
     horloge: horlogeSysteme,
   });
 };
@@ -195,13 +211,56 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
     },
     executer: () => courrier.vider(),
   },
+  /**
+   * Le battement hebdomadaire — spec 019.
+   *
+   * À jour et heure fixes **pour que son absence se remarque** : sans lui,
+   * l'arrêt complet du planificateur est indiscernable d'une semaine sans
+   * incident. C'est le seul mécanisme du projet dont le silence soit une
+   * information.
+   *
+   * Le lundi à 8 h, quand on lit ses mails, et non la nuit où il se noierait
+   * dans le reste. Grâce **nulle** : rattrapé le mardi, il mentirait sur la
+   * date à laquelle il a constaté ce qu'il annonce (018).
+   */
+  {
+    tache: TACHE_BATTEMENT,
+    intitule: "Battement hebdomadaire",
+    reglageParDefaut: {
+      cadence: { nature: "hebdomadaire", jour: 1, heure: 8, minute: 0 },
+      graceMinutes: 0,
+      active: true,
+    },
+    executer: () =>
+      battreLeCoeur({
+        taches: tachesSuivies,
+        rapports,
+        courrier,
+        horloge: horlogeSysteme,
+        tailleDeLaBase: () => persistance.taille(),
+        captures: () => persistance.captures.compter(),
+      }),
+  },
 ];
+
+/**
+ * Ce que le battement nomme, y compris ce qui n'a jamais tourné — spec 019.
+ *
+ * Une tâche absente du rapport hebdomadaire est une tâche dont on ne saura
+ * jamais qu'elle s'est tue. La liste se déduit donc des tâches déclarées
+ * au-dessus, moins le battement lui-même : s'annoncer soi-même n'apprend rien.
+ */
+const tachesSuivies: readonly TacheSuivie[] = tachesOrdonnancees
+  .filter(({ tache }) => tache !== TACHE_BATTEMENT)
+  .map(({ tache, intitule }) => ({ tache, intitule }));
 
 const ordonnanceur = creerOrdonnanceur({
   taches: tachesOrdonnancees,
   reglages: persistance.reglages,
   echeances: persistance.echeances,
-  rapports: persistance.rapports,
+  // Décoré : l'exception non rattrapée qu'il consigne à la place d'une passe
+  // est une panne comme une autre, et doit prévenir comme une autre (019).
+  rapports,
   horloge: horlogeSysteme,
 });
 
@@ -224,6 +283,22 @@ if (authentification.poserLeCompte(configuration.licence, configuration.motDePas
   console.log("[socle] mot de passe posé depuis la configuration");
 }
 
+/**
+ * L'ancienneté d'un classement, jugée sur la cadence de sa propre passe — 019.
+ *
+ * Le seuil n'est pas une constante nouvelle : c'est le réglage que 018 garde en
+ * base, et qui se modifie depuis `/sources`. Relu à chaque rendu, donc une
+ * cadence changée déplace le seuil sans redémarrage — et une cadence absente
+ * (tâche jamais amorcée) vaut hebdomadaire, la valeur de départ déclarée.
+ */
+const fraicheurDuClassement = (vuLe: Date | null) =>
+  fraicheur(
+    vuLe,
+    persistance.reglages.lire(tacheDAcquisition("myffbad"))?.cadence ??
+      tachesOrdonnancees[0]!.reglageParDefaut.cadence,
+    horlogeSysteme.maintenant(),
+  );
+
 const application = creerApplication({
   authentification,
   configuration,
@@ -231,12 +306,14 @@ const application = creerApplication({
     creerModuleMonProfil({
       licence: configuration.licence,
       classements: persistance.classements,
+      fraicheur: fraicheurDuClassement,
     }),
     creerModuleCapitanat({
       coequipiers,
       identites: persistance.identites,
       classements: persistance.classements,
       preferences: preferencesDuCapitaine,
+      fraicheur: fraicheurDuClassement,
       horloge: horlogeSysteme,
     }),
     moduleVeille,
@@ -251,7 +328,7 @@ const application = creerApplication({
         etatDeLaSource(
           module.source,
           persistance.jetonMyffbad.lire(module.source),
-          persistance.rapports.dernierRapport(tacheDAcquisition(module.source)),
+          rapports.dernierRapport(tacheDAcquisition(module.source)),
           horlogeSysteme.maintenant(),
           // Autonome seulement si la source sait se connecter *et* qu'on lui a
           // donné de quoi le faire : un bouton qui échouerait ne vaut rien.
@@ -328,7 +405,7 @@ const application = creerApplication({
         modules: modulesDAcquisition,
         clientPour,
         jetons: persistance.jetonMyffbad,
-        rapports: persistance.rapports,
+        rapports,
         horloge: horlogeSysteme,
       }),
 
@@ -336,6 +413,11 @@ const application = creerApplication({
     // fonction que l'ordonnanceur appelle chaque vendredi (018) : le bouton
     // n'est plus qu'un dépannage, la passe est la même.
     relever,
+
+    // L'historique, que 019 réclame : par mail seul on ne voit que les échecs,
+    // jamais la semaine qui s'est bien passée. `derniers` était déclaré depuis
+    // 017 et n'était appelé nulle part.
+    rapports: () => rapports.derniers(50),
 
     ordonnancement: () => ordonnanceur.etat(),
     reglerLaTache: (reglage) => ordonnanceur.regler(reglage),

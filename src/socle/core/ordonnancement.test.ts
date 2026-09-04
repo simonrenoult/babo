@@ -110,6 +110,7 @@ function rapportsEnMemoire(): DepotRapports & { consignes: RapportExecution[] } 
       return dernier === undefined ? null : { ...dernier, id: consignes.indexOf(dernier) + 1 };
     },
     derniers: () => [],
+    depuis: () => [],
   };
 }
 

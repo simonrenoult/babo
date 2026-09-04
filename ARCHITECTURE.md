@@ -130,6 +130,7 @@ npm install
 cp .env.example .env         # deux clés à tirer (base, jetons) et un mot de passe
 npm start                    # ou npm run dev
 npm run verifier   # types, lint d'architecture, tests
+npm run capture    # les captures archivées ; `-- <id>` en écrit une (019)
 ```
 
 L'application tourne en service supervisé, relancé automatiquement en cas
@@ -272,9 +273,9 @@ Un seul, dans le processus, pour les deux natures de tâches — spec 018 :
 | la déclaration des tâches | `src/main.ts` |
 
 Il ne connaît aucune tâche : `main.ts` les lui donne, comme il donne ses modules
-au serveur. Deux aujourd'hui — la passe de classement, et le vidage quotidien de
-la boîte d'envoi (016) —, et les acquisitions quotidiennes de 015, le battement
-de 019 et les rappels de 014 s'ajouteront à une ligne chacune.
+au serveur. Trois aujourd'hui — la passe de classement, le vidage de la boîte
+d'envoi (016) et le battement hebdomadaire (019) —, et les acquisitions
+quotidiennes de 015 comme les rappels de 014 s'ajouteront à une ligne chacune.
 
 **Tout passe par une échéance**, périodique ou ponctuelle : une ligne en base,
 unique sur (tâche, heure prévue). C'est cet index, et rien d'autre, qui tient
@@ -360,6 +361,76 @@ Le dialogue SMTP est testé contre un faux serveur local, sur les deux façons
 dont une alerte se perdrait en silence : authentification refusée, connexion
 coupée en plein dialogue. Ce serveur écoute en clair — **TLS n'est pas
 couvert**, et c'est le trou assumé de ce choix.
+
+## L'observabilité
+
+Spec 019. Le mode de panne d'un scraper n'est pas l'exception, c'est le **succès
+vide** : la page répond, le parseur s'exécute sans rien lever, mais une classe
+CSS a changé et il n'extrait plus rien. Une exception se voit ; un parseur
+devenu aveugle ne se voit pas.
+
+| Pièce | Où |
+|-------|-----|
+| l'alerte, décorateur du dépôt de rapports | `socle/core/alerte.ts` |
+| le battement hebdomadaire | `socle/core/battement.ts` |
+| la péremption vue des pages métier | `socle/core/fraicheur.ts` |
+| la mention à l'écran | `socle/presentation/vues/peremption.ejs` |
+| l'historique et la section « Exécutions » | `presentation/vues/sources.ejs` |
+| le rejeu d'une capture | `src/capture.ts`, `npm run capture` |
+
+**L'alerte est un décorateur, pas un appel.** `enAlertant` enveloppe
+`DepotRapports` et compare l'issue à la précédente : c'est le choix déjà fait
+pour les requêtes sortantes de 015, et pour la même raison — une passe qui
+pourrait oublier d'alerter alerterait moins bien qu'une passe qui ne le peut
+pas. Les passes quotidiennes de 015 s'y brancheront sans une ligne de plus.
+
+**Un mail à l'entrée en panne, pas à chaque panne.** 019 disait « toute panne
+déclenche un mail » ; un parseur aveugle le reste jusqu'à correction, et un mail
+quotidien identique se filtre en trois jours — une alerte qu'on filtre est pire
+qu'une alerte absente. La sortie de panne est annoncée aussi : sans elle, on ne
+saurait jamais si le silence veut dire réparé ou toujours cassé.
+
+**Le courrier ne s'alerte jamais lui-même.** 016 l'écrit : un échec d'envoi ne
+peut pas être signalé par mail. Sans cette exclusion, un vidage en échec
+déposerait un message, dont le dépôt consignerait un rapport, qui déposerait un
+message. L'ordre de construction dans `main.ts` rend d'ailleurs la boucle
+impossible à écrire par accident : le décorateur a besoin du courrier, qui
+existe donc avant lui et reçoit le dépôt nu.
+
+`consigner` **reste synchrone**, et l'alerte part sans être attendue : c'est ce
+qui permet aux passes de consigner sans devenir asynchrones. Rien n'est perdu —
+l'écriture en base est la première instruction de `deposer`, donc le message
+existe avant que la promesse ne suspende.
+
+**Le battement est le seul mécanisme dont le silence soit une information.** Le
+lundi à 8 h, quand on lit ses mails, grâce nulle (018) : rattrapé le mardi, il
+mentirait sur la date à laquelle il a constaté ce qu'il annonce. Il nomme les
+tâches qui n'ont jamais tourné — une tâche absente du rapport est une tâche dont
+on ne saura jamais qu'elle s'est tue — et distingue la **dernière donnée** du
+dernier réveil, une passe qui échoue depuis trois semaines ayant tourné hier
+sans rien rapporter de neuf. Son issue reste `succes` même quand il n'annonce
+que des pannes : un `echec` enverrait une alerte pour dire qu'on a bien alerté.
+C'est lui, enfin, qui ferme le trou laissé par l'alerte à l'entrée seule.
+
+**La péremption se juge sur la cadence de la tâche qui alimente la page**, lue
+dans les réglages de 018 : aucun seuil nouveau, et une cadence modifiée depuis
+`/sources` déplace le seuil sans redémarrage. Jamais une ancienneté globale —
+les scrapings tombent indépendamment. La mention ne s'affiche qu'en retard réel :
+un « donnée fraîche » permanent deviendrait un élément de décor. Et « jamais
+relevée » n'est pas « périmée », les pages disant déjà la première en toutes
+lettres (001, 028).
+
+**Le rejeu est un script, pas un écran.** `npm run capture` liste les dernières
+captures par source, `npm run capture -- <id>` en écrit une dans
+`acquisition/exemples/`, sans jamais écraser un fichier existant — les fixtures
+de ce dossier sont choisies à la main. Corriger un parseur est un geste de
+développement, et la base étant chiffrée, « ouvrir le fichier » supposerait
+sinon un client SQLCipher et la clé sous la main.
+
+**Rien n'est purgé** — captures, rapports, messages. Une ligne de rapport pèse
+quelques dizaines d'octets et le battement annonce la taille de la base : si la
+croissance devient un problème, la mesure le dira avant que l'estimation ne le
+devine.
 
 ## L'équipe
 
@@ -507,6 +578,4 @@ il se lit en mettant les deux côte à côte, jamais en les fusionnant.
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
-sur les pages désormais observées. Les rapports par mail et le battement
-hebdomadaire (019) — le courrier est là, le planificateur n'attend qu'une ligne
-dans `main.ts` —, et la sauvegarde (023).
+sur les pages désormais observées, et la sauvegarde (023).

@@ -1,0 +1,27 @@
+<%#
+  La donnée est-elle anormalement vieille ? — spec 019.
+
+  Un seul partiel pour toutes les pages qui servent une donnée relevée : trois
+  copies auraient divergé, et l'écran doit dire la même chose du même fait.
+
+  Il ne dit rien quand tout va bien. Une mention permanente « donnée fraîche »
+  se lit au bout d'une semaine comme un élément de décor, et ne se remarquerait
+  plus le jour où elle change.
+
+  Il ne dit rien non plus quand rien n'a jamais été relevé : c'est un autre
+  message, et les pages le portent déjà en toutes lettres plutôt que d'afficher
+  un tableau de tirets (001, 028). Confondre les deux ferait passer une mise en
+  service pour une panne.
+%>
+<% if (fraicheur.perimee) { %>
+  <p class="etat">
+    <strong>Donnée périmée.</strong> Le dernier relevé date de
+    <%= fraicheur.ageEnJours %> jour<%= fraicheur.ageEnJours > 1 ? "s" : "" %>,
+    alors que la passe qui l'alimente tourne
+    <%= fraicheur.periodeEnJours === 1 ? "chaque jour" : `tous les ${fraicheur.periodeEnJours} jours` %> :
+    elle a manqué son tour. Ce qui s'affiche ici reste le dernier relevé
+    disponible — jamais une page vide —, mais il n'est plus d'aujourd'hui. Le
+    rapport de la passe en donne la raison sur
+    <a href="/sources">l'écran des sources</a>.
+  </p>
+<% } %>

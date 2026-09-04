@@ -30,6 +30,9 @@ export function depotRapportsSqlite(base: BaseSqlite): DepotRapports {
   const derniers = base.prepare(
     `select ${colonnes} order by demarre_le desc, id desc limit ?`,
   );
+  const depuis = base.prepare(
+    `select ${colonnes} where demarre_le >= ? order by demarre_le, id`,
+  );
 
   return {
     consigner(rapport: RapportExecution): RapportArchive {
@@ -51,6 +54,10 @@ export function depotRapportsSqlite(base: BaseSqlite): DepotRapports {
 
     derniers(combien: number): readonly RapportArchive[] {
       return (derniers.all(combien) as Ligne[]).map(versRapport);
+    },
+
+    depuis(quand: Date): readonly RapportArchive[] {
+      return (depuis.all(quand.toISOString()) as Ligne[]).map(versRapport);
     },
   };
 }
