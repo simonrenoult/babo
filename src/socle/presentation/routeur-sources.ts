@@ -20,11 +20,25 @@ export type AccesAuxSources = {
   deploiements(): readonly EtatDuDeploiement[];
   enregistrer(source: Source, valeur: string): void;
   /**
-   * Demande à la source d'aller chercher sa propre session. Absente de la
-   * liste rendue par `etats` quand la source ne sait pas faire, ou quand le
-   * mot de passe n'est pas configuré.
+   * Demande à la source d'aller chercher sa propre session — specs 015 et 027.
+   *
+   * Rend `code-attendu` quand la source a une 2FA et vient d'envoyer un code :
+   * l'écran bascule alors sur son second temps. myffbad, qui n'en a pas, rend
+   * toujours `ouverte`.
    */
-  connecter(source: Source): Promise<void>;
+  connecter(source: Source): Promise<"ouverte" | "code-attendu">;
+  /** Le second temps : le code reçu par mail, recopié à la main — spec 027. */
+  confirmerLeCode(source: Source, code: string): Promise<void>;
+  /** Les sources dont un code est attendu, et depuis quand. */
+  codesAttendus(): readonly { readonly source: Source; readonly demandeeLe: Date }[];
+  /**
+   * Va chercher `/competitions` sous session et archive la capture — spec 027.
+   *
+   * Premier temps de 027 : pas de parseur, pas de table. On obtient la page,
+   * on la range, et c'est sur elle qu'on dessinera la suite — l'ordre que 015
+   * a fixé, « la sonde d'abord, le schéma ensuite ».
+   */
+  releverLesEngagements(): Promise<ResultatDeRelevé>;
   oublier(source: Source): void;
   sonder(): Promise<readonly ResultatDeSonde[]>;
   /**
@@ -110,6 +124,16 @@ export type ResultatDImport =
     }
   | { readonly issue: "refusee"; readonly motifs: readonly MotifDeRefus[] };
 
+/** Ce que le premier temps de 027 rend : une capture, pas des données. */
+export type ResultatDeRelevé = {
+  readonly statutHttp: number;
+  readonly octets: number;
+  /** L'identifiant de la capture archivée : `npm run capture -- <id>` la sort. */
+  readonly capture: number;
+  /** Vrai quand badnet a servi son mur de connexion : la session est morte. */
+  readonly murDeConnexion: boolean;
+};
+
 export type MotifDeRefus = {
   /** Ligne du fichier, en-tête comprise. `null` quand c'est le fichier entier. */
   readonly ligne: number | null;
@@ -138,6 +162,8 @@ export function routeurSources(acces: AccesAuxSources): Router {
       passe?: RapportArchive | null;
       equipe?: ResultatDImport | null;
       mailDeTest?: MessageDepose | null;
+      engagements?: ResultatDeRelevé | null;
+      connexion?: { readonly source: Source; readonly issue: string } | null;
     },
   ): void => {
     reponse.render("sources", {
@@ -153,6 +179,9 @@ export function routeurSources(acces: AccesAuxSources): Router {
       passe: vue.passe ?? null,
       equipe: vue.equipe ?? null,
       mailDeTest: vue.mailDeTest ?? null,
+      engagements: vue.engagements ?? null,
+      connexion: vue.connexion ?? null,
+      codesAttendus: acces.codesAttendus(),
     });
   };
 
@@ -246,13 +275,49 @@ export function routeurSources(acces: AccesAuxSources): Router {
     reponse.redirect("/sources");
   });
 
+  /**
+   * Le premier temps de la connexion — specs 015 et 027.
+   *
+   * **On ne redirige jamais, dans un cas comme dans l'autre.** Une redirection
+   * muette laisse chercher un champ de code qui n'existe pas, ou croire que
+   * rien n'a eu lieu : c'est ce qui s'est produit au premier essai réel, le
+   * 4 septembre 2026, quand badnet a ouvert la session sans réclamer de code.
+   * L'écran dit désormais laquelle des deux voies a été prise.
+   */
   routeur.post("/:source/connexion", (requete, reponse, suite) => {
     const source = requete.params.source;
     if (!estUneSource(source)) return rendreInconnue(reponse, source);
 
     acces
       .connecter(source)
+      .then((issue) => ecran(reponse, { connexion: { source, issue } }))
+      .catch(suite);
+  });
+
+  /** Le second temps : le code reçu par mail — spec 027. */
+  routeur.post("/:source/code", (requete, reponse, suite) => {
+    const source = requete.params.source;
+    if (!estUneSource(source)) return rendreInconnue(reponse, source);
+
+    const code = String(requete.body?.["code"] ?? "").trim();
+    if (code === "") {
+      return reponse.status(400).render("erreur", {
+        titre: "Code vide",
+        message: "Recopier le code de vérification reçu par mail.",
+      });
+    }
+
+    acces
+      .confirmerLeCode(source, code)
       .then(() => reponse.redirect("/sources"))
+      .catch(suite);
+  });
+
+  /** Le relevé des engagements — spec 027, premier temps : capturer, pas lire. */
+  routeur.post("/engagements", (_requete, reponse, suite) => {
+    acces
+      .releverLesEngagements()
+      .then((engagements) => ecran(reponse, { engagements }))
       .catch(suite);
   });
 

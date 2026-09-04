@@ -163,6 +163,7 @@ describe("l'application assemblée", () => {
         base: { chemin: join(dossier, "babo.db"), cle: "clé-de-test" },
         licence: licence("07194591"),
         motDePasseMyffbad: null,
+        motDePasseBadnet: null,
         motDePasse: MOT_DE_PASSE,
         secretDuJeton: "secret-de-test",
         // `false` : le test parle en clair à 127.0.0.1, et un cookie `Secure`
@@ -210,7 +211,11 @@ describe("l'application assemblée", () => {
         oublier: (source) => persistance.jetonMyffbad.effacer(source),
         deploiements: () => [],
         // La connexion touche au réseau : l'assemblage vérifie le montage.
-        connecter: () => Promise.resolve(),
+        connecter: () => Promise.resolve("ouverte" as const),
+        confirmerLeCode: () => Promise.resolve(),
+        codesAttendus: () => [],
+        releverLesEngagements: () =>
+          Promise.reject(new Error("relevé non branché dans ce test")),
         // La sonde touche au réseau : l'assemblage vérifie qu'elle est montée,
         // pas qu'elle atteint les sites fédéraux.
         sonder: () => Promise.resolve([]),

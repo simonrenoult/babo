@@ -22,6 +22,13 @@ export type Configuration = {
    */
   readonly motDePasseMyffbad: string | null;
   /**
+   * Mot de passe badnet — spec 027. Absent, la session badnet s'enregistre à la
+   * main comme avant ; renseigné, Bado mène la connexion et ne demande que le
+   * code reçu par mail. L'identifiant, lui, est la licence ci-dessus : badnet
+   * l'attend à huit chiffres, zéros de tête compris.
+   */
+  readonly motDePasseBadnet: string | null;
+  /**
    * Le mot de passe qui ouvre Bado — spec 021. La configuration fait foi : le
    * haché en base est réécrit au démarrage quand cette valeur change, ce qui
    * évite un écran de changement et le chemin de récupération qu'il faudrait

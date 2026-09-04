@@ -9,10 +9,15 @@ import {
   etatDeLaSource,
   sousPlafond,
   tacheDAcquisition,
+  tacheDesEngagements,
 } from "./socle/core/acquisition.ts";
 import { sonder } from "./socle/core/sonde.ts";
 import { plafondDeLaPasse, releverLesClassements } from "./socle/core/passe-classement.ts";
-import { seConnecter } from "./socle/core/connexion.ts";
+import {
+  confirmerParLeCode,
+  creerAttentes,
+  demanderUneConnexion,
+} from "./socle/core/connexion.ts";
 import { horlogeSysteme } from "./socle/core/horloge.ts";
 import { creerOrdonnanceur, type TacheOrdonnancee } from "./socle/core/ordonnancement.ts";
 import { creerAuthentification } from "./socle/core/authentification.ts";
@@ -26,7 +31,7 @@ import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de
 import type { Licence } from "./socle/core/licence.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
-import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
+import { ENGAGEMENTS, moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
 import { creerModuleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { creerModuleCapitanat } from "./capitanat/presentation/module-web.ts";
 import { ImportRefuse } from "./capitanat/core/coequipier.ts";
@@ -299,6 +304,30 @@ const fraicheurDuClassement = (vuLe: Date | null) =>
     horlogeSysteme.maintenant(),
   );
 
+/**
+ * Les connexions en attente d'un code — spec 027.
+ *
+ * En mémoire : l'attente vit dix minutes, et un redémarrage dans cet intervalle
+ * veut dire qu'on recommence, pas qu'on perd quelque chose. Cela garde surtout
+ * un cookie à moitié authentifié hors de la base — le seul qu'on y écrit est
+ * celui qui marche.
+ */
+const attentes = creerAttentes();
+
+const VARIABLE_DU_MOT_DE_PASSE: Record<string, string> = {
+  myffbad: "BABO_MYFFBAD_MOT_DE_PASSE",
+  badnet: "BABO_BADNET_MOT_DE_PASSE",
+};
+
+const moduleDe = (source: (typeof modulesDAcquisition)[number]["source"]) => {
+  const module = modulesDAcquisition.find((candidat) => candidat.source === source);
+  if (module === undefined) throw new Error(`Source sans module d'acquisition : ${source}`);
+  return module;
+};
+
+const motDePasseDe = (source: string): string | null =>
+  source === "badnet" ? configuration.motDePasseBadnet : configuration.motDePasseMyffbad;
+
 const application = creerApplication({
   authentification,
   configuration,
@@ -332,7 +361,7 @@ const application = creerApplication({
           horlogeSysteme.maintenant(),
           // Autonome seulement si la source sait se connecter *et* qu'on lui a
           // donné de quoi le faire : un bouton qui échouerait ne vaut rien.
-          module.connexion !== undefined && configuration.motDePasseMyffbad !== null,
+          module.connexion !== undefined && motDePasseDe(module.source) !== null,
         ),
       ),
 
@@ -385,19 +414,86 @@ const application = creerApplication({
     },
 
     connecter: async (source) => {
-      const module = modulesDAcquisition.find((candidat) => candidat.source === source);
-      if (module === undefined) throw new Error(`Source sans module d'acquisition : ${source}`);
-      if (configuration.motDePasseMyffbad === null) {
-        throw new Error("BABO_MYFFBAD_MOT_DE_PASSE n'est pas renseigné : voir .env.example.");
+      const module = moduleDe(source);
+      const motDePasse = motDePasseDe(source);
+      if (motDePasse === null) {
+        throw new Error(`${VARIABLE_DU_MOT_DE_PASSE[source]} n'est pas renseigné : voir .env.example.`);
       }
 
-      await seConnecter({
-        client: clientPour(source, 2),
+      const resultat = await demanderUneConnexion({
+        // Trois requêtes : le préalable qui relève l'action, la connexion, et
+        // une de marge. Au-delà, c'est une boucle, pas une connexion (015).
+        client: clientPour(source, 3),
         module,
-        motDePasse: configuration.motDePasseMyffbad,
+        identifiant: configuration.licence,
+        motDePasse,
         jetons: persistance.jetonMyffbad,
+        attentes,
         horloge: horlogeSysteme,
       });
+      return resultat.issue;
+    },
+
+    confirmerLeCode: async (source, code) => {
+      await confirmerParLeCode({
+        client: clientPour(source, 2),
+        module: moduleDe(source),
+        code,
+        jetons: persistance.jetonMyffbad,
+        attentes,
+        horloge: horlogeSysteme,
+      });
+    },
+
+    codesAttendus: () =>
+      attentes
+        .enCours(horlogeSysteme.maintenant())
+        .map(({ source, demandeeLe }) => ({ source, demandeeLe })),
+
+    /**
+     * Le premier temps de 027 : obtenir la page, pas la comprendre.
+     *
+     * Aucun parseur, aucune table. La capture est archivée par le décorateur
+     * `enArchivant` comme toute requête sortante, et c'est elle qu'on lira pour
+     * dessiner la suite — l'ordre que 015 a fixé et que 019 rend rejouable :
+     * `npm run capture -- <id>`.
+     */
+    releverLesEngagements: async () => {
+      const module = moduleDe("badnet");
+      const jeton = persistance.jetonMyffbad.lire("badnet");
+      const demarreLe = horlogeSysteme.maintenant();
+      const reponse = await clientPour("badnet", 1).recuperer({
+        url: ENGAGEMENTS,
+        jeton: jeton?.valeur ?? null,
+      });
+
+      // Le mur plutôt qu'une exception : cette page répond 200 même quand elle
+      // refuse, et seul le module sait la reconnaître.
+      const murDeConnexion = module.murDeConnexion(reponse);
+      const derniere = persistance.captures.dernieres("badnet", 1)[0];
+
+      // Une exécution laisse un rapport, celle-ci comme les autres (019) — et
+      // sous son propre identifiant de tâche, pour qu'une session badnet morte
+      // ne fasse pas passer la recherche publique pour en panne.
+      rapports.consigner({
+        tache: tacheDesEngagements(),
+        demarreLe,
+        termineLe: horlogeSysteme.maintenant(),
+        issue: murDeConnexion ? "echec" : "succes",
+        // Aucun volume : il n'y a pas encore de parseur, et annoncer zéro
+        // extrait ferait croire à une extraction vide au sens de 019.
+        volumeExtrait: null,
+        detail: murDeConnexion
+          ? "mur de connexion : session badnet absente ou morte"
+          : `page relevée, ${reponse.contenu.length} octets, capture ${derniere?.id ?? "?"}`,
+      });
+
+      return {
+        statutHttp: reponse.statutHttp,
+        octets: reponse.contenu.length,
+        capture: derniere?.id ?? 0,
+        murDeConnexion,
+      };
     },
 
     sonder: () =>

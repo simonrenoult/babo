@@ -14,6 +14,7 @@ export function configurationDepuisEnvironnement(
     port: entier(environnement["BABO_PORT"], 3000),
     licence: licence(obligatoire(environnement, "BABO_LICENCE")),
     motDePasseMyffbad: environnement["BABO_MYFFBAD_MOT_DE_PASSE"] || null,
+    motDePasseBadnet: environnement["BABO_BADNET_MOT_DE_PASSE"] || null,
     motDePasse: obligatoire(environnement, "BABO_MOT_DE_PASSE"),
     secretDuJeton: obligatoire(environnement, "BABO_SECRET_JETON"),
     base: {

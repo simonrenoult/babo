@@ -102,7 +102,10 @@ export function creerModuleMyffbad(licence: Licence): ModuleDAcquisition {
     buildDesActions: BUILD_DES_ACTIONS,
 
     connexion: {
-      requete: (motDePasse) => connexion(licence, motDePasse),
+      // L'identifiant est ignoré : la connexion myffbad est construite avec
+      // ma licence, celle du module. Ni deuxième temps ni préalable — myffbad
+      // n'a pas de 2FA, et ses actions sont relevées ailleurs (015).
+      requete: ({ motDePasse }) => connexion(licence, motDePasse),
       jetonDepuisLesCookies,
     },
 

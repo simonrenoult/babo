@@ -16,6 +16,7 @@ const CONFIGURATION: Configuration = {
   base: { chemin: ":memory:", cle: "peu-importe" },
   licence: licence("07194591"),
   motDePasseMyffbad: null,
+  motDePasseBadnet: null,
   motDePasse: "le-mot-de-passe-de-test",
   secretDuJeton: "secret-de-test",
   derriereUnProxy: true,
@@ -114,6 +115,8 @@ type Trace = {
   importes: string[];
   reglages: ReglageDeTache[];
   mailsDeTest: number;
+  codes: [Source, string][];
+  attendus: { readonly source: Source; readonly demandeeLe: Date }[];
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
@@ -126,6 +129,8 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     importes: [],
     reglages: [],
     mailsDeTest: 0,
+    codes: [],
+    attendus: [],
   };
   return {
     trace,
@@ -177,8 +182,16 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
       oublier: (source) => void trace.oublies.push(source),
       connecter: (source) => {
         trace.connectes.push(source);
+        // myffbad n'a pas de 2FA : sa connexion aboutit en un temps (015).
+        return Promise.resolve("ouverte" as const);
+      },
+      confirmerLeCode: (source, code) => {
+        trace.codes.push([source, code]);
         return Promise.resolve();
       },
+      codesAttendus: () => trace.attendus,
+      releverLesEngagements: () =>
+        Promise.resolve({ statutHttp: 200, octets: 4096, capture: 12, murDeConnexion: false }),
       relever: () => {
         trace.releves += 1;
         return Promise.resolve(RAPPORT);
@@ -351,6 +364,55 @@ describe("l'écran des sources", () => {
     assert.match(reponse.corps, /BABO_SMTP_MOT_DE_PASSE/);
   });
 
+  /**
+   * L'écran doit dire dans lequel des deux temps on est — spec 027. C'est cette
+   * bascule qui distingue « le code n'est pas encore parti » de « le code est
+   * faux ».
+   */
+  it("bascule sur le champ du code quand la source en réclame un", async () => {
+    const { acces, trace } = ecran();
+    trace.attendus.push({ source: "badnet", demandeeLe: new Date("2026-09-05T09:00:00Z") });
+
+    const reponse = await interroger(acces, "/sources");
+
+    assert.match(reponse.corps, /Code demandé/);
+    assert.match(reponse.corps, /name="code"/);
+    assert.match(reponse.corps, /dix minutes/, "et l'écran dit que l'attente tombe");
+  });
+
+  it("poste le code sur la source visée", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(
+      acces,
+      "/sources/badnet/code",
+      new URLSearchParams({ code: " 123456 " }),
+    );
+
+    assert.equal(reponse.statut, 302);
+    assert.deepEqual(trace.codes, [["badnet", "123456"]]);
+  });
+
+  it("refuse un code vide plutôt que de le poster", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(acces, "/sources/badnet/code", new URLSearchParams({ code: "  " }));
+
+    assert.equal(reponse.statut, 400);
+    assert.deepEqual(trace.codes, []);
+  });
+
+  /**
+   * Premier temps de 027 : on obtient la page et on l'archive, on n'en lit
+   * rien. La capture est ce sur quoi le schéma se dessinera.
+   */
+  it("relève les engagements et annonce la capture archivée", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/sources/engagements", new URLSearchParams());
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /Page relevée : statut 200/);
+    assert.match(reponse.corps, /npm run capture -- 12/);
+  });
+
   it("rend le résultat de la sonde dans la page", async () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(acces, "/sources/sonde", new URLSearchParams());
@@ -491,12 +553,18 @@ describe("la connexion autonome", () => {
     assert.doesNotMatch(reponse.corps, /action="\/sources\/badnet\/connexion"/);
   });
 
-  it("déclenche la connexion et revient à l'écran", async () => {
+  /**
+   * Jamais de redirection muette : au premier essai réel, badnet a ouvert la
+   * session sans réclamer de code, et l'écran n'en disait rien — on cherchait
+   * un champ de code qui n'existait pas.
+   */
+  it("dit que la session s'est ouverte sans code", async () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(acces, "/sources/myffbad/connexion", new URLSearchParams());
 
-    assert.equal(reponse.statut, 302);
-    assert.equal(reponse.redirection, "/sources");
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /Session myffbad ouverte/);
+    assert.match(reponse.corps, /Aucun code n'a\s+été demandé/);
     assert.deepEqual(trace.connectes, ["myffbad"]);
   });
 

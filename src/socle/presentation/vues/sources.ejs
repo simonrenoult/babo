@@ -386,6 +386,57 @@
   <% } %>
 <% } %>
 
+<h2>Relever mes engagements</h2>
+<p>
+  <code>/competitions</code> porte mes inscriptions de tournoi, derrière la
+  session badnet (spec 027). Ce bouton va chercher la page et
+  <strong>l'archive telle quelle</strong> — il n'en lit rien. C'est voulu :
+  personne n'a encore vu cette page, et 015 a fixé l'ordre — la capture d'abord,
+  le schéma ensuite, « le dessiner avant d'avoir vu les pages serait la même
+  erreur que de concevoir une interface avant ses adaptateurs ».
+</p>
+<p>
+  La passe quotidienne viendra avec le parseur, pas avant : une passe qui
+  n'extrait rien ne peut rien rapporter, et son volume nul serait du bruit dans
+  les rapports de 019.
+</p>
+<form method="post" action="/sources/engagements"><button type="submit">Relever mes engagements</button></form>
+
+<% if (engagements) { %>
+  <p class="etat">
+    <% if (engagements.murDeConnexion) { %>
+      <strong>badnet a servi son mur de connexion.</strong> La session est morte
+      ou absente : en ouvrir une ci-dessous. La page a bien répondu
+      <%= engagements.statutHttp %> — c'est le contenu qui refuse, pas le
+      serveur, et c'est pourquoi seul le module sait le reconnaître.
+    <% } else { %>
+      Page relevée : statut <%= engagements.statutHttp %>,
+      <%= Math.round(engagements.octets / 1024) %> Ko.
+    <% } %>
+    <% if (engagements.capture > 0) { %>
+      Capture <strong><%= engagements.capture %></strong> archivée —
+      <code>npm run capture -- <%= engagements.capture %></code> l'écrit dans un
+      fichier, à côté des tests.
+    <% } %>
+  </p>
+<% } %>
+
+<% if (connexion) { %>
+  <p class="etat">
+    <% if (connexion.issue === "ouverte") { %>
+      <strong>Session <%= connexion.source %> ouverte.</strong> Aucun code n'a
+      été demandé — la double authentification ne s'est pas déclenchée. Son
+      échéance se lit dans le bloc « Enregistrer une session » ci-dessous ;
+      faute d'une date portée par le jeton, elle est devinée à un mois, et
+      c'est la date d'obtention qui dira la vraie durée.
+    <% } else { %>
+      Un code de vérification a été demandé à
+      <strong><%= connexion.source %></strong>. Il arrive par mail : le
+      recopier dans le champ ci-dessous.
+    <% } %>
+  </p>
+<% } %>
+
 <h2>Enregistrer une session</h2>
 <p>
   Bado ne renouvelle aucune session : il garde celle que tu lui donnes. Se
@@ -415,11 +466,33 @@
     <% } %>
   </p>
 
-  <% if (etat.autonome) { %>
+  <%
+    // Un code attendu pour cette source : l'écran bascule sur le second temps.
+    // C'est cette bascule qui distingue « le code n'est pas encore parti » de
+    // « le code est faux » (spec 027).
+    const attendu = codesAttendus.find((attente) => attente.source === etat.source);
+  %>
+
+  <% if (attendu) { %>
+    <form method="post" action="/sources/<%= etat.source %>/code">
+      <p class="etat">
+        <strong>Code demandé</strong> le
+        <%= attendu.demandeeLe.toLocaleTimeString("fr-FR") %>. badnet l'envoie
+        par mail. L'attente tombe au bout de dix minutes : passé ce délai, il
+        faut en redemander un plutôt que de saisir un code périmé.
+      </p>
+      <p>
+        <label for="code-<%= etat.source %>">Code reçu par mail</label>
+        <input id="code-<%= etat.source %>" name="code" size="12" autocomplete="one-time-code" required>
+        <button type="submit">Valider le code</button>
+      </p>
+    </form>
+  <% } else if (etat.autonome) { %>
     <form method="post" action="/sources/<%= etat.source %>/connexion">
       <p>
-        Cette source sait aller chercher sa session seule : elle n'a pas de
-        double authentification, et son mot de passe est configuré.
+        Cette source sait aller chercher sa session : son mot de passe est
+        configuré. myffbad aboutit d'un coup ; badnet a une double
+        authentification et demandera un code reçu par mail (specs 015 et 027).
       </p>
       <button type="submit">Se connecter maintenant</button>
     </form>

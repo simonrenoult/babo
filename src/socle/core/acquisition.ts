@@ -267,6 +267,20 @@ export function tacheDAcquisition(source: Source): string {
 }
 
 /**
+ * La tâche des engagements badnet — spec 027.
+ *
+ * **Distincte de `acquisition:badnet`, et c'est le point.** badnet a deux
+ * visages : une recherche publique qui ne dépend de rien, et `/competitions`
+ * derrière une session. Les consigner sous le même nom ferait afficher
+ * « badnet en panne » quand une session tombe, alors que la recherche va très
+ * bien — et l'alerte de 019 partirait pour la mauvaise raison. C'est
+ * exactement le couplage que 027 interdit.
+ */
+export function tacheDesEngagements(): string {
+  return "acquisition:badnet:engagements";
+}
+
+/**
  * Une requête que la sonde d'accès va jouer pour prouver que la source répond
  * — spec 015.
  *
@@ -298,6 +312,15 @@ export type PageSondee = {
  * façon des deux côtés — myffbad redirige, badnet sert sa page de connexion
  * sous l'URL demandée.
  */
+/** Ce dont une connexion a besoin pour composer sa requête — specs 015 et 027. */
+export type IdentifiantsDeConnexion = {
+  /** Ma licence : c'est elle qui sert de nom d'utilisateur sur les deux sites. */
+  readonly identifiant: string;
+  readonly motDePasse: string;
+  /** L'action relevée par le préalable, `null` quand la source n'en désigne pas. */
+  readonly action: string | null;
+};
+
 export type ModuleDAcquisition = {
   readonly source: Source;
   /** Fonction du jeton : les appels sous session en dépendent pour se composer. */
@@ -316,15 +339,50 @@ export type ModuleDAcquisition = {
    */
   readonly buildDesActions?: string;
   /**
-   * De quoi s'authentifier seul, quand la source le permet — spec 015.
+   * De quoi s'authentifier, quand la source le permet — specs 015 et 027.
    *
-   * Présent pour myffbad, qui ne demande que licence et mot de passe ; absent
-   * pour badnet, dont la 2FA impose un humain. C'est cette absence qui dit
-   * pourquoi l'écran des sources ne disparaîtra pas.
+   * myffbad ne demande que licence et mot de passe : sa connexion tient en un
+   * temps. badnet en réclame deux — identifiants, puis un code reçu par mail —,
+   * et 027 les traverse plutôt que de les contourner. 015 écrivait que « la 2FA
+   * ferme la porte définitivement » ; elle ne la ferme qu'à l'automatisation
+   * complète, pas à Bado.
+   *
+   * L'asymétrie est d'ailleurs l'inverse de ce que 015 croyait au départ : c'est
+   * badnet qui a une 2FA, pas myffbad.
    */
   readonly connexion?: {
-    requete(motDePasse: string): Requete;
+    /**
+     * Le premier temps. Rend la requête qui présente les identifiants ; la
+     * réponse porte soit la session directement, soit le mur qui réclame un
+     * code.
+     */
+    requete(identifiants: IdentifiantsDeConnexion): Requete;
     jetonDepuisLesCookies(cookies: readonly string[]): string | null;
+    /**
+     * Le second temps, quand la source en a un — spec 027.
+     *
+     * Absent pour myffbad, qui n'en a pas. Présent pour badnet, dont il faut
+     * savoir **avant** de poster si un code est attendu : `reclameUnCode` lit
+     * la réponse du premier temps, et `confirmation` compose la requête qui
+     * porte le code, avec les cookies déjà obtenus.
+     */
+    readonly deuxiemeTemps?: {
+      reclameUnCode(reponse: Reponse): boolean;
+      confirmation(code: string, cookies: readonly string[], reponse: Reponse): Requete;
+    };
+    /**
+     * L'action à relever avant de poster, quand la source en désigne une par un
+     * identifiant de déploiement — spec 027.
+     *
+     * badnet nomme ses actions par un hash qui change avec le déploiement. Le
+     * relever à chaque tentative coûte une requête par mois et évite le seul
+     * mode de panne qu'on ne verrait pas venir : une connexion qui casse
+     * laisse la session mourir sans que rien ne la renouvelle.
+     */
+    readonly prealable?: {
+      requete(): Requete;
+      lireLAction(reponse: Reponse): string | null;
+    };
   };
   /**
    * De quoi relever le classement, quand la source le porte — spec 001.

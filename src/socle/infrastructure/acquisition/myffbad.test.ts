@@ -97,7 +97,11 @@ describe("l'identifiant interne du joueur", () => {
 
 describe("l'appel d'une Server Action myffbad", () => {
   it("compose la connexion telle que le navigateur l'envoie", () => {
-    const requete = module.connexion?.requete("un-secret");
+    const requete = module.connexion?.requete({
+      identifiant: "07194591",
+      motDePasse: "un-secret",
+      action: null,
+    });
 
     assert.equal(requete?.url, "https://www.myffbad.fr/connexion");
     assert.equal(requete?.methode, "POST");

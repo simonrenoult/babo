@@ -133,6 +133,37 @@ function dechapper(valeur: string): string {
 /** Paris, faute de mieux : 012 dira d'où la veille part réellement. */
 const PARIS = { longitude: 2.3488, latitude: 48.8534 };
 
+/**
+ * L'autre visage — spec 027.
+ *
+ * `/competitions` porte mes engagements, derrière une connexion et une 2FA.
+ * La page sert le mur tant qu'on n'est pas entré, et c'est ce même mur qui
+ * porte l'identifiant d'action de la connexion : on le relève donc là, à
+ * chaque tentative, plutôt que de l'écrire en dur comme celui de la recherche.
+ *
+ * Une action écrite en dur qui périme casse la recherche, et le rapport du
+ * lendemain le dit. Une action de connexion qui périme, elle, laisse la session
+ * mourir sans que rien ne la renouvelle : personne ne verrait la panne avant
+ * que la donnée n'ait un mois.
+ */
+export const ENGAGEMENTS = `${RACINE}/competitions`;
+
+/** L'action portée par le formulaire de connexion, en champ caché. */
+const ACTION_DU_FORMULAIRE = /name="ic_a"\s+type="hidden"\s+value="([a-f0-9]+)"/;
+
+export function actionDeConnexion(reponse: Reponse): string | null {
+  return ACTION_DU_FORMULAIRE.exec(reponse.contenu)?.[1] ?? null;
+}
+
+/**
+ * Le champ que badnet présente quand il attend le code envoyé par mail.
+ *
+ * Reconnu sur le `name` du champ plutôt que sur une phrase : un texte
+ * d'interface se réécrit plus souvent qu'un nom de champ, et c'est déjà le
+ * choix fait pour le mur de connexion.
+ */
+const CHAMP_DU_CODE = /name="(code|otp|token|validation)"/i;
+
 export const moduleBadnet: ModuleDAcquisition = {
   source: "badnet",
 
@@ -157,4 +188,94 @@ export const moduleBadnet: ModuleDAcquisition = {
   murDeConnexion(reponse: Reponse): boolean {
     return /name="login"/.test(reponse.contenu) && /name="pwd"/.test(reponse.contenu);
   },
+
+  /**
+   * La connexion en deux temps — spec 027.
+   *
+   * L'identifiant est ma licence à huit chiffres, zéros de tête compris : c'est
+   * ce que badnet attend, et `BABO_LICENCE` la porte déjà sous cette forme
+   * depuis la migration `006__licences_a_huit_chiffres`. Une seconde variable
+   * qui devrait toujours valoir la première serait une occasion de les
+   * désaccorder.
+   *
+   * `remember` est envoyée : chaque expiration coûte un aller-retour dans une
+   * boîte mail et une saisie à la main, et c'est précisément le geste que 015
+   * cherchait à supprimer. Le jeton vit dans une base chiffrée, qu'il dure un
+   * jour ou trois mois.
+   */
+  connexion: {
+    prealable: {
+      requete: () => ({ url: ENGAGEMENTS, jeton: null }),
+      lireLAction: actionDeConnexion,
+    },
+
+    requete: ({ identifiant, motDePasse, action }) => ({
+      url: ROUTEUR,
+      jeton: null,
+      methode: "POST",
+      corps: new URLSearchParams({
+        ic_a: action ?? "",
+        ic_ajax: "1",
+        login: identifiant,
+        pwd: motDePasse,
+        remember: "1",
+      }).toString(),
+      entetes: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-requested-with": "XMLHttpRequest",
+      },
+    }),
+
+    jetonDepuisLesCookies,
+
+    deuxiemeTemps: {
+      // Le mur du code n'est pas celui de la connexion : les deux portent des
+      // champs différents, et les confondre ferait redemander un mot de passe
+      // là où il faut recopier six chiffres.
+      reclameUnCode: (reponse) => CHAMP_DU_CODE.test(reponse.contenu),
+
+      confirmation: (code, cookies, reponse) => ({
+        url: ROUTEUR,
+        // Les cookies pré-authentifiés du premier temps : sans eux, badnet ne
+        // sait pas de quelle tentative ce code est la suite.
+        jeton: cookies.join("; "),
+        methode: "POST",
+        corps: new URLSearchParams({
+          ic_a: actionDeConnexion(reponse) ?? "",
+          ic_ajax: "1",
+          [nomDuChampDuCode(reponse)]: code,
+        }).toString(),
+        entetes: {
+          "content-type": "application/x-www-form-urlencoded",
+          "x-requested-with": "XMLHttpRequest",
+        },
+      }),
+    },
+  },
 };
+
+/**
+ * Le nom exact du champ, relu sur la page plutôt que supposé.
+ *
+ * On ne sait pas encore comment badnet nomme ce champ — personne n'a vu la
+ * page —, d'où la reconnaissance sur plusieurs noms possibles. Le premier
+ * relevé réel tranchera, et cette fonction se réduira à une constante.
+ */
+function nomDuChampDuCode(reponse: Reponse): string {
+  return CHAMP_DU_CODE.exec(reponse.contenu)?.[1] ?? "code";
+}
+
+/**
+ * Le cookie de session badnet, extrait de ce que la réponse a posé.
+ *
+ * Reconnu par son nom PHP standard, `PHPSESSID`, que le mur de connexion
+ * confirme — badnet est une application PHP. Rendu sous la forme d'un en-tête
+ * `Cookie` complet, celle que `jeton_source` garde et que les requêtes
+ * présentent telle quelle.
+ */
+function jetonDepuisLesCookies(cookies: readonly string[]): string | null {
+  const session = cookies
+    .map((cookie) => /(^|;\s*)(PHPSESSID=[^;]+)/.exec(cookie)?.[2])
+    .find((valeur) => valeur !== undefined);
+  return session ?? null;
+}

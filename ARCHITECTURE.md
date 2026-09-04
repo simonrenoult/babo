@@ -82,13 +82,42 @@ JSON dans `div.b-markers`. C'est la seule requête du projet qui ne dépende de
 rien — et elle ne doit jamais passer sous session, sous peine de mettre la
 veille quotidienne sous le même risque de bannissement que le reste (spec 027).
 
+**badnet a deux visages, une seule `Source`.** `/competitions` porte mes
+engagements derrière la session ; la recherche n'en a pas. Les séparer en deux
+sources créerait une ligne « session » permanente et vide pour la face publique,
+sur un écran dont tout le propos est de dire quelle session est morte. Le
+découplage passe donc par la **tâche** — `acquisition:badnet:engagements` à côté
+de `acquisition:badnet` —, pour qu'une session morte ne fasse pas passer la
+recherche publique pour en panne, ni partir l'alerte de 019 pour la mauvaise
+raison. `badnet.org` et `badnet.fr` sont le même site : vérifié, deux alias.
+
 Toute requête sortante passe par deux décorateurs du `core`, qu'aucun appelant
 ne peut oublier : `enArchivant` écrit la réponse en base avant que quiconque
 l'analyse, `sousPlafond` arrête une passe qui boucle. La session vit dans
-`jeton_source` ; elle se recopie à la main depuis le navigateur vers `/sources`,
-car badnet impose une 2FA. myffbad, lui, n'en a pas : Bado s'y connecte seul
-quand `BABO_MYFFBAD_MOT_DE_PASSE` est renseigné, en rejouant la Server Action
-de connexion, et ne garde en base que le jeton rendu — jamais le mot de passe.
+`jeton_source`, une clé par source.
+
+**Les deux sources se connectent, mais pas de la même façon** — 015 et 027.
+myffbad n'a pas de 2FA : Bado s'y connecte seul en rejouant la Server Action de
+connexion, dès que `BABO_MYFFBAD_MOT_DE_PASSE` est renseigné. badnet en a une,
+et 027 la **traverse** plutôt que de la contourner : Bado poste les
+identifiants, badnet envoie un code par mail, on le recopie sur `/sources`. C'est
+un second temps facultatif du port `connexion`, que myffbad n'implémente pas.
+
+L'identifiant est ma licence pour les deux, à huit chiffres. Les mots de passe
+viennent de l'environnement, ne touchent jamais la base, et seul le jeton rendu
+y entre. Le collage manuel du cookie reste offert pour les deux : c'est l'issue
+de secours le jour où un formulaire change.
+
+**L'identifiant d'action de la connexion badnet est relevé à chaque tentative**,
+sur le mur que `/competitions` sert publiquement — là où celui de la recherche
+est écrit en dur. L'asymétrie est voulue : une recherche qui casse se voit le
+lendemain dans un rapport, une connexion qui casse laisse la session mourir sans
+que rien ne la renouvelle.
+
+**Le mur du code est testé avant le cookie.** badnet est en PHP, et PHP pose un
+`PHPSESSID` dès le premier contact, authentifié ou non : un cookie présent ne
+prouve rien, alors que le mur du code est un signal positif. L'ordre inverse
+ferait prendre une demande de code pour une session ouverte.
 Son échéance
 est lue dans le jeton quand il la porte — le JWT myffbad porte son `exp` — et
 devinée à un mois seulement sinon.
@@ -579,3 +608,8 @@ il se lit en mettant les deux côte à côte, jamais en les fusionnant.
 
 Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
 sur les pages désormais observées, et la sauvegarde (023).
+
+**La table des engagements** (027), dont le premier temps est fait : Bado sait
+ouvrir une session badnet et archiver `/competitions`. Le parseur, la table et
+la passe quotidienne attendent qu'on ait lu la capture — l'ordre de 015, la
+sonde d'abord.

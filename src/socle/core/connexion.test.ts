@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { ClientHttp, ModuleDAcquisition, Reponse, Requete } from "./acquisition.ts";
 import { ActionIntrouvable } from "./acquisition.ts";
 import type { DepotJetonMyffbad, JetonMyffbad } from "./jeton-myffbad.ts";
-import { ConnexionImpossible, ConnexionRefusee, seConnecter } from "./connexion.ts";
+import { ConnexionImpossible, ConnexionRefusee, creerAttentes, seConnecter } from "./connexion.ts";
 
 const LE_JOUR = new Date("2026-09-01T08:00:00Z");
 const horlogeFigee = { maintenant: () => LE_JOUR };
@@ -13,7 +13,7 @@ const savantConnexion: ModuleDAcquisition = {
   pagesDeLaSonde: () => [],
   murDeConnexion: () => false,
   connexion: {
-    requete: (motDePasse) => ({
+    requete: ({ motDePasse }) => ({
       url: "https://www.myffbad.fr/connexion",
       jeton: null,
       methode: "POST",
@@ -69,7 +69,9 @@ describe("la connexion autonome", () => {
     const jeton = await seConnecter({
       client: reseau,
       module: savantConnexion,
+      identifiant: "07194591",
       motDePasse: "un-secret",
+      attentes: creerAttentes(),
       jetons,
       horloge: horlogeFigee,
     });
@@ -87,7 +89,9 @@ describe("la connexion autonome", () => {
     await seConnecter({
       client: reseau,
       module: savantConnexion,
+      identifiant: "07194591",
       motDePasse: "un-secret",
+      attentes: creerAttentes(),
       jetons,
       horloge: horlogeFigee,
     });
@@ -103,7 +107,9 @@ describe("la connexion autonome", () => {
       seConnecter({
         client: reseau,
         module: savantConnexion,
+        identifiant: "07194591",
         motDePasse: "un-secret",
+        attentes: creerAttentes(),
         jetons: depotJetons(),
         horloge: horlogeFigee,
       }),
@@ -118,7 +124,9 @@ describe("la connexion autonome", () => {
       seConnecter({
         client: reseau,
         module: savantConnexion,
+        identifiant: "07194591",
         motDePasse: "mauvais",
+        attentes: creerAttentes(),
         jetons: depotJetons(),
         horloge: horlogeFigee,
       }),
@@ -131,7 +139,9 @@ describe("la connexion autonome", () => {
       seConnecter({
         client: client({}),
         module: ignorantConnexion,
+        identifiant: "07194591",
         motDePasse: "un-secret",
+        attentes: creerAttentes(),
         jetons: depotJetons(),
         horloge: horlogeFigee,
       }),
