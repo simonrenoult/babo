@@ -10,6 +10,7 @@ import {
   sousPlafond,
   tacheDAcquisition,
   tacheDesEngagements,
+  tacheDesTournois,
 } from "./socle/core/acquisition.ts";
 import { sonder } from "./socle/core/sonde.ts";
 import { plafondDeLaPasse, releverLesClassements } from "./socle/core/passe-classement.ts";
@@ -31,7 +32,11 @@ import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de
 import type { Licence } from "./socle/core/licence.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
-import { ENGAGEMENTS, moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
+import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
+import { accesAuxEngagementsBadnet } from "./socle/infrastructure/acquisition/engagements-badnet.ts";
+import { accesAuxFichesPubliquesBadnet } from "./socle/infrastructure/acquisition/tournois-badnet.ts";
+import { releverLesEngagements } from "./socle/core/passe-engagements.ts";
+import { releverLesTournois } from "./socle/core/passe-tournois.ts";
 import { creerModuleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { creerModuleCapitanat } from "./capitanat/presentation/module-web.ts";
 import { ImportRefuse } from "./capitanat/core/coequipier.ts";
@@ -165,6 +170,65 @@ const relever = () => {
 };
 
 /**
+ * La passe des engagements — spec 027.
+ *
+ * Le plafond est calculé sur la chaîne réelle : deux requêtes pour la liste,
+ * trois par fiche, plus une de marge. badnet sert toutes ses pages en coquille,
+ * et aucun identifiant d'action n'est écrit en dur — c'est ce qui coûte ces
+ * sauts, et ce qui évite qu'un redéploiement fasse tomber la passe en silence.
+ *
+ * Douze tournois par saison au plus : le plafond n'a jamais à être généreux.
+ */
+const PLAFOND_DES_ENGAGEMENTS = 2 + 3 * 12 + 1;
+
+const relverLesEngagements = () => {
+  const jeton = persistance.jetonMyffbad.lire("badnet");
+  const client = clientPour("badnet", PLAFOND_DES_ENGAGEMENTS);
+
+  return releverLesEngagements({
+    jeton: jeton?.valeur ?? null,
+    engagements: persistance.engagements,
+    rapports,
+    horloge: horlogeSysteme,
+    acces: accesAuxEngagementsBadnet({
+      client,
+      jeton: jeton?.valeur ?? "",
+      licence: configuration.licence,
+    }),
+  });
+};
+
+/**
+ * La passe des lieux — spec 002.
+ *
+ * **Anonyme, et c'est sa raison d'être séparée.**
+ * `/tournoi/public/informations` ne demande aucune session : elle aboutit le
+ * jour où celle de badnet est morte, comme la passe de classement depuis 028.
+ * La consigner avec les engagements ferait passer pour morte une chaîne qui va
+ * très bien.
+ *
+ * Le plafond suit la chaîne réelle — coquille puis fiche, deux requêtes par
+ * tournoi, plus une de marge — et se calcule sur ce qui **reste** à relever :
+ * la passe est incrémentale, donc la plupart des jours ce plafond vaut un.
+ */
+const relverLesTournois = () => {
+  const connus = persistance.tournois.connus();
+  const aRelever = persistance.engagements
+    .tous()
+    .filter(({ evenement }) => !connus.has(evenement)).length;
+
+  return releverLesTournois({
+    engagements: persistance.engagements,
+    tournois: persistance.tournois,
+    rapports,
+    horloge: horlogeSysteme,
+    acces: accesAuxFichesPubliquesBadnet({
+      client: clientPour("badnet", 2 * aRelever + 1),
+    }),
+  });
+};
+
+/**
  * Les tâches qui se déclenchent seules — spec 018.
  *
  * Une seule aujourd'hui : la passe de classement, hebdomadaire, le vendredi à
@@ -215,6 +279,50 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
       active: true,
     },
     executer: () => courrier.vider(),
+  },
+  /**
+   * Les engagements badnet — spec 027.
+   *
+   * Quotidienne, à 5 h : le risque que 027 vise est « m'inscrire deux fois sur
+   * le même week-end », et un jour de latence est sans conséquence. Grâce large
+   * — 12 h —, à l'inverse du battement : cette donnée est périmable, pas datée,
+   * et un relevé rattrapé le midi reste juste.
+   */
+  {
+    tache: tacheDesEngagements(),
+    intitule: "Relever mes engagements (badnet)",
+    reglageParDefaut: {
+      cadence: { nature: "quotidienne", heure: 5, minute: 0 },
+      graceMinutes: 12 * 60,
+      active: true,
+    },
+    executer: relverLesEngagements,
+  },
+  /**
+   * Les lieux des tournois — spec 002.
+   *
+   * Quotidienne comme les engagements, et une demi-heure après eux : c'est la
+   * passe de 5 h qui fait apparaître une inscription nouvelle, et celle-ci lui
+   * donne sa ville dans la foulée. Aucun enchaînement pour autant — personne ne
+   * regarde l'écran à cette heure-là, et coupler les deux remettrait une requête
+   * anonyme dans le sillage d'une passe sous session.
+   *
+   * Elle ne coûte des requêtes que le lendemain d'une inscription : une ville
+   * ne change pas, donc un tournoi déjà connu n'est jamais redemandé. Les
+   * autres jours elle consigne « 4 connus, aucun à relever », ce qui suffit au
+   * battement du lundi pour ne pas la croire muette.
+   *
+   * Grâce large, comme les engagements : cette donnée est périmable, pas datée.
+   */
+  {
+    tache: tacheDesTournois(),
+    intitule: "Relever le lieu des tournois (badnet, anonyme)",
+    reglageParDefaut: {
+      cadence: { nature: "quotidienne", heure: 5, minute: 30 },
+      graceMinutes: 12 * 60,
+      active: true,
+    },
+    executer: relverLesTournois,
   },
   /**
    * Le battement hebdomadaire — spec 019.
@@ -297,10 +405,36 @@ if (authentification.poserLeCompte(configuration.licence, configuration.motDePas
  * (tâche jamais amorcée) vaut hebdomadaire, la valeur de départ déclarée.
  */
 const fraicheurDuClassement = (vuLe: Date | null) =>
+  fraicheur(vuLe, cadenceDe(tacheDAcquisition("myffbad")), horlogeSysteme.maintenant());
+
+/**
+ * La cadence effective d'une tâche : celle qu'on a réglée, sinon celle qu'on a
+ * déclarée. Relue à chaque rendu, donc une cadence changée depuis `/sources`
+ * déplace le seuil de péremption sans redémarrage (019).
+ */
+function cadenceDe(tache: string) {
+  const declaree = tachesOrdonnancees.find((candidate) => candidate.tache === tache);
+  if (declaree === undefined) throw new Error(`Tâche non déclarée : ${tache}`);
+  return persistance.reglages.lire(tache)?.cadence ?? declaree.reglageParDefaut.cadence;
+}
+
+/**
+ * L'ancienneté des engagements, jugée sur la cadence de leur passe — 019 et 002.
+ *
+ * Une seconde fonction, et non celle du classement réutilisée : les deux passes
+ * tombent indépendamment, et 019 interdit nommément l'ancienneté globale. Le
+ * classement peut être frais pendant que badnet se tait depuis trois semaines.
+ *
+ * Elle se lit sur le dernier **succès** de la passe, jamais sur son dernier
+ * réveil ni sur la date écrite à côté des lignes : le remplacement intégral de
+ * 027 vide la table en intersaison, et la seule trace de la réussite
+ * disparaîtrait avec les lignes — la page dirait « jamais relevé » le lendemain
+ * d'une passe parfaite.
+ */
+const fraicheurDesEngagements = () =>
   fraicheur(
-    vuLe,
-    persistance.reglages.lire(tacheDAcquisition("myffbad"))?.cadence ??
-      tachesOrdonnancees[0]!.reglageParDefaut.cadence,
+    rapports.dernierSucces(tacheDesEngagements())?.demarreLe ?? null,
+    cadenceDe(tacheDesEngagements()),
     horlogeSysteme.maintenant(),
   );
 
@@ -336,6 +470,10 @@ const application = creerApplication({
       licence: configuration.licence,
       classements: persistance.classements,
       fraicheur: fraicheurDuClassement,
+      engagements: persistance.engagements,
+      tournois: persistance.tournois,
+      fraicheurDesEngagements,
+      horloge: horlogeSysteme,
     }),
     creerModuleCapitanat({
       coequipiers,
@@ -458,43 +596,18 @@ const application = creerApplication({
      * dessiner la suite — l'ordre que 015 a fixé et que 019 rend rejouable :
      * `npm run capture -- <id>`.
      */
-    releverLesEngagements: async () => {
-      const module = moduleDe("badnet");
-      const jeton = persistance.jetonMyffbad.lire("badnet");
-      const demarreLe = horlogeSysteme.maintenant();
-      const reponse = await clientPour("badnet", 1).recuperer({
-        url: ENGAGEMENTS,
-        jeton: jeton?.valeur ?? null,
-      });
+    // Le bouton de dépannage : la même passe que le planificateur déclenche
+    // chaque matin, comme celui du classement (001, 018).
+    releverLesEngagements: relverLesEngagements,
 
-      // Le mur plutôt qu'une exception : cette page répond 200 même quand elle
-      // refuse, et seul le module sait la reconnaître.
-      const murDeConnexion = module.murDeConnexion(reponse);
-      const derniere = persistance.captures.dernieres("badnet", 1)[0];
+    // Un décompte, plus la table : depuis 002 la liste vit sur `/mon-profil`.
+    // `/sources` porte l'exploitation, la feature porte la donnée (030).
+    engagements: () => persistance.engagements.compter(),
 
-      // Une exécution laisse un rapport, celle-ci comme les autres (019) — et
-      // sous son propre identifiant de tâche, pour qu'une session badnet morte
-      // ne fasse pas passer la recherche publique pour en panne.
-      rapports.consigner({
-        tache: tacheDesEngagements(),
-        demarreLe,
-        termineLe: horlogeSysteme.maintenant(),
-        issue: murDeConnexion ? "echec" : "succes",
-        // Aucun volume : il n'y a pas encore de parseur, et annoncer zéro
-        // extrait ferait croire à une extraction vide au sens de 019.
-        volumeExtrait: null,
-        detail: murDeConnexion
-          ? "mur de connexion : session badnet absente ou morte"
-          : `page relevée, ${reponse.contenu.length} octets, capture ${derniere?.id ?? "?"}`,
-      });
-
-      return {
-        statutHttp: reponse.statutHttp,
-        octets: reponse.contenu.length,
-        capture: derniere?.id ?? 0,
-        murDeConnexion,
-      };
-    },
+    // Le premier temps de 002 : atteindre la fiche publique et l'archiver.
+    // Aucun parseur ne la lit encore — c'est la capture qu'elle laisse qui
+    // servira à en écrire un (015).
+    releverLesTournois: relverLesTournois,
 
     sonder: () =>
       sonder({

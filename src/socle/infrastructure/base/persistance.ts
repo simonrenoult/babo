@@ -8,6 +8,8 @@ import type { DepotBuilds } from "../../core/build.ts";
 import type { DepotEcheances, DepotReglages } from "../../core/ordonnancement.ts";
 import type { DepotCompte } from "../../core/authentification.ts";
 import type { DepotCourrier } from "../../core/courrier.ts";
+import type { DepotEngagements } from "../../core/engagement.ts";
+import type { DepotTournois } from "../../core/tournoi.ts";
 import { ouvrirLaBase, tailleDeLaBase, type BaseSqlite } from "./connexion.ts";
 import { migrer } from "./migrateur.ts";
 import { depotCapturesSqlite } from "./depot-captures-sqlite.ts";
@@ -20,6 +22,8 @@ import { depotReglagesSqlite } from "./depot-reglages-sqlite.ts";
 import { depotEcheancesSqlite } from "./depot-echeances-sqlite.ts";
 import { depotCompteSqlite } from "./depot-compte-sqlite.ts";
 import { depotCourrierSqlite } from "./depot-courrier-sqlite.ts";
+import { depotEngagementsSqlite } from "./depot-engagements-sqlite.ts";
+import { depotTournoisSqlite } from "./depot-tournois-sqlite.ts";
 
 /**
  * L'unique base de l'application, ouverte, migrée, et ses dépôts — spec 017.
@@ -44,6 +48,10 @@ export type Persistance = {
   readonly compte: DepotCompte;
   /** La boîte d'envoi : tout mail y est écrit avant d'être remis — spec 016. */
   readonly courrier: DepotCourrier;
+  /** Mes engagements de tournoi, relevés sur badnet — spec 027. */
+  readonly engagements: DepotEngagements;
+  /** Les tournois eux-mêmes — lieu et journées, relevés en anonyme (002). */
+  readonly tournois: DepotTournois;
   taille(): number;
   fermer(): void;
 };
@@ -65,6 +73,8 @@ export function ouvrirLaPersistance(configuration: ConfigurationBase): Persistan
     echeances: depotEcheancesSqlite(base),
     compte: depotCompteSqlite(base),
     courrier: depotCourrierSqlite(base),
+    engagements: depotEngagementsSqlite(base),
+    tournois: depotTournoisSqlite(base),
     taille: () => tailleDeLaBase(base),
     fermer: () => base.close(),
   };

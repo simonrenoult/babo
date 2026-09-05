@@ -39,6 +39,24 @@ export type DepotRapports = {
   consigner(rapport: RapportExecution): RapportArchive;
   /** Ancienneté d'une source, affichée par l'interface même quand la donnée est périmée. */
   dernierRapport(tache: string): RapportArchive | null;
+  /**
+   * La dernière exécution qui a **abouti** — spec 002.
+   *
+   * Distincte de `dernierRapport`, et c'est tout l'intérêt : une page métier
+   * date ce qu'elle affiche, et un échec de ce matin ne rajeunit pas une donnée
+   * qui n'a pas bougé depuis trois semaines. C'est la distinction que 019 fait
+   * déjà dans le battement entre « dernière donnée » et « dernier réveil ».
+   *
+   * Pourquoi pas la date écrite à côté de la donnée, comme le classement le
+   * fait avec `vu_le` ? Parce qu'un remplacement intégral peut aboutir à zéro
+   * ligne : la passe des engagements vide la table en intersaison (027), et la
+   * seule trace de sa réussite disparaîtrait avec. La page dirait « jamais
+   * relevé » le lendemain d'une passe parfaite.
+   *
+   * `vide` n'en fait pas partie : 019 le classe comme une panne, et une passe
+   * aveugle ne date rien.
+   */
+  dernierSucces(tache: string): RapportArchive | null;
   derniers(combien: number): readonly RapportArchive[];
   /**
    * Tout ce qui a tourné depuis une date, du plus ancien au plus récent.

@@ -29,10 +29,63 @@
   </table>
 <% } %>
 
+<h3>Mes prochains tournois</h3>
+
+<%- include("peremption", { fraicheur: fraicheurDesEngagements }) %>
+
+<% if (tournois.length === 0) { %>
+  <p class="etat">
+    <% if (engagementsConnus === 0) { %>
+      Aucun engagement relevé. Ils viennent de badnet, sous session : si la
+      session est morte, <a href="/sources">l'écran des sources</a> le dit et
+      permet d'en rouvrir une. En intersaison, c'est simplement qu'il n'y a rien
+      à relever.
+    <% } else { %>
+      Aucun tournoi à venir. Les <%= engagementsConnus %> engagement<%= engagementsConnus > 1 ? "s" : "" %>
+      relevé<%= engagementsConnus > 1 ? "s" : "" %> sont tous passés.
+    <% } %>
+  </p>
+<% } else { %>
+  <table>
+    <tr><th>Date</th><th>Tournoi</th><th>Lieu</th><th>Engagements</th><th>Inscription</th></tr>
+    <% for (const tournoi of tournois) { %>
+      <tr>
+        <td><%= tournoi.quand %></td>
+        <td><a href="<%= tournoi.fiche %>" rel="noreferrer"><%= tournoi.nom %></a></td>
+        <td><%= tournoi.lieu ?? "—" %></td>
+        <td>
+          <%# Le tableau et le partenaire ensemble : un même tournoi se joue en %>
+          <%# double *et* en mixte, avec deux partenaires différents, et deux %>
+          <%# colonnes parallèles obligeraient à réapparier les deux listes. %>
+          <%= tournoi.tableaux.map(intituleDeLEngagement).join(", ") || "—" %>
+        </td>
+        <td><%= tournoi.statut ?? "—" %></td>
+      </tr>
+    <% } %>
+  </table>
+
+  <% if (tournois.some((tournoi) => tournoi.lieu === null)) { %>
+    <p class="etat">
+      <strong>Le lieu de certains tournois n'est pas encore relevé.</strong> La
+      page de badnet qui porte mes inscriptions donne le nom, la date et les
+      tableaux, jamais la ville : celle-ci se lit sur la fiche publique du
+      tournoi, qu'une passe anonyme va chercher chaque jour. Son rapport, sur
+      <a href="/sources">l'écran des sources</a>, dit pourquoi une fiche est
+      restée muette.
+    </p>
+  <% } %>
+
+  <p>
+    Le chevauchement de deux dates n'est pas signalé, et c'est délibéré : sur
+    une liste courte et triée, il se voit mieux à l'œil qu'une règle appuyée sur
+    une date sans durée ne saurait le dire. Le nom de chaque tournoi mène à sa
+    fiche badnet, seul endroit où une inscription se modifie ou s'annule.
+  </p>
+<% } %>
+
 <h3>Ce qui viendra ici</h3>
 <ul>
   <li>Évolution du classement — spec 024</li>
-  <li>Prochains tournois — spec 002</li>
   <li>Historique de matchs — spec 003</li>
   <li>Ratio victoire/défaite par tableau — spec 004</li>
 </ul>

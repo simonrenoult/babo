@@ -32,13 +32,31 @@ export type AccesAuxSources = {
   /** Les sources dont un code est attendu, et depuis quand. */
   codesAttendus(): readonly { readonly source: Source; readonly demandeeLe: Date }[];
   /**
-   * Va chercher `/competitions` sous session et archive la capture — spec 027.
+   * Relève mes engagements sur badnet et les écrit en base — spec 027.
    *
-   * Premier temps de 027 : pas de parseur, pas de table. On obtient la page,
-   * on la range, et c'est sur elle qu'on dessinera la suite — l'ordre que 015
-   * a fixé, « la sonde d'abord, le schéma ensuite ».
+   * La même passe que le planificateur déclenche chaque matin : le bouton
+   * n'est qu'un dépannage, comme celui du classement (001, 018).
    */
-  releverLesEngagements(): Promise<ResultatDeRelevé>;
+  releverLesEngagements(): Promise<RapportArchive>;
+  /**
+   * Combien d'engagements sont en base — spec 002.
+   *
+   * Un décompte, et non plus la table : depuis 002 la liste vit sur
+   * `/mon-profil`, et c'est la frontière que 030 a posée — `/sources` porte
+   * l'exploitation, relancer et diagnostiquer ; la feature porte la donnée.
+   * Deux écrans qui affichent la même table finissent par en afficher deux
+   * versions.
+   */
+  engagements(): number;
+  /**
+   * Relève le lieu de mes tournois sur leur fiche publique — spec 002.
+   *
+   * Anonyme : elle ne dépend d'aucune session, donc elle aboutit même quand
+   * celle de badnet est morte. Incrémentale : une ville ne change pas, un
+   * tournoi déjà connu n'est jamais redemandé. La même passe que le
+   * planificateur lance chaque matin ; ce bouton ne sert qu'au dépannage.
+   */
+  releverLesTournois(): Promise<RapportArchive>;
   oublier(source: Source): void;
   sonder(): Promise<readonly ResultatDeSonde[]>;
   /**
@@ -124,16 +142,6 @@ export type ResultatDImport =
     }
   | { readonly issue: "refusee"; readonly motifs: readonly MotifDeRefus[] };
 
-/** Ce que le premier temps de 027 rend : une capture, pas des données. */
-export type ResultatDeRelevé = {
-  readonly statutHttp: number;
-  readonly octets: number;
-  /** L'identifiant de la capture archivée : `npm run capture -- <id>` la sort. */
-  readonly capture: number;
-  /** Vrai quand badnet a servi son mur de connexion : la session est morte. */
-  readonly murDeConnexion: boolean;
-};
-
 export type MotifDeRefus = {
   /** Ligne du fichier, en-tête comprise. `null` quand c'est le fichier entier. */
   readonly ligne: number | null;
@@ -162,7 +170,8 @@ export function routeurSources(acces: AccesAuxSources): Router {
       passe?: RapportArchive | null;
       equipe?: ResultatDImport | null;
       mailDeTest?: MessageDepose | null;
-      engagements?: ResultatDeRelevé | null;
+      engagements?: RapportArchive | null;
+      tournois?: RapportArchive | null;
       connexion?: { readonly source: Source; readonly issue: string } | null;
     },
   ): void => {
@@ -180,6 +189,8 @@ export function routeurSources(acces: AccesAuxSources): Router {
       equipe: vue.equipe ?? null,
       mailDeTest: vue.mailDeTest ?? null,
       engagements: vue.engagements ?? null,
+      tournois: vue.tournois ?? null,
+      engagementsEnBase: acces.engagements(),
       connexion: vue.connexion ?? null,
       codesAttendus: acces.codesAttendus(),
     });
@@ -313,11 +324,19 @@ export function routeurSources(acces: AccesAuxSources): Router {
       .catch(suite);
   });
 
-  /** Le relevé des engagements — spec 027, premier temps : capturer, pas lire. */
+  /** Le relevé des engagements — spec 027. La passe que le planificateur joue chaque matin. */
   routeur.post("/engagements", (_requete, reponse, suite) => {
     acces
       .releverLesEngagements()
       .then((engagements) => ecran(reponse, { engagements }))
+      .catch(suite);
+  });
+
+  /** Le relevé des lieux — spec 002. Anonyme, incrémental, et de dépannage ici. */
+  routeur.post("/tournois", (_requete, reponse, suite) => {
+    acces
+      .releverLesTournois()
+      .then((tournois) => ecran(reponse, { tournois }))
       .catch(suite);
   });
 

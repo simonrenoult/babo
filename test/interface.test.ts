@@ -13,7 +13,7 @@ import { depotPreferencesSqlite } from "../src/capitanat/infrastructure/depot-pr
 import { lireLeCsvDeLEquipe } from "../src/capitanat/infrastructure/csv-equipe.ts";
 import { ImportRefuse } from "../src/capitanat/core/coequipier.ts";
 import { moduleVeille } from "../src/veille/presentation/module-web.ts";
-import { etatDeLaSource, tacheDAcquisition } from "../src/socle/core/acquisition.ts";
+import { etatDeLaSource, tacheDAcquisition, tacheDesEngagements } from "../src/socle/core/acquisition.ts";
 import { SOURCES } from "../src/socle/core/source.ts";
 import { licence } from "../src/socle/core/licence.ts";
 import type { ClientHttp } from "../src/socle/core/acquisition.ts";
@@ -176,6 +176,17 @@ describe("l'application assemblée", () => {
           licence: licence("07194591"),
           classements: persistance.classements,
           fraicheur: fraicheurDeTest,
+          // Le vrai dépôt, sur la vraie base : c'est la chaîne base → page que
+          // 002 demande, et qu'une doublure ne prouverait pas.
+          engagements: persistance.engagements,
+          tournois: persistance.tournois,
+          fraicheurDesEngagements: () =>
+            fraicheur(
+              rapports.dernierSucces(tacheDesEngagements())?.demarreLe ?? null,
+              { nature: "quotidienne", heure: 5, minute: 0 },
+              new Date(),
+            ),
+          horloge: horlogeSysteme,
         }),
         creerModuleCapitanat({
           coequipiers,
@@ -214,8 +225,13 @@ describe("l'application assemblée", () => {
         connecter: () => Promise.resolve("ouverte" as const),
         confirmerLeCode: () => Promise.resolve(),
         codesAttendus: () => [],
+        engagements: () => persistance.engagements.compter(),
         releverLesEngagements: () =>
           Promise.reject(new Error("relevé non branché dans ce test")),
+        // La chaîne touche au réseau : l'assemblage vérifie qu'elle est
+        // montée, pas qu'elle atteint badnet.
+        releverLesTournois: () =>
+          Promise.reject(new Error("relevé des fiches non branché dans ce test")),
         // La sonde touche au réseau : l'assemblage vérifie qu'elle est montée,
         // pas qu'elle atteint les sites fédéraux.
         sonder: () => Promise.resolve([]),
@@ -295,6 +311,92 @@ describe("l'application assemblée", () => {
     assert.match(corps, /D9/);
     assert.match(corps, /1\s?311/, "le CPPH, formaté en français");
     assert.doesNotMatch(corps, /aucun relevé/i);
+  });
+
+  it("dit sur mon profil qu'aucun engagement n'est relevé, et pourquoi", async () => {
+    // « Aucun engagement » et « aucun tournoi à venir » ne sont pas le même
+    // message : le premier peut être une session morte, le second une fin de
+    // saison. La page les distingue plutôt que de servir un tableau vide.
+    const corps = await (await visiter(`/mon-profil`)).text();
+
+    assert.match(corps, /Aucun engagement relevé/);
+  });
+
+  it("sert sur mon profil les engagements écrits en base, triés et à venir", async () => {
+    // La chaîne base → page, spec 002. Les tournois sont posés dans le
+    // désordre et l'un d'eux est passé : c'est le tri et le filtre qu'on
+    // vérifie ici, pas le parseur — il a ses propres tests.
+    const passe = new Date(Date.now() - 30 * 24 * 60 * 60_000);
+    const bientot = new Date(Date.now() + 20 * 24 * 60 * 60_000);
+    const plusTard = new Date(Date.now() + 60 * 24 * 60 * 60_000);
+
+    persistance.engagements.remplacer(
+      [
+        { evenement: 3, nom: "OPEN DE PRINTEMPS", date: plusTard, statut: null, tableaux: [] },
+        {
+          evenement: 1,
+          nom: "TOURNOI DE VILLENEUVE",
+          date: bientot,
+          statut: "Inscription payée",
+          tableaux: [
+            {
+              tableau: "DH",
+              serie: "S4",
+              partenaire: { licence: licence("06571233"), nom: "MARTIN Claire" },
+            },
+          ],
+        },
+        { evenement: 2, nom: "TOURNOI DE LA SAINT-JEAN", date: passe, statut: null, tableaux: [] },
+      ],
+      new Date(),
+    );
+
+    const corps = await (await visiter(`/mon-profil`)).text();
+
+    assert.doesNotMatch(corps, /Aucun engagement relevé/);
+    assert.match(corps, /DH S4 avec MARTIN Claire/, "le tableau et son partenaire, ensemble");
+    assert.match(corps, /Inscription payée/, "le statut tel que badnet l'écrit");
+    assert.match(corps, /badnet\.fr\/joueur\/tournoi\?eventid=1/, "la fiche où l'on annule");
+    assert.doesNotMatch(corps, /SAINT-JEAN/, "un tournoi passé ne s'affiche pas");
+    assert.ok(
+      corps.indexOf("VILLENEUVE") < corps.indexOf("PRINTEMPS"),
+      "triés par date, quel que soit l'ordre d'écriture",
+    );
+    assert.match(corps, /Le lieu de certains tournois n'est pas encore relevé/, "le manque est nommé");
+  });
+
+  it("sert le lieu et l'intervalle relevés sur la fiche publique", async () => {
+    // La chaîne complète de 002 : la passe anonyme écrit un tournoi, la page le
+    // rapproche de l'engagement et affiche la ville — plus l'intervalle, que la
+    // face sous session ne rend pas.
+    const bientot = new Date(Date.now() + 20 * 24 * 60 * 60_000);
+    const lendemain = new Date(bientot.getTime() + 24 * 60 * 60_000);
+
+    persistance.tournois.enregistrer(
+      {
+        evenement: 1,
+        gymnase: "Armand Silvestre",
+        adresse: "188 Rue Armand Silvestre 92400 Courbevoie",
+        ville: "Courbevoie",
+        journees: [bientot, lendemain],
+      },
+      new Date(),
+    );
+
+    const corps = await (await visiter(`/mon-profil`)).text();
+
+    assert.match(corps, /Courbevoie/, "la ville, absente de /competitions");
+    assert.match(corps, /du \d+ au \d+/, "l'intervalle, absent lui aussi");
+  });
+
+  it("ne montre plus la table des engagements sur les sources, mais leur décompte", async () => {
+    // La frontière de 030 : `/sources` porte l'exploitation, la feature porte
+    // la donnée. Deux écrans qui affichent la même table en affichent deux
+    // versions le jour où l'une bouge.
+    const corps = await (await visiter(`/sources`)).text();
+
+    assert.match(corps, /3<\/strong>\s*engagements/);
+    assert.doesNotMatch(corps, /VILLENEUVE/);
   });
 
   it("dit sur le capitanat qu'aucune équipe n'est importée", async () => {

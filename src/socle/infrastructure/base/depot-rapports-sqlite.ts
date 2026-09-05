@@ -27,6 +27,12 @@ export function depotRapportsSqlite(base: BaseSqlite): DepotRapports {
   const dernierParTache = base.prepare(
     `select ${colonnes} where tache = ? order by demarre_le desc, id desc limit 1`,
   );
+  // Le dernier *succès*, pour dater ce qu'une page affiche (002). Un échec de
+  // ce matin ne rajeunit pas une donnée qui n'a pas bougé depuis trois
+  // semaines, et `vide` est une panne au sens de 019.
+  const dernierSuccesParTache = base.prepare(
+    `select ${colonnes} where tache = ? and issue = 'succes' order by demarre_le desc, id desc limit 1`,
+  );
   const derniers = base.prepare(
     `select ${colonnes} order by demarre_le desc, id desc limit ?`,
   );
@@ -49,6 +55,11 @@ export function depotRapportsSqlite(base: BaseSqlite): DepotRapports {
 
     dernierRapport(tache: string): RapportArchive | null {
       const ligne = dernierParTache.get(tache) as Ligne | undefined;
+      return ligne === undefined ? null : versRapport(ligne);
+    },
+
+    dernierSucces(tache: string): RapportArchive | null {
+      const ligne = dernierSuccesParTache.get(tache) as Ligne | undefined;
       return ligne === undefined ? null : versRapport(ligne);
     },
 

@@ -281,6 +281,22 @@ export function tacheDesEngagements(): string {
 }
 
 /**
+ * La tâche des fiches publiques de tournoi — spec 002.
+ *
+ * Troisième nom sous `badnet`, et pour la raison qui a fait le deuxième : elle
+ * est **anonyme**. `/tournoi/public` ne demande pas de session, donc elle
+ * continue de tourner le jour où la session badnet meurt — comme la passe de
+ * classement depuis 028. La consigner sous `acquisition:badnet:engagements`
+ * ferait passer pour morte une chaîne qui va très bien.
+ *
+ * C'est la tâche que 012 reprendra pour son index : le lieu qu'elle relève est
+ * la première colonne d'une table des tournois que la veille étendra.
+ */
+export function tacheDesTournois(): string {
+  return "acquisition:badnet:tournois";
+}
+
+/**
  * Une requête que la sonde d'accès va jouer pour prouver que la source répond
  * — spec 015.
  *

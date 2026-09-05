@@ -27,6 +27,8 @@ function depotEnMemoire(): DepotRapports & { readonly poser: (rapport: RapportEx
       return archive;
     },
     dernierRapport: (tache) => rapports.findLast((rapport) => rapport.tache === tache) ?? null,
+    dernierSucces: (tache) =>
+      rapports.findLast((rapport) => rapport.tache === tache && rapport.issue === "succes") ?? null,
     derniers: (combien) => [...rapports].reverse().slice(0, combien),
     depuis: (quand) => rapports.filter(({ demarreLe }) => demarreLe >= quand),
   };

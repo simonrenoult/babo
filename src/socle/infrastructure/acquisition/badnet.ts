@@ -1,4 +1,8 @@
 import type { ModuleDAcquisition, Reponse, Requete } from "../../core/acquisition.ts";
+import type { Engagement, TableauEngage } from "../../core/engagement.ts";
+import type { TournoiEngage } from "../../core/passe-engagements.ts";
+import { tableauEngage } from "../../core/engagement.ts";
+import type { Licence } from "../../core/licence.ts";
 
 /**
  * Le module d'acquisition badnet — spec 015, source des tournois.
@@ -134,6 +138,211 @@ function dechapper(valeur: string): string {
 const PARIS = { longitude: 2.3488, latitude: 48.8534 };
 
 /**
+ * Comment badnet sert ses pages — spec 027.
+ *
+ * **Toute page est une coquille.** `GET <url>` rend la barre de navigation, les
+ * menus, et une ancre `id="default_page"` qui porte l'identifiant de l'action
+ * chargeant le contenu réel. Un POST sur `/index.php` avec cet identifiant rend
+ * le fragment.
+ *
+ * C'est ce motif, découvert le 4 septembre 2026 en comparant deux coquilles,
+ * qui dispense d'écrire le moindre identifiant en dur : ils changent avec le
+ * déploiement, et ils sont toujours à relever sur la page qu'on demande.
+ *
+ * **Vrai de l'application authentifiée, faux du site public** — 002 l'a appris
+ * le 5 septembre : la coquille publique n'a pas de `default_page`, elle porte
+ * son action dans `data-inside_page`. Voir `actionInterneDeLaPage`.
+ */
+const ACTION_DE_LA_PAGE = /id="default_page"[^>]*data-ic_a='([a-f0-9]+)'/;
+
+export function actionDeLaPage(reponse: Reponse): string | null {
+  return ACTION_DE_LA_PAGE.exec(reponse.contenu)?.[1] ?? null;
+}
+
+/** L'appel qui rend le contenu d'une page, une fois son action relevée. */
+export function contenuDeLaPage(action: string, jeton: string, cible = "wrapper"): Requete {
+  return appelIclick(action, jeton, { ic_t: cible });
+}
+
+/**
+ * La fiche d'un tournoi se charge en deux temps de plus.
+ *
+ * Le fragment de `/joueur/tournoi` ne porte pas la fiche : il porte un
+ * `autoload` qui la réclame, avec l'identifiant du tournoi et ma licence. Sans
+ * ce second appel, badnet répond pour `eventid: -1` — un tournoi qui n'existe
+ * pas.
+ */
+const ACTION_DAUTOLOAD = /autoload\(\{[^)]*\\"action\\":\\"([a-f0-9]+)\\"/;
+
+export function actionDeLaFiche(reponse: Reponse): string | null {
+  return ACTION_DAUTOLOAD.exec(reponse.contenu)?.[1] ?? null;
+}
+
+export function ficheDuTournoi(
+  action: string,
+  jeton: string,
+  evenement: number,
+  licence: Licence,
+): Requete {
+  return appelIclick(action, jeton, {
+    ic_t: "targetEvent",
+    eventid: String(evenement),
+    license: licence,
+    assolineregiid: "-1",
+  });
+}
+
+function appelIclick(action: string, jeton: string, champs: Record<string, string>): Requete {
+  return {
+    url: ROUTEUR,
+    jeton,
+    methode: "POST",
+    corps: new URLSearchParams({ ic_a: action, ic_ajax: "1", ...champs }).toString(),
+    entetes: {
+      "content-type": "application/x-www-form-urlencoded",
+      "x-requested-with": "XMLHttpRequest",
+    },
+  };
+}
+
+/**
+ * Les tournois de la carte « Mes tournois » — spec 027.
+ *
+ * **Cette carte seulement.** `/competitions` en porte trois : « Tournois
+ * organisés » (ceux que le club met en place), « Mes tournois », et « Tournois
+ * nationaux ». Les deux autres ne sont pas des engagements, et les avaler
+ * ferait apparaître dans mon agenda des tournois où je ne joue pas.
+ *
+ * La date se lit sur `data-sort`, en ISO, et non sur le texte affiché en
+ * `24-10-2026` : la même valeur, mais dans l'ordre que badnet a déjà choisi
+ * pour trier — et sans ambiguïté sur le jour et le mois.
+ */
+export function tournoisEngages(reponse: Reponse): readonly TournoiEngage[] {
+  const carte = carteDesTournois(reponse.contenu, "Mes tournois");
+  if (carte === null) return [];
+
+  const tournois: TournoiEngage[] = [];
+  for (const ligne of carte.matchAll(/<tr[^>]*>(.*?)<\/tr>/gsu)) {
+    const corps = ligne[1] ?? "";
+    const evenement = /eventid=(\d+)/.exec(corps)?.[1];
+    const date = /data-sort="(\d{4}-\d{2}-\d{2})"/.exec(corps)?.[1];
+    const nom = /<a [^>]*eventid=\d+[^>]*>(?:<span[^>]*>[^<]*<\/span>)?\s*([^<]+)/.exec(corps)?.[1];
+    if (evenement === undefined || date === undefined || nom === undefined) continue;
+
+    tournois.push({
+      evenement: Number(evenement),
+      nom: nom.trim(),
+      // Midi plutôt que minuit : une date de tournoi n'a pas d'heure, et
+      // minuit local bascule de jour au moindre décalage à l'affichage.
+      date: new Date(`${date}T12:00:00`),
+    });
+  }
+  return tournois;
+}
+
+/**
+ * Le bloc d'une carte, reconnu par son titre.
+ *
+ * Découpé sur les titres plutôt que sur la structure : `card-body` s'imbrique,
+ * et compter les balises fermantes à la main sur du HTML est le genre de
+ * parseur qui casse au premier changement de mise en page.
+ *
+ * Le titre est cherché **dans le balisage du titre**, jamais dans le document
+ * entier : chercher « Mes tournois » n'importe où le trouve dans un
+ * commentaire, dans une infobulle, dans le nom d'un tournoi — et découpe alors
+ * la mauvaise carte. Le défaut est arrivé au premier test.
+ */
+function carteDesTournois(contenu: string, titre: string): string | null {
+  const cartes = [...contenu.matchAll(/card-title[^>]*>(.*?)<\/h6>/gsu)];
+
+  for (const [rang, carte] of cartes.entries()) {
+    if (sansBalises(carte[1] ?? "") !== titre) continue;
+    const debut = (carte.index ?? 0) + carte[0].length;
+    const suivante = cartes[rang + 1]?.index;
+    return contenu.slice(debut, suivante);
+  }
+  return null;
+}
+
+function sansBalises(fragment: string): string {
+  return fragment.replaceAll(/<[^>]*>/gu, " ").replaceAll(/\s+/gu, " ").trim();
+}
+
+/**
+ * Ma fiche d'inscription à un tournoi — spec 027.
+ *
+ * **Les tableaux se lisent sur le formulaire de modification, pas sur le
+ * résumé.** Le résumé dit « Oui (tableaux cachés par l'organisateur) » dès que
+ * celui-ci les masque, ce qui est le cas courant ; le formulaire, lui, porte
+ * toujours ma propre inscription, puisque c'est avec lui que je la changerais.
+ *
+ * Le partenaire vient du couple `partnaird` / `ac_partnaird` — la licence et le
+ * nom —, et son équivalent en mixte. Absents sur un simple, absents aussi tant
+ * que la paire n'est pas formée.
+ */
+export function engagementDuTournoi(
+  reponse: Reponse,
+  tournoi: TournoiEngage,
+): Engagement {
+  const contenu = reponse.contenu;
+
+  const tableaux = [
+    tableauChoisi(contenu, "drawsid", null),
+    tableauChoisi(contenu, "drawdid", "d"),
+    tableauChoisi(contenu, "drawmid", "m"),
+  ].filter((choisi): choisi is TableauEngage => choisi !== null);
+
+  return { ...tournoi, statut: statutDeLInscription(contenu), tableaux };
+}
+
+/**
+ * L'option sélectionnée d'un des trois choix — simple, double, mixte.
+ *
+ * `Non` et « Clt. trop élevé » ne sont pas des engagements : le premier dit
+ * qu'on ne joue pas, le second qu'on ne peut pas. `tableauEngage` les écarte
+ * en refusant tout libellé qui n'est pas un tableau suivi d'une série.
+ */
+function tableauChoisi(
+  contenu: string,
+  champ: string,
+  suffixeDuPartenaire: "d" | "m" | null,
+): TableauEngage | null {
+  const bloc = new RegExp(`<select[^>]*name="${champ}"(.*?)</select>`, "su").exec(contenu)?.[1];
+  if (bloc === undefined) return null;
+
+  const libelle = /<option[^>]*selected[^>]*>([^<]*)/u.exec(bloc)?.[1];
+  const lu = libelle === undefined ? null : tableauEngage(libelle);
+  if (lu === null) return null;
+
+  return { ...lu, partenaire: suffixeDuPartenaire === null ? null : partenaire(contenu, suffixeDuPartenaire) };
+}
+
+function partenaire(contenu: string, suffixe: "d" | "m"): Engagement["tableaux"][number]["partenaire"] {
+  const nom = valeurDuChamp(contenu, `ac_partnair${suffixe}`);
+  if (nom === null || nom === "") return null;
+  const licence = valeurDuChamp(contenu, `partnair${suffixe}`);
+  return { licence: licence === null || licence === "" ? null : (licence as Licence), nom };
+}
+
+function valeurDuChamp(contenu: string, nom: string): string | null {
+  const trouve = new RegExp(`name="${nom}"[^>]*value="([^"]*)"`, "u").exec(contenu)?.[1];
+  // Déchappé : un nom de partenaire porte des apostrophes et des accents, que
+  // badnet écrit en entités dans un attribut.
+  return trouve === undefined ? null : dechapper(trouve);
+}
+
+/**
+ * La dernière phrase que badnet dit de l'inscription.
+ *
+ * La dernière et non la première : la fiche les empile — envoyée, enregistrée,
+ * payée —, et c'est l'état courant qui intéresse, pas l'historique.
+ */
+function statutDeLInscription(contenu: string): string | null {
+  const phrases = [...contenu.matchAll(/Inscription (?:envoyée|enregistrée|payée)[^<]{0,40}/gu)];
+  return phrases.at(-1)?.[0].trim() ?? null;
+}
+
+/**
  * L'autre visage — spec 027.
  *
  * `/competitions` porte mes engagements, derrière une connexion et une 2FA.
@@ -146,7 +355,169 @@ const PARIS = { longitude: 2.3488, latitude: 48.8534 };
  * mourir sans que rien ne la renouvelle : personne ne verrait la panne avant
  * que la donnée n'ait un mois.
  */
-export const ENGAGEMENTS = `${RACINE}/competitions`;
+export const COMPETITIONS = `${RACINE}/competitions`;
+
+/** Rétrocompatibilité du premier temps : le bouton de `/sources` la vise. */
+export const ENGAGEMENTS = COMPETITIONS;
+
+/** La fiche d'un tournoi, celle que chaque ligne de la liste désigne. */
+export function ficheDunTournoiUrl(evenement: number): string {
+  return `${RACINE}/joueur/tournoi?eventid=${evenement}`;
+}
+
+/**
+ * La fiche **publique** d'un tournoi — spec 002.
+ *
+ * `/tournoi/public?eventid=…`, l'adresse que la recherche publie dans son JSON,
+ * ne rend qu'une coquille vide : c'est une URL d'affichage, pas une page. La
+ * fiche est sur `/tournoi/public/informations`, et il a fallu lire la requête
+ * réelle d'un navigateur pour le voir — le premier relevé, lancé sur la
+ * mauvaise adresse, a rapporté 8 Ko de vitrine et rien d'autre.
+ *
+ * C'est d'elle que vient la ville, absente de `/competitions`, et avec elle les
+ * journées réelles du tournoi que la face sous session ignore.
+ */
+export function fichePubliqueUrl(evenement: number): string {
+  return `${RACINE}/tournoi/public/informations?eventid=${evenement}`;
+}
+
+/**
+ * L'action que porte la coquille **publique** — spec 002.
+ *
+ * L'équivalent du `default_page` de l'application authentifiée, sous un autre
+ * nom : le site public la pose en `data-inside_page`, sur un `div` de `#main`.
+ * La relever plutôt que l'écrire en dur suit la règle de 027 — ces
+ * identifiants changent avec le déploiement, et celui-ci doit casser
+ * bruyamment le jour où il périme, pas se taire.
+ */
+const ACTION_INTERNE = /data-inside_page="([a-f0-9]+)"/;
+
+export function actionInterneDeLaPage(reponse: Reponse): string | null {
+  return ACTION_INTERNE.exec(reponse.contenu)?.[1] ?? null;
+}
+
+/**
+ * Les cookies anonymes du site public : la session PHP et le jeton anti-CSRF.
+ *
+ * badnet pose les deux dès le premier contact, sans qu'on soit connecté, et
+ * refuse le POST sans eux. Ce n'est pas « passer sous session » au sens de
+ * 015 : aucun compte n'est engagé, ils sont obtenus à l'instant et jetés avec
+ * la fiche — c'est ce qui garde cette chaîne hors du risque de bannissement.
+ */
+export function cookiesAnonymes(cookies: readonly string[]): string | null {
+  const presents = ["PHPSESSID", "ic_csrf"].flatMap((nom) => {
+    const valeur = valeurDuCookie(cookies, nom);
+    return valeur === null ? [] : [`${nom}=${valeur}`];
+  });
+  return presents.length === 0 ? null : presents.join("; ");
+}
+
+/** Le jeton anti-CSRF, que badnet veut **aussi** dans le corps du POST. */
+export function jetonCsrf(cookies: readonly string[]): string | null {
+  return valeurDuCookie(cookies, "ic_csrf");
+}
+
+function valeurDuCookie(cookies: readonly string[], nom: string): string | null {
+  for (const cookie of cookies) {
+    const trouve = new RegExp(`(?:^|;\\s*)${nom}=([^;]+)`).exec(cookie);
+    if (trouve?.[1] !== undefined) return trouve[1];
+  }
+  return null;
+}
+
+/**
+ * L'appel qui rend la fiche publique, une fois l'action relevée.
+ *
+ * `mustache=1` parce que la coquille le réclame (`data-mustache="1"`), et
+ * `eventid` parce que rien d'autre ne dit de quel tournoi il s'agit — la
+ * coquille, elle, ne le porte nulle part.
+ */
+export function contenuPublicDuTournoi(options: {
+  readonly action: string;
+  readonly evenement: number;
+  readonly csrf: string;
+  readonly cookies: string;
+}): Requete {
+  return {
+    url: ROUTEUR,
+    jeton: options.cookies,
+    methode: "POST",
+    corps: new URLSearchParams({
+      ic_a: options.action,
+      mustache: "1",
+      ic_ajax: "1",
+      ic_language: "fr",
+      eventid: String(options.evenement),
+      ic_csrf: options.csrf,
+    }).toString(),
+    entetes: {
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "x-requested-with": "XMLHttpRequest",
+    },
+  };
+}
+
+/**
+ * Le lieu d'un tournoi, lu sur la carte « Gymnases » — spec 002.
+ *
+ * Le bloc `div.places` porte le nom de la salle dans son `h3`, et son adresse
+ * dans le lien vers la carte. La ville se lit **derrière le code postal** :
+ * c'est la seule découpe fiable d'une adresse française saisie à la main, où le
+ * nom de rue peut contenir n'importe quoi, chiffres compris.
+ *
+ * Le premier gymnase, et c'est assumé : un tournoi peut en occuper deux, mais
+ * la page répond à « où vais-je ce week-end », pas à « dans quelle salle joue
+ * mon tableau » — celle-là n'est connue qu'au tirage.
+ */
+export type LieuDuTournoi = {
+  readonly gymnase: string;
+  readonly adresse: string;
+  readonly ville: string;
+};
+
+const BLOC_DES_LIEUX = /<div class="places">(.*?)<\/table>/su;
+const PREMIER_GYMNASE = /<h3>\s*([^<]+?)\s*<span>\s*<a [^>]*>\s*([^<]+?)\s*<span/su;
+const VILLE = /\b\d{5}\s+(.+?)\s*$/u;
+
+export function lieuDuTournoi(reponse: Reponse): LieuDuTournoi | null {
+  const bloc = BLOC_DES_LIEUX.exec(reponse.contenu)?.[1];
+  if (bloc === undefined) return null;
+
+  const trouve = PREMIER_GYMNASE.exec(bloc);
+  const gymnase = trouve?.[1]?.replaceAll(/\s+/gu, " ").trim();
+  const adresse = trouve?.[2]?.replaceAll(/\s+/gu, " ").trim();
+  if (gymnase === undefined || adresse === undefined) return null;
+
+  // Une adresse sans code postal n'est pas une adresse dont on sait tirer une
+  // ville : mieux vaut n'en afficher aucune que le dernier mot d'une rue. La
+  // page sait déjà dire « lieu non relevé ».
+  const ville = VILLE.exec(adresse)?.[1];
+  if (ville === undefined) return null;
+
+  return { gymnase, adresse, ville };
+}
+
+/**
+ * Les journées du tournoi, lues sur le tableau du gymnase — spec 002.
+ *
+ * **La face publique rend l'intervalle que `/competitions` refuse.** Une ligne
+ * par jour joué, en ISO : « samedi 24 » et « dimanche 25 » deviennent deux
+ * dates, et la page peut écrire « du 24 au 25 octobre » au lieu d'une date
+ * unique qui perdrait la moitié du week-end.
+ *
+ * Dédoublonnées et triées : deux gymnases le même jour font deux lignes, et
+ * c'est le même jour de tournoi.
+ */
+const JOURNEE = /<td class="center">(\d{4}-\d{2}-\d{2})<\/td>/gu;
+
+export function journeesDuTournoi(reponse: Reponse): readonly Date[] {
+  const bloc = BLOC_DES_LIEUX.exec(reponse.contenu)?.[1] ?? "";
+  const jours = [...new Set([...bloc.matchAll(JOURNEE)].map((trouve) => trouve[1]))];
+
+  // Midi, comme 027 l'écrit déjà en base : une date de tournoi n'a pas d'heure,
+  // et minuit local bascule de jour au moindre décalage à l'affichage.
+  return jours.sort().map((jour) => new Date(`${jour}T12:00:00`));
+}
 
 /** L'action portée par le formulaire de connexion, en champ caché. */
 const ACTION_DU_FORMULAIRE = /name="ic_a"\s+type="hidden"\s+value="([a-f0-9]+)"/;

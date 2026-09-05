@@ -109,6 +109,13 @@ function rapportsEnMemoire(): DepotRapports & { consignes: RapportExecution[] } 
       const dernier = pourLaTache[pourLaTache.length - 1];
       return dernier === undefined ? null : { ...dernier, id: consignes.indexOf(dernier) + 1 };
     },
+    dernierSucces: (tache) => {
+      const abouties = consignes.filter(
+        (rapport) => rapport.tache === tache && rapport.issue === "succes",
+      );
+      const dernier = abouties[abouties.length - 1];
+      return dernier === undefined ? null : { ...dernier, id: consignes.indexOf(dernier) + 1 };
+    },
     derniers: () => [],
     depuis: () => [],
   };

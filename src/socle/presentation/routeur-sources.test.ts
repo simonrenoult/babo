@@ -117,6 +117,8 @@ type Trace = {
   mailsDeTest: number;
   codes: [Source, string][];
   attendus: { readonly source: Source; readonly demandeeLe: Date }[];
+  engagements: number;
+  tournois: number;
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
@@ -131,6 +133,8 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     mailsDeTest: 0,
     codes: [],
     attendus: [],
+    engagements: 0,
+    tournois: 0,
   };
   return {
     trace,
@@ -190,8 +194,17 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         return Promise.resolve();
       },
       codesAttendus: () => trace.attendus,
-      releverLesEngagements: () =>
-        Promise.resolve({ statutHttp: 200, octets: 4096, capture: 12, murDeConnexion: false }),
+      releverLesEngagements: () => Promise.resolve({ ...RAPPORT, tache: "acquisition:badnet:engagements", volumeExtrait: 2, detail: "2 engagement(s) sur 2" }),
+      engagements: () => trace.engagements,
+      releverLesTournois: () => {
+        trace.tournois += 1;
+        return Promise.resolve({
+          ...RAPPORT,
+          tache: "acquisition:badnet:tournois",
+          volumeExtrait: 2,
+          detail: "2 fiche(s) atteinte(s) sur 2",
+        });
+      },
       relever: () => {
         trace.releves += 1;
         return Promise.resolve(RAPPORT);
@@ -404,13 +417,39 @@ describe("l'écran des sources", () => {
    * Premier temps de 027 : on obtient la page et on l'archive, on n'en lit
    * rien. La capture est ce sur quoi le schéma se dessinera.
    */
-  it("relève les engagements et annonce la capture archivée", async () => {
+  it("relève les engagements et rend le rapport de la passe", async () => {
     const { acces } = ecran();
     const reponse = await interroger(acces, "/sources/engagements", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
-    assert.match(reponse.corps, /Page relevée : statut 200/);
-    assert.match(reponse.corps, /npm run capture -- 12/);
+    assert.match(reponse.corps, /2 engagement\(s\) sur 2/);
+  });
+
+  /**
+   * Premier temps de 002 : la fiche publique est atteinte et archivée, rien
+   * n'en est lu. Le rapport nomme jusqu'où on est allé, et c'est sur lui qu'on
+   * décidera si la ville se lit là ou s'il faut attendre 012.
+   */
+  it("relève les fiches publiques et rend le rapport de la passe", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(acces, "/sources/tournois", new URLSearchParams());
+
+    assert.equal(reponse.statut, 200);
+    assert.equal(trace.tournois, 1);
+    assert.match(reponse.corps, /2 fiche\(s\) atteinte\(s\) sur 2/);
+  });
+
+  it("renvoie la liste des engagements sur la feature, et n'en garde que le décompte", async () => {
+    // La frontière de 030 : `/sources` porte l'exploitation, la feature porte
+    // la donnée. Deux écrans qui affichent la même table en affichent deux
+    // versions le jour où l'une bouge.
+    const { acces, trace } = ecran();
+    trace.engagements = 3;
+
+    const reponse = await interroger(acces, "/sources");
+
+    assert.match(reponse.corps, /3<\/strong>\s*engagements/);
+    assert.match(reponse.corps, /\/mon-profil/);
   });
 
   it("rend le résultat de la sonde dans la page", async () => {

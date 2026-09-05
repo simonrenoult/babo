@@ -388,36 +388,61 @@
 
 <h2>Relever mes engagements</h2>
 <p>
-  <code>/competitions</code> porte mes inscriptions de tournoi, derrière la
-  session badnet (spec 027). Ce bouton va chercher la page et
-  <strong>l'archive telle quelle</strong> — il n'en lit rien. C'est voulu :
-  personne n'a encore vu cette page, et 015 a fixé l'ordre — la capture d'abord,
-  le schéma ensuite, « le dessiner avant d'avoir vu les pages serait la même
-  erreur que de concevoir une interface avant ses adaptateurs ».
+  Mes inscriptions de tournoi, relevées sur badnet sous session (spec 027) :
+  tournoi, date, tableaux engagés et partenaire. Le planificateur lance cette
+  passe chaque matin à 5 h ; ce bouton ne sert qu'au dépannage.
 </p>
 <p>
-  La passe quotidienne viendra avec le parseur, pas avant : une passe qui
-  n'extrait rien ne peut rien rapporter, et son volume nul serait du bruit dans
-  les rapports de 019.
+  <strong>Elle coûte cher en requêtes</strong>, et c'est assumé : badnet sert
+  toutes ses pages en coquille, donc deux requêtes pour la liste et trois par
+  fiche, aucun identifiant d'action n'étant écrit en dur. C'est ce qui évite
+  qu'un redéploiement de badnet fasse tomber la passe sans prévenir.
 </p>
 <form method="post" action="/sources/engagements"><button type="submit">Relever mes engagements</button></form>
 
+<p class="etat">
+  <% if (engagementsEnBase === 0) { %>
+    Aucun engagement en base. En intersaison c'est normal : la passe le consigne
+    comme un succès à zéro plutôt que comme une extraction vide, parce qu'on ne
+    s'engage pas toute l'année (spec 019).
+  <% } else { %>
+    <strong><%= engagementsEnBase %></strong> engagement<%= engagementsEnBase > 1 ? "s" : "" %>
+    en base. La liste se lit sur <a href="/mon-profil">mon profil</a> : cet
+    écran porte l'exploitation, la feature porte la donnée (spec 002).
+  <% } %>
+</p>
+
 <% if (engagements) { %>
   <p class="etat">
-    <% if (engagements.murDeConnexion) { %>
-      <strong>badnet a servi son mur de connexion.</strong> La session est morte
-      ou absente : en ouvrir une ci-dessous. La page a bien répondu
-      <%= engagements.statutHttp %> — c'est le contenu qui refuse, pas le
-      serveur, et c'est pourquoi seul le module sait le reconnaître.
-    <% } else { %>
-      Page relevée : statut <%= engagements.statutHttp %>,
-      <%= Math.round(engagements.octets / 1024) %> Ko.
-    <% } %>
-    <% if (engagements.capture > 0) { %>
-      Capture <strong><%= engagements.capture %></strong> archivée —
-      <code>npm run capture -- <%= engagements.capture %></code> l'écrit dans un
-      fichier, à côté des tests.
-    <% } %>
+    Passe <strong><%= engagements.issue %></strong>, terminée le
+    <%= engagements.termineLe.toLocaleString("fr-FR") %>.
+    <br><%= engagements.detail %>
+  </p>
+<% } %>
+
+<h2>Relever le lieu des tournois</h2>
+<p>
+  La ville d'un tournoi n'est pas sur <code>/competitions</code> : elle se lit
+  sur sa fiche publique, que cette passe va chercher <strong>en anonyme</strong>
+  (spec 002). Sans session, donc elle aboutit même le jour où celle de badnet est
+  morte — et sans risque pour le compte. Le planificateur la lance chaque matin à
+  5 h 30, juste après les engagements ; ce bouton ne sert qu'au dépannage.
+</p>
+<p>
+  <strong>Elle ne redemande jamais un tournoi déjà connu</strong> : une ville ne
+  change pas. La plupart des jours elle ne coûte aucune requête et consigne
+  « n connus, aucun à relever » — ce qui suffit au battement du lundi pour ne pas
+  la croire muette. Elle rapporte aussi les journées réelles du tournoi, que la
+  face sous session ne donne pas : c'est d'elles que vient « du 24 au 25 octobre »
+  sur <a href="/mon-profil">mon profil</a>.
+</p>
+<form method="post" action="/sources/tournois"><button type="submit">Relever le lieu des tournois</button></form>
+
+<% if (tournois) { %>
+  <p class="etat">
+    Passe <strong><%= tournois.issue %></strong>, terminée le
+    <%= tournois.termineLe.toLocaleString("fr-FR") %>.
+    <br><%= tournois.detail %>
   </p>
 <% } %>
 

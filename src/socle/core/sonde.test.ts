@@ -47,6 +47,7 @@ function rapportsEnMemoire(): DepotRapports & { consignes: RapportExecution[] } 
       return { ...rapport, id: consignes.length } as RapportArchive;
     },
     dernierRapport: () => null,
+    dernierSucces: () => null,
     derniers: () => [],
     depuis: () => [],
   };

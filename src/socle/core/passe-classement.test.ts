@@ -59,6 +59,7 @@ function depotRapports(): DepotRapports & { consignes: RapportExecution[] } {
       return { ...rapport, id: consignes.length } satisfies RapportArchive;
     },
     dernierRapport: () => null,
+    dernierSucces: () => null,
     derniers: () => [],
     depuis: () => [],
   };

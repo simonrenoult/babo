@@ -160,12 +160,74 @@ du second temps.
 aucune date, contrairement au JWT de myffbad. `jeton_source.obtenu_le` dira la
 durée réelle, en la mesurant.
 
-## Ce qui reste — second temps
+## Ce qui a été fait — second temps
 
-**Trouver l'action qui rend la liste**, parmi la dizaine que le tableau de bord
-porte, puis dessiner la table des engagements, écrire le parseur et brancher la
-passe quotidienne. La page est ouverte et archivée : c'est là-dessus que la
-suite se dessine, pas sur des suppositions.
+**badnet sert toutes ses pages en coquille.** `GET <url>` rend la barre de
+navigation et une ancre `id="default_page"` portant l'identifiant de l'action
+qui charge le contenu ; un POST sur `/index.php` avec cet identifiant rend le
+fragment. Découvert en comparant deux coquilles : elles ne diffèrent que par cet
+identifiant. **Aucun n'est donc écrit en dur** — ils changent avec le
+déploiement, et ils sont toujours à relever sur la page qu'on demande.
+
+La fiche d'un tournoi ajoute un troisième saut : son fragment ne porte pas
+l'inscription mais un `autoload` qui la réclame, avec l'identifiant du tournoi
+et ma licence. Sans lui, badnet répond pour `eventid: -1`.
+
+**Le coût est de deux requêtes pour la liste et trois par fiche.** C'est cher,
+et c'est le prix d'un site qu'on lit sans navigateur ; le plafond de 015 le
+borne à trente-neuf, soit douze tournois par saison.
+
+**`/competitions` porte trois cartes**, et une seule est la bonne : « Tournois
+organisés » (ceux que le club met en place), « Mes tournois », « Tournois
+nationaux ». Avaler les deux autres ferait apparaître dans mon agenda des
+tournois où je ne joue pas.
+
+**Les tableaux se lisent sur le formulaire de modification, pas sur le résumé.**
+Le résumé dit « Oui (tableaux cachés par l'organisateur) » dès que celui-ci les
+masque, ce qui est le cas courant — c'est le défaut que cette spec reprochait
+déjà à la liste publique des inscrits. Le formulaire, lui, porte toujours ma
+propre inscription, puisque c'est avec lui que je la changerais : le tableau en
+option sélectionnée, le partenaire dans `partnaird` / `ac_partnaird`.
+
+**La série vient avec le tableau** — « DH S4 » —, gardée telle quelle et jamais
+interprétée : c'est la règle de 001 sur les lettres du barème. « Non » et
+« Clt. trop élevé » ne sont pas des engagements : le premier dit qu'on ne joue
+pas, le second qu'on ne peut pas.
+
+**Remplacement intégral**, comme l'équipe de 005 : une inscription annulée sur
+badnet disparaît d'ici, faute de quoi cette spec reproduirait l'oubli qu'elle
+corrige, dans l'autre sens. Mais **une passe entièrement muette n'efface
+rien** : vider l'agenda parce que la session est morte serait pire que ne rien
+faire.
+
+**Aucun engagement est un succès, pas une extraction vide.** On ne s'engage pas
+toute l'année ; un `vide` au sens de 019 ferait partir une alerte à chaque
+intersaison.
+
+**Un défaut trouvé au premier test.** Le découpage des cartes cherchait le titre
+n'importe où dans la page — il l'a trouvé dans un commentaire, et a découpé la
+mauvaise carte. Le titre est désormais cherché dans le balisage du titre.
+
+**Vérifié contre le vrai site le 4 septembre 2026** : un engagement relevé,
+DH S4, partenaire nommé, « Inscription payée ».
+
+**Les fixtures sont fabriquées, pas capturées.** La page réelle porte les seize
+membres du club et la licence de mon partenaire ; une fixture n'a pas à emporter
+les coordonnées de gens qui n'ont rien demandé (005, 021). Elles reproduisent la
+structure relevée, avec des noms inventés.
+
+## Ce qui reste — et qui n'est pas de cette spec
+
+**Le lieu n'est pas dans cette source.** La liste de `/competitions` donne le
+nom, la date et le type ; pas la ville. Or [[002__prochains-tournois]] promet
+« date, lieu, tableaux engagés et partenaire ». Le lieu viendra de
+[[012__recherche-de-tournois]], dont l'index public le porte avec les
+coordonnées du gymnase — ou d'une fiche publique de tournoi, si 002 ne veut pas
+attendre. C'est une question pour 002, pas pour celle-ci.
+
+**Une seule date, pas un intervalle.** badnet rend un jour par tournoi. Le
+chevauchement que 002 doit signaler se lira donc sur « le même jour » ; en
+déduire un week-end fabriquerait une durée qu'aucune source ne donne.
 
 ## Questions
 
@@ -175,11 +237,19 @@ suite se dessine, pas sur des suppositions.
   `obtenu_le` pour ça. La case `remember` du formulaire est envoyée, pour
   obtenir la plus longue que badnet accorde : chaque expiration coûte un
   aller-retour dans une boîte mail.
-- Les inscriptions en attente ou non confirmées sont-elles distinguables sur
-  `/competitions` ? C'est la deuxième question ouverte de 002.
-- Un engagement saisi à la main puis retrouvé sur badnet : fusionné sur quelle
-  clé, ou affiché en double le temps que je tranche ?
-- La page porte-t-elle le partenaire, que 002 affiche ?
+- ~~Les inscriptions en attente ou non confirmées sont-elles distinguables ?~~
+  **Partiellement.** La fiche empile des phrases — « Inscription envoyée le … »,
+  « Inscription enregistrée le … », « Inscription payée » — et c'est la dernière
+  qui est gardée, telle quelle. Personne ne sait encore quelles autres valeurs
+  elle prend ; en tirer une échelle à trois états inventerait une taxonomie qui
+  ne correspondrait à rien. Le texte suffit à 002.
+- ~~Un engagement saisi à la main puis retrouvé sur badnet : fusionné sur quelle
+  clé ?~~ **Sans objet** : il n'y a pas de saisie manuelle, l'ordre avec 002
+  ayant été inversé.
+- ~~La page porte-t-elle le partenaire, que 002 affiche ?~~ **Oui**, licence et
+  nom, par tableau — `partnaird` pour le double, `partnairm` pour le mixte. Un
+  même tournoi peut donc avoir deux partenaires différents, ce que la table
+  porte en une ligne par tableau.
 
 ## Notes
 

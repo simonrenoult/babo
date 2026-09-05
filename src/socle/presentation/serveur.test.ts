@@ -53,8 +53,11 @@ const aucuneSource: AccesAuxSources = {
   connecter: () => Promise.resolve("ouverte" as const),
   confirmerLeCode: () => Promise.resolve(),
   codesAttendus: () => [],
+  engagements: () => 0,
   releverLesEngagements: () =>
     Promise.reject(new Error("relevé non branché dans ce test")),
+  releverLesTournois: () =>
+    Promise.reject(new Error("relevé des fiches non branché dans ce test")),
   sonder: () => Promise.resolve([]),
   relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
   importerLEquipe: () => Promise.resolve({ issue: "refusee", motifs: [] }),

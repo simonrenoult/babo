@@ -140,7 +140,8 @@ persiste quoi que ce soit en dehors.
 Le schéma porte le jeton de session, les captures brutes, les rapports
 d'exécution, les déploiements observés, le classement, l'équipe, l'identité
 de chaque licence suivie, les fréquences et échéances du planificateur, la
-boîte d'envoi du courrier, et les paires du capitaine.
+boîte d'envoi du courrier, les paires du capitaine, mes engagements de tournoi
+et le lieu de ces tournois.
 Celui des
 matchs et des tournois reste à dessiner — la sonde de 015 a livré les pages réelles sur
 lesquelles le faire. Les migrations sont des fichiers `.sql` numérotés dans
@@ -302,9 +303,9 @@ Un seul, dans le processus, pour les deux natures de tâches — spec 018 :
 | la déclaration des tâches | `src/main.ts` |
 
 Il ne connaît aucune tâche : `main.ts` les lui donne, comme il donne ses modules
-au serveur. Trois aujourd'hui — la passe de classement, le vidage de la boîte
-d'envoi (016) et le battement hebdomadaire (019) —, et les acquisitions
-quotidiennes de 015 comme les rappels de 014 s'ajouteront à une ligne chacune.
+au serveur. Cinq aujourd'hui — la passe de classement, le vidage de la boîte d'envoi (016),
+le battement hebdomadaire (019), les engagements badnet (027) et le lieu de ces
+tournois (002) —, et les rappels de 014 s'ajouteront à une ligne.
 
 **Tout passe par une échéance**, périodique ou ponctuelle : une ligne en base,
 unique sur (tâche, heure prévue). C'est cet index, et rien d'autre, qui tient
@@ -390,6 +391,140 @@ Le dialogue SMTP est testé contre un faux serveur local, sur les deux façons
 dont une alerte se perdrait en silence : authentification refusée, connexion
 coupée en plein dialogue. Ce serveur écoute en clair — **TLS n'est pas
 couvert**, et c'est le trou assumé de ce choix.
+
+## Les engagements
+
+Spec 027. Mes inscriptions de tournoi, relevées sur badnet sous session.
+
+| Pièce | Où |
+|-------|-----|
+| la notion et son port | `socle/core/engagement.ts` |
+| la passe | `socle/core/passe-engagements.ts` |
+| les parseurs badnet | `infrastructure/acquisition/badnet.ts` |
+| la chaîne de sauts | `infrastructure/acquisition/engagements-badnet.ts` |
+| les deux tables | `migrations/011__engagement.sql` |
+
+**badnet sert toutes ses pages en coquille.** `GET <url>` rend la navigation et
+une ancre `id="default_page"` portant l'identifiant de l'action qui charge le
+contenu ; un POST sur `/index.php` rend le fragment. La fiche d'un tournoi
+ajoute un saut : son fragment porte un `autoload` qui réclame l'inscription avec
+l'identifiant du tournoi. Deux requêtes pour la liste, trois par fiche.
+
+**Aucun identifiant d'action n'est écrit en dur.** Ils changent avec le
+déploiement, et se relèvent sur la page qui les porte. C'est ce qui coûte ces
+sauts, et ce qui évite qu'un redéploiement fasse tomber la passe en silence — la
+seule exception restant `ACTION_RECHERCHE`, dont la panne se verrait dès le
+lendemain dans un rapport.
+
+**La chaîne vit dans l'infrastructure, pas dans le `core`.** La passe dit
+« liste les tournois, puis donne-moi chaque fiche » ; c'est l'adaptateur qui
+sait par combien de sauts il l'obtient. Un couple `requete`/`lire` statique,
+comme ceux de `ModuleDAcquisition`, ne sait pas exprimer une chaîne dont chaque
+appel dépend d'un identifiant relevé sur le précédent.
+
+**Les tableaux se lisent sur le formulaire de modification, pas sur le résumé** :
+celui-ci dit « Oui (tableaux cachés par l'organisateur) » dès que l'organisateur
+les masque, ce qui est courant. Le formulaire porte toujours ma propre
+inscription — tableau en option sélectionnée, partenaire dans `partnaird`. Une
+ligne par tableau en base : un même tournoi se joue en double *et* en mixte,
+avec deux partenaires différents.
+
+**Remplacement intégral, mais jamais sur une passe muette.** Une inscription
+annulée doit disparaître ; vider l'agenda parce que la session est morte serait
+pire que ne rien faire. Et **aucun engagement est un succès**, pas une
+extraction vide : on ne s'engage pas toute l'année, et 019 alerterait à chaque
+intersaison.
+
+**Le lieu n'est pas dans cette source.** `/competitions` donne le nom, la date
+et le type ; jamais la ville. 002 a tranché le 5 septembre : elle vient de la
+**fiche publique du tournoi**, et non de l'index de 012. Celui-ci la porte bien
+— le parseur de la recherche rend déjà `place` —, mais il est géographique : il
+rend les tournois d'un rayon, pas les miens.
+
+## Les prochains tournois
+
+Spec 002. La page qui affiche les engagements de 027, et la passe anonyme qui
+va chercher ce qui leur manque.
+
+| Pièce | Où |
+|-------|-----|
+| le tri, le filtre « à venir », l'intitulé d'un engagement | `mon-profil/core/prochains-tournois.ts` |
+| la notion de tournoi et le libellé des dates | `socle/core/tournoi.ts` |
+| la passe des lieux | `socle/core/passe-tournois.ts` |
+| la chaîne publique et ses parseurs | `infrastructure/acquisition/tournois-badnet.ts`, `badnet.ts` |
+| les deux tables | `migrations/012__tournoi.sql` |
+
+**badnet a une troisième face, et elle ne ressemble à aucune des deux autres.**
+027 avait établi que « toute page de badnet est une coquille avec une ancre
+`default_page` » : c'est vrai de l'application authentifiée, faux du site
+public. Trois pièges, payés un par un le 5 septembre 2026 :
+
+- **l'adresse**. `/tournoi/public?eventid=…`, celle que la recherche publie dans
+  son JSON, ne rend qu'une coquille vide — c'est une URL d'affichage. La fiche
+  est sur `/tournoi/public/informations` ;
+- **l'action**. La coquille publique n'a pas de `default_page` ; elle porte
+  `data-inside_page` sur un `div` de `#main` ;
+- **le jeton anti-CSRF**. badnet pose `ic_csrf` en cookie au premier contact et
+  le réclame **aussi** dans le corps du POST.
+
+Le premier relevé, écrit sur le motif de 027, a rapporté 8 Ko de page d'accueil
+commerciale — ni erreur, ni redirection, ni `default_page`. C'est la capture
+archivée qui l'a dit, et la requête réelle d'un navigateur qui a donné les trois
+correctifs.
+
+**Deux requêtes, anonymes de bout en bout.** Les cookies sont obtenus à
+l'instant et jetés avec la fiche : aucun compte n'est engagé, donc aucun risque
+de bannissement (015), et la passe aboutit le jour où la session badnet est
+morte — comme celle du classement depuis 028. D'où sa tâche à elle,
+`acquisition:badnet:tournois`, troisième nom sous badnet.
+
+**Incrémentale.** Une ville ne change pas : un tournoi déjà connu n'est jamais
+redemandé. La plupart des jours la passe ne coûte aucune requête et consigne
+« 4 connus, aucun à relever » — un rapport de quelques octets, mais qui empêche
+le battement du lundi de la croire muette. Elle tourne à 5 h 30, juste après les
+engagements, **sans enchaînement** : personne ne regarde l'écran à cette heure,
+et coupler les deux remettrait une requête anonyme dans le sillage d'une passe
+sous session.
+
+**Elle rend l'intervalle que 027 croyait inexistant.** `/competitions` ne donne
+qu'une date, et 027 en avait conclu qu'aucune source n'en donnait davantage ; la
+fiche publique liste une ligne par jour joué. La page écrit donc « du 24 au
+25 octobre » là où elle aurait perdu la moitié du week-end. Le **tri**, lui,
+reste sur la date de `/competitions` — la seule dont on dispose toujours.
+
+**La table `tournoi` est le début de l'index de 012.** Cette spec-là disait « la
+première des deux traitée la paiera pour l'autre » : 002 est passée devant. Elle
+n'écrit que le lieu et les journées ; 012 y ajoutera la date limite, les
+tableaux proposés et les classements admis. Séparée d'`engagement` à dessein —
+un tournoi existe indépendamment de mon inscription, et recopier la ville sur
+l'engagement en ferait deux versions du même fait.
+
+**La ville se lit derrière le code postal.** Seule découpe fiable d'une adresse
+saisie à la main, où le nom de rue peut contenir des chiffres — « 188 Rue Armand
+Silvestre » en est l'exemple. Sans code postal, aucune ville n'est rendue : la
+page sait dire « lieu non relevé », elle ne doit pas afficher le dernier mot
+d'une rue.
+
+**Aucun chevauchement n'est signalé.** 002 le promettait ; c'est retiré, et le
+« Résolu quand » de la spec est amendé. Sur douze lignes triées par date, l'œil
+le fait mieux qu'une règle — et une règle appuyée sur une date sans durée se
+tairait sur un tournoi de trois jours qui en recouvre un autre, tout en criant
+au conflit sur deux tableaux du même tournoi.
+
+**La fraîcheur se lit sur le dernier succès de la passe des engagements**, d'où
+le `dernierSucces` ajouté à `DepotRapports`. La date écrite à côté des lignes ne
+pouvait pas servir : le remplacement intégral vide la table en intersaison, et
+la trace de la réussite partirait avec les lignes — la page dirait « jamais
+relevé » le lendemain d'une passe parfaite. Une seule mention, celle des
+engagements : un lieu ne périme pas.
+
+**Le statut s'affiche tel quel.** 002 et 027 se sont renvoyé la question d'une
+échelle des inscriptions en attente ; la réponse est qu'il n'y en a pas. Trois
+phrases observées sur un tournoi ne font pas une taxonomie.
+
+**`/sources` a rendu la liste à la feature** et n'en garde que le décompte et le
+rapport : l'écran d'exploitation porte les gestes, la feature porte la donnée
+(030).
 
 ## L'observabilité
 
@@ -606,10 +741,9 @@ il se lit en mettant les deux côte à côte, jamais en les fusionnant.
 
 ## Ce qui n'est pas encore là
 
-Le schéma des matchs et des tournois, que 015 laisse volontairement à dessiner
-sur les pages désormais observées, et la sauvegarde (023).
+Le schéma des matchs, que 015 laisse volontairement à dessiner sur les pages
+désormais observées, et la sauvegarde (023).
 
-**La table des engagements** (027), dont le premier temps est fait : Bado sait
-ouvrir une session badnet et archiver `/competitions`. Le parseur, la table et
-la passe quotidienne attendent qu'on ait lu la capture — l'ordre de 015, la
-sonde d'abord.
+L'index de tournois de 012 : la table `tournoi` existe, mais elle ne se remplit
+que depuis mes engagements. La recherche publique, elle, est instrumentée depuis
+015 et n'écrit encore rien.
