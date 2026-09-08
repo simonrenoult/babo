@@ -10,10 +10,10 @@
 
 ## Contexte
 
-[[019__robustesse-du-scraping]] a donné aux scrapings ce qu'il fallait pour
-les surveiller : un rapport par exécution, une alerte à l'entrée en panne, un
-battement hebdomadaire. Cela couvre les tâches du planificateur, et rien
-d'autre.
+[[019__socle__robustesse-du-scraping.tech]] a donné aux scrapings ce qu'il
+fallait pour les surveiller : un rapport par exécution, une alerte à l'entrée en
+panne, un battement hebdomadaire. Cela couvre les tâches du planificateur, et
+rien d'autre.
 
 Le reste du programme parle par dix-huit `console.log` et `console.error`
 posés au fil des specs, préfixés `[socle]` : migrations appliquées, courrier
@@ -47,23 +47,23 @@ direct à `console` ne subsiste hors du point de composition.
 ## Solutions envisagées
 
 - **Un port `Journal` dans `socle/core`, un adaptateur qui écrit.** C'est la
-  forme imposée par [[022__decoupage-du-code]], et elle laisse changer de
-  destination — sortie standard, fichier, base — sans toucher un seul
+  forme imposée par [[022__socle__decoupage-du-code.tech]], et elle laisse
+  changer de destination — sortie standard, fichier, base — sans toucher un seul
   appelant.
 - **Des décorateurs plutôt que des appels dispersés.** C'est déjà le choix de
-  [[015__source-de-donnees]] (`enArchivant`, `sousPlafond`) et de
-  [[019__robustesse-du-scraping]] (`enAlertant`), pour la même raison : une
-  action qu'on peut oublier de journaliser finira par être oubliée. Un
-  intergiciel Express couvre toute page servie, un décorateur du client
+  [[015__socle__source-de-donnees.tech]] (`enArchivant`, `sousPlafond`) et de
+  [[019__socle__robustesse-du-scraping.tech]] (`enAlertant`), pour la même
+  raison : une action qu'on peut oublier de journaliser finira par être oubliée.
+  Un intergiciel Express couvre toute page servie, un décorateur du client
   d'acquisition toute requête sortante, un décorateur de l'ordonnanceur tout
-  réveil. Restent à écrire à la main les actions de l'utilisateur, qui n'ont
-  pas de forme commune.
-- **Zéro dépendance nouvelle.** Le projet en a quatre ; une ligne
-  `clé=valeur` ou un objet JSON par événement se produisent sans bibliothèque.
+  réveil. Restent à écrire à la main les actions de l'utilisateur, qui n'ont pas
+  de forme commune.
+- **Zéro dépendance nouvelle.** Le projet en a quatre ; une ligne `clé=valeur`
+  ou un objet JSON par événement se produisent sans bibliothèque.
 - **Deux niveaux, pas cinq** — ce qui s'est passé, ce qui a mal tourné.
 - **Aucun secret dans le journal** : mot de passe, cookie, jeton, code de
-  [[027__engagements-badnet]], adresse mail. À rendre structurel plutôt que
-  moral, comme les interdits de 022.
+  [[027__socle__engagements-badnet.tech]], adresse mail. À rendre structurel
+  plutôt que moral, comme les interdits de 022.
 
 ## Questions
 
@@ -77,12 +77,12 @@ direct à `console` ne subsiste hors du point de composition.
 - Le journal recouvre-t-il `rapport_execution` de 019, ou vit-il à côté ? Deux
   récits de la même passe est un de trop.
 - Niveau réglable depuis `/sources`, comme la cadence de
-  [[018__ordonnancement]], ou par l'environnement seul ?
+  [[018__socle__ordonnancement.tech]], ou par l'environnement seul ?
 - Que devient `npm run capture` ? Il parle à un humain sur la sortie standard
   et n'est pas un service : ses `console.log` ne sont pas des lignes de
   journal.
 
 ## Notes
 
-Prolonge [[019__robustesse-du-scraping]], qui rend les scrapings observables
-et s'arrête là. Aucune dépendance bloquante.
+Prolonge [[019__socle__robustesse-du-scraping.tech]], qui rend les scrapings
+observables et s'arrête là. Aucune dépendance bloquante.

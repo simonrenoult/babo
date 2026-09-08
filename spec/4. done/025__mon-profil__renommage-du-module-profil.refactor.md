@@ -17,9 +17,9 @@ seul l'identifiant technique est resté `profil`.
 
 `profil` se lit comme « le profil de n'importe qui », alors que le module ne
 porte que le mien — `capitanat` manipule lui aussi des profils, ceux des
-coéquipiers, et [[022__decoupage-du-code]] insiste précisément sur le fait que
-les deux ne partagent pas leur modèle. Le nom technique et le nom affiché
-divergent, ce qui oblige à traduire mentalement à chaque lecture.
+coéquipiers, et [[022__socle__decoupage-du-code.tech]] insiste précisément sur
+le fait que les deux ne partagent pas leur modèle. Le nom technique et le nom
+affiché divergent, ce qui oblige à traduire mentalement à chaque lecture.
 
 Résolu quand `mon-profil` est le nom du dossier, de la route, de l'identifiant
 exporté et de la vue, que `npm run verifier` passe, et qu'aucune occurrence de
@@ -42,8 +42,8 @@ Portée du renommage :
 - `MODULES` dans `eslint.config.js`, qui produit les règles d'architecture ;
 - `test/architecture.test.ts` et `test/interface.test.ts` ;
 - le tableau des modules d'`ARCHITECTURE.md` ;
-- le tableau des modules de [[022__decoupage-du-code]], spec `done`, et les
-  commentaires de `src/socle/core/licence.ts` et `tableau.ts` ;
+- le tableau des modules de [[022__socle__decoupage-du-code.tech]], spec `done`,
+  et les commentaires de `src/socle/core/licence.ts` et `tableau.ts` ;
 - la description de `README.md` et de `package.json`.
 
 ## Questions
@@ -52,12 +52,13 @@ Aucune.
 
 ## Notes
 
-À faire avant [[001__classement]] : un renommage transverse mêlé à la première
-feature rendrait son diff illisible et ferait passer la modification d'une spec
-`done` pour un détail d'implémentation.
+À faire avant [[001__mon-profil__classement.feat]] : un renommage transverse
+mêlé à la première feature rendrait son diff illisible et ferait passer la
+modification d'une spec `done` pour un détail d'implémentation.
 
 Aucun lien externe à préserver : application personnelle, non exposée, sans
 signet partagé.
 
-Le champ `module` des specs [[001__classement]] à
-[[004__ratio-victoire-defaite-par-tableau]] porte déjà `mon-profil`.
+Le champ `module` des specs [[001__mon-profil__classement.feat]] à
+[[004__mon-profil__ratio-victoire-defaite-par-tableau.feat]] porte déjà
+`mon-profil`.

@@ -11,15 +11,16 @@
 
 ## Contexte
 
-[[022__decoupage-du-code]] découpe le code en quatre modules — `socle`,
-`mon-profil`, `capitanat`, `veille` — et donne à chacun la même forme interne :
-`core`, `presentation`, `infrastructure`. La couche est donc le premier niveau
-de rangement sous un module, et la feature n'apparaît nulle part.
+[[022__socle__decoupage-du-code.tech]] découpe le code en quatre modules —
+`socle`, `mon-profil`, `capitanat`, `veille` — et donne à chacun la même forme
+interne : `core`, `presentation`, `infrastructure`. La couche est donc le
+premier niveau de rangement sous un module, et la feature n'apparaît nulle part.
 
-`capitanat` porte aujourd'hui trois fichiers de `core`, trois
-d'`infrastructure` et deux de `presentation`, issus de quatre specs — 005,
-028, [[029__forces-par-tableau]] et [[030__paires-et-preferences-du-capitaine]].
-Rien dans l'arborescence ne dit laquelle a produit quoi.
+`capitanat` porte aujourd'hui trois fichiers de `core`, trois d'`infrastructure`
+et deux de `presentation`, issus de quatre specs — 005, 028,
+[[029__capitanat__forces-par-tableau.feat]] et
+[[030__capitanat__paires-et-preferences-du-capitaine.feat]]. Rien dans
+l'arborescence ne dit laquelle a produit quoi.
 
 ## Problème à résoudre
 
@@ -62,9 +63,9 @@ les trois interdits de 022 restent vérifiés par `npm run lint`, et quand
 
 **Le point dur est le partagé à l'intérieur d'un module.** `coequipier.ts` sert
 à 005, 028, 029 et 030 ; `classement.ts` sert à 001 et à
-[[024__historique-du-classement]]. 022 assume la duplication *entre* modules,
-mais pas dedans, et un dossier `commun/` par module recréerait le sac qu'on
-cherche à défaire — un cran plus bas.
+[[024__mon-profil__historique-du-classement.feat]]. 022 assume la duplication
+*entre* modules, mais pas dedans, et un dossier `commun/` par module recréerait
+le sac qu'on cherche à défaire — un cran plus bas.
 
 ## Questions
 
@@ -77,16 +78,16 @@ cherche à défaire — un cran plus bas.
 - Le `socle` se range-t-il pareil ? Il n'a pas de features, il a des briques —
   base, mail, planificateur, acquisition.
 - Quand ? Un déplacement transverse au milieu de
-  [[027__engagements-badnet]] rendrait son diff illisible.
-  [[025__renommage-du-module-profil]] a déjà tranché ce type de question :
-  avant la feature suivante, jamais pendant.
-- Que deviennent `eslint.config.js` et `test/architecture.test.ts`, qui
-  encodent la découpe actuelle ?
+  [[027__socle__engagements-badnet.tech]] rendrait son diff illisible.
+  [[025__mon-profil__renommage-du-module-profil.refactor]] a déjà tranché ce
+  type de question : avant la feature suivante, jamais pendant.
+- Que deviennent `eslint.config.js` et `test/architecture.test.ts`, qui encodent
+  la découpe actuelle ?
 
 ## Notes
 
-Amende [[022__decoupage-du-code]] si elle est retenue, ainsi que la section
-« Où atterrit le code d'une nouvelle spec » d'`ARCHITECTURE.md`.
+Amende [[022__socle__decoupage-du-code.tech]] si elle est retenue, ainsi que la
+section « Où atterrit le code d'une nouvelle spec » d'`ARCHITECTURE.md`.
 
 Le nom des features est une décision de vocabulaire autant que de rangement :
 un verbe à l'infinitif dit un geste, un nom commun dit un sac.

@@ -51,7 +51,7 @@ cents tournois plus proches en date — dont beaucoup déjà complets.
 Même mécanique de rattrapage à chaque élargissement des critères, qui rouvre le
 même trou.
 
-L'envoi lui-même relève de [[016__envoi-de-mail]].
+L'envoi lui-même relève de [[016__socle__envoi-de-mail.tech]].
 
 ## Questions
 
@@ -62,7 +62,7 @@ L'envoi lui-même relève de [[016__envoi-de-mail]].
 
 ## Notes
 
-Dépend de [[012__recherche-de-tournois]] pour la donnée et de
-[[016__envoi-de-mail]] pour l'envoi. Les tournois déjà notifiés sont conservés
-en base ([[017__persistance-sqlite]]) : c'est ce qui garantit qu'on n'alerte
-jamais deux fois pour le même.
+Dépend de [[012__veille__recherche-de-tournois.feat]] pour la donnée et de
+[[016__socle__envoi-de-mail.tech]] pour l'envoi. Les tournois déjà notifiés sont
+conservés en base ([[017__socle__persistance-sqlite.tech]]) : c'est ce qui
+garantit qu'on n'alerte jamais deux fois pour le même.

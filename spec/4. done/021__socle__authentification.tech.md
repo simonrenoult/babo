@@ -9,11 +9,11 @@
 ## Contexte
 
 Trois specs s'appuient déjà sur l'idée que Bado est fermé :
-[[015__source-de-donnees]] en fait la protection réelle du service, dont le
-`noindex` n'est qu'un complément ; [[005__liste-des-membres-de-l-equipe]] y
-range les coordonnées des coéquipiers ;
-[[008__disponibilites-interclubs]] écarte une solution entière au seul motif
-qu'elle percerait cette clôture.
+[[015__socle__source-de-donnees.tech]] en fait la protection réelle du service,
+dont le `noindex` n'est qu'un complément ;
+[[005__capitanat__liste-des-membres-de-l-equipe.feat]] y range les coordonnées
+des coéquipiers ; [[008__capitanat__disponibilites-interclubs.feat]] écarte une
+solution entière au seul motif qu'elle percerait cette clôture.
 
 Aucune ne dit comment la porte fonctionne.
 
@@ -38,7 +38,7 @@ Retenue : **identifiant = numéro de licence, mot de passe, jeton JWT stateless
 déposé en cookie.** Aucune session en base, aucun état côté serveur : la
 vérification est une signature. C'est la forme la plus simple qui tienne pour
 un seul compte, et elle évite d'ajouter une table de sessions à
-[[017__persistance-sqlite]] pour un utilisateur unique.
+[[017__socle__persistance-sqlite.tech]] pour un utilisateur unique.
 
 Ce choix a deux conséquences qu'il faut assumer plutôt que découvrir :
 
@@ -57,10 +57,10 @@ Ce choix a deux conséquences qu'il faut assumer plutôt que découvrir :
 Contraintes :
 
 - Cookie `HttpOnly`, `Secure`, `SameSite=Strict` : le jeton n'est jamais lisible
-  en JavaScript. `Secure` rend HTTPS obligatoire, ce qui devient une exigence
-  de déploiement pour [[020__architecture-applicative]].
-- Le haché du mot de passe vit en base ([[017__persistance-sqlite]]) : il n'y a
-  pas d'inscription, le compte est créé au premier démarrage.
+  en JavaScript. `Secure` rend HTTPS obligatoire, ce qui devient une exigence de
+  déploiement pour [[020__socle__architecture-applicative.tech]].
+- Le haché du mot de passe vit en base ([[017__socle__persistance-sqlite.tech]])
+  : il n'y a pas d'inscription, le compte est créé au premier démarrage.
 - Le secret de signature vit dans la configuration du serveur, à côté des
   identifiants myffbad — jamais en base, qu'il sert justement à protéger.
 - Un seul compte pour l'instant. La licence comme identifiant laisse la porte
@@ -90,8 +90,8 @@ sur chaque réponse, journal du proxy compris.
 
 `BABO_MOT_DE_PASSE` est relu à chaque démarrage, et le haché en base réécrit
 s'il a changé. Changer de mot de passe, c'est donc éditer la configuration et
-redémarrer — ce que le service supervisé de [[020__architecture-applicative]]
-rend trivial.
+redémarrer — ce que le service supervisé de
+[[020__socle__architecture-applicative.tech]] rend trivial.
 
 Pas d'écran de changement, donc pas de chemin de récupération à inventer, et pas
 non plus de mot de passe oublié qui ne se répare qu'en éditant une base
@@ -103,13 +103,14 @@ spec l'exige, ce que la vérification consulte.
 
 - ~~Quelle durée de validité du jeton ?~~ Trente jours, glissants.
 - ~~Le jeton est-il prolongé à chaque visite, ou expire-t-il à date fixe depuis
-  la connexion ?~~ Les deux, et c'est le point : glissant à trente jours, plafonné
-  à quatre-vingt-dix depuis la connexion.
+  la connexion ?~~ Les deux, et c'est le point : glissant à trente jours,
+  plafonné à quatre-vingt-dix depuis la connexion.
 - Une tentative de connexion échouée est-elle signalée par mail
-  ([[016__envoi-de-mail]]) ? C'est le seul moyen d'apprendre qu'on cherche à
-  entrer. **Reste ouverte** : 016 n'est pas faite. Le verrou du portier est en
-  place et journalisé par le code de statut — 429 sur un verrou, 401 sur un
-  refus, ce que le journal du proxy distingue —, mais rien ne prévient encore.
+  ([[016__socle__envoi-de-mail.tech]]) ? C'est le seul moyen d'apprendre qu'on
+  cherche à entrer. **Reste ouverte** : 016 n'est pas faite. Le verrou du
+  portier est en place et journalisé par le code de statut — 429 sur un verrou,
+  401 sur un refus, ce que le journal du proxy distingue —, mais rien ne
+  prévient encore.
 
 ## Notes
 
@@ -117,8 +118,8 @@ Ne protège pas d'un serveur compromis : qui obtient un accès au serveur obtien
 le secret de signature, la clé de chiffrement de la base et les identifiants
 myffbad, tous rangés au même endroit.
 
-Extraite de [[020__architecture-applicative]], qui a désigné le socle comme
-porteur de l'authentification sans la décrire.
+Extraite de [[020__socle__architecture-applicative.tech]], qui a désigné le
+socle comme porteur de l'authentification sans la décrire.
 
 ~~Bloque la mise en ligne~~ : faite. `socle/core/authentification.ts` porte la
 politique, `jeton-hmac.ts` et `mot-de-passe-scrypt.ts` le chiffrement,

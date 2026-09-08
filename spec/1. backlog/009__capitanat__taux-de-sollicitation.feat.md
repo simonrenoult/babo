@@ -37,5 +37,5 @@ Retenue : calcul automatique.
 
 ## Notes
 
-Dépend de [[008__disponibilites-interclubs]] et
-[[011__composition-de-journee]].
+Dépend de [[008__capitanat__disponibilites-interclubs.feat]] et
+[[011__capitanat__composition-de-journee.feat]].

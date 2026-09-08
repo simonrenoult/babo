@@ -8,17 +8,18 @@
 
 ## Contexte
 
-[[020__architecture-applicative]] fixe la forme de l'artefact : un processus
-Node, Express, rendu côté serveur. Express n'impose aucune structure, et les
-specs emploient déjà un vocabulaire de modules — `mon-profil`, `capitanat`,
-`veille`, `socle` — sans que rien ne le matérialise dans le code.
+[[020__socle__architecture-applicative.tech]] fixe la forme de l'artefact : un
+processus Node, Express, rendu côté serveur. Express n'impose aucune structure,
+et les specs emploient déjà un vocabulaire de modules — `mon-profil`,
+`capitanat`, `veille`, `socle` — sans que rien ne le matérialise dans le code.
 
 ## Problème à résoudre
 
-Deux couplages ont déjà coûté cher dans le backlog, avant même la première
-ligne de code : l'envoi de mail logé dans une feature ([[013__alerte-nouveau-tournoi]]),
-qui refermait le backlog sur lui-même, et le planificateur qu'on a failli
-loger dans [[015__source-de-donnees]]. Les deux ont la même forme — une brique
+Deux couplages ont déjà coûté cher dans le backlog, avant même la première ligne
+de code : l'envoi de mail logé dans une feature
+([[013__veille__alerte-nouveau-tournoi.feat]]), qui refermait le backlog sur
+lui-même, et le planificateur qu'on a failli loger dans
+[[015__socle__source-de-donnees.tech]]. Les deux ont la même forme — une brique
 de socle rangée chez un de ses appelants.
 
 Sans structure imposée, la même erreur se reproduira à l'intérieur du code :
@@ -36,9 +37,9 @@ Quatre modules, ceux qu'emploient déjà les specs :
 | Module      | Porte                                                                   |
 |-------------|-------------------------------------------------------------------------|
 | `socle`     | base, mail, planificateur, authentification, acquisition, interface      |
-| `mon-profil`| [[001__classement]] à [[004__ratio-victoire-defaite-par-tableau]]        |
-| `capitanat` | [[005__liste-des-membres-de-l-equipe]] à [[011__composition-de-journee]] |
-| `veille`    | [[012__recherche-de-tournois]] à [[014__rappel-ouverture-tournoi]]       |
+| `mon-profil`| [[001__mon-profil__classement.feat]] à [[004__mon-profil__ratio-victoire-defaite-par-tableau.feat]]        |
+| `capitanat` | [[005__capitanat__liste-des-membres-de-l-equipe.feat]] à [[011__capitanat__composition-de-journee.feat]] |
+| `veille`    | [[012__veille__recherche-de-tournois.feat]] à [[014__veille__rappel-ouverture-tournoi.feat]]       |
 
 Chaque module est un hexagone — trois dossiers :
 
@@ -67,13 +68,13 @@ contraintes déjà écrites en tombent gratuitement — les mails écrits en bas
 développement (016) et les parseurs rejoués sur captures sans réseau (019) sont
 des adaptateurs de remplacement, pas des cas particuliers à aménager.
 
-**Un `core` par module, sans noyau commun.** `mon-profil` et `capitanat` partagent
-leur source de données ([[001__classement]]) et manipuleront des notions
-proches — joueur, match. Ils garderont pourtant chacun leur représentation :
-la source commune est un fait d'infrastructure, elle n'oblige pas à un modèle
-métier commun. Un joueur vu par `capitanat` est un coéquipier qu'on aligne ;
-vu par `mon-profil`, c'est moi. La duplication est acceptée en échange de deux
-modules qui évoluent sans se consulter.
+**Un `core` par module, sans noyau commun.** `mon-profil` et `capitanat`
+partagent leur source de données ([[001__mon-profil__classement.feat]]) et
+manipuleront des notions proches — joueur, match. Ils garderont pourtant chacun
+leur représentation : la source commune est un fait d'infrastructure, elle
+n'oblige pas à un modèle métier commun. Un joueur vu par `capitanat` est un
+coéquipier qu'on aligne ; vu par `mon-profil`, c'est moi. La duplication est
+acceptée en échange de deux modules qui évoluent sans se consulter.
 
 Ce qui n'est spécifique à aucun module appartient au `socle` : un numéro de
 licence, une date de journée d'interclub, un tableau. La frontière est celle
@@ -101,21 +102,22 @@ Duplication assumée entre `mon-profil` et `capitanat` : si les deux modèles se
 mettent à diverger, c'est la preuve que le choix était bon ; s'ils restent
 identiques pendant plusieurs specs, la question se rouvrira sur des faits.
 
-Amendée par [[001__classement]] : `classement` a été retiré de la liste des
-notions dupliquées ci-dessus et descend dans `socle/core`, avec `Licence` et
-`Tableau`. Une lettre et un CPPH sont un fait fédéral : il n'en existe pas une
-version vue par `mon-profil` et une autre vue par `capitanat`, c'est le critère
-même de cette spec. `Joueur` reste dupliqué, et la règle est inchangée.
+Amendée par [[001__mon-profil__classement.feat]] : `classement` a été retiré de
+la liste des notions dupliquées ci-dessus et descend dans `socle/core`, avec
+`Licence` et `Tableau`. Une lettre et un CPPH sont un fait fédéral : il n'en
+existe pas une version vue par `mon-profil` et une autre vue par `capitanat`,
+c'est le critère même de cette spec. `Joueur` reste dupliqué, et la règle est
+inchangée.
 
 `socle/core` y gagne aussi `Discipline` — simple, double, mixte — que 001 a
 découverte en lisant la fiche : c'est l'axe du classement, distinct de
 `Tableau`, l'axe d'une compétition. Deux types que personne ne possède, donc
 deux types du socle.
 
-Détaillée depuis [[020__architecture-applicative]], qui portait ce découpage et
-débordait. À traiter avec elle.
+Détaillée depuis [[020__socle__architecture-applicative.tech]], qui portait ce
+découpage et débordait. À traiter avec elle.
 
-Renommée par [[025__renommage-du-module-profil]] : le module `profil` s'appelle
-`mon-profil`, dans le tableau ci-dessus comme partout ailleurs. `capitanat`
-manipule lui aussi des profils, ceux des coéquipiers — c'est le possessif qui
-lève l'ambiguïté que cette spec insiste à maintenir.
+Renommée par [[025__mon-profil__renommage-du-module-profil.refactor]] : le
+module `profil` s'appelle `mon-profil`, dans le tableau ci-dessus comme partout
+ailleurs. `capitanat` manipule lui aussi des profils, ceux des coéquipiers —
+c'est le possessif qui lève l'ambiguïté que cette spec insiste à maintenir.

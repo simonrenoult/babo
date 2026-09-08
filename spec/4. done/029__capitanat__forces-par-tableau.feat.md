@@ -9,8 +9,8 @@
 ## Contexte
 
 `/capitanat` liste l'équipe et, pour chaque membre, ses trois classements —
-simple, double, mixte ([[028__nom-et-classement-de-l-equipe]]). C'est une liste
-de personnes.
+simple, double, mixte ([[028__capitanat__nom-et-classement-de-l-equipe.feat]]).
+C'est une liste de personnes.
 
 Une rencontre, elle, se joue en **six matchs répartis sur cinq tableaux : deux
 SH, un SD, un DH, un DD, un MX** (`Tableau`, dans `socle/core/tableau.ts` — la
@@ -32,10 +32,12 @@ tableaux que l'effectif ne permet pas de remplir.
 ## Solutions envisagées
 
 - **Tout dériver de ce qui est déjà en base.** Retenue. Le sexe vient du CSV de
-  [[005__liste-des-membres-de-l-equipe]], cote et lettre de la passe de 028 :
-  aucune saisie, aucune source nouvelle, aucune table. C'est ce qui sépare cette
-  spec de [[010__tableaux-preferes]], qui attend une déclaration des joueurs, et
-  de [[011__composition-de-journee]], qui attend le règlement modélisé.
+  [[005__capitanat__liste-des-membres-de-l-equipe.feat]], cote et lettre de la
+  passe de 028 : aucune saisie, aucune source nouvelle, aucune table. C'est ce
+  qui sépare cette spec de [[010__capitanat__tableaux-preferes.feat]], qui
+  attend une déclaration des joueurs, et de
+  [[011__capitanat__composition-de-journee.feat]], qui attend le règlement
+  modélisé.
 - **Une page par tableau**, sous `/capitanat` devenu index. Retenue : on
   consulte un tableau à la fois, chacun est une URL qu'on met en favori, et
   l'écran reste court sur un téléphone. Écartée, la page unique à cinq sections,
@@ -87,11 +89,12 @@ presque toujours une licence fausse, pas un joueur faible.
 
 Ne dépend que de 005 et 028, toutes deux faites.
 
-[[030__paires-et-preferences-du-capitaine]] ajoute à ces pages les paires
-saisies et les marques du capitaine — c'est là que la persistance apparaît, et
-c'est pourquoi les deux specs sont séparées.
+[[030__capitanat__paires-et-preferences-du-capitaine.feat]] ajoute à ces pages
+les paires saisies et les marques du capitaine — c'est là que la persistance
+apparaît, et c'est pourquoi les deux specs sont séparées.
 
-Prépare [[011__composition-de-journee]], qui composera pour de bon.
+Prépare [[011__capitanat__composition-de-journee.feat]], qui composera pour de
+bon.
 
 ## Fait
 

@@ -33,14 +33,14 @@ est pire que pas de signalement du tout. Ce n'est pas un renoncement : c'est le
 constat qu'une liste de douze lignes n'a pas besoin qu'on la lise à sa place.
 
 - ~~Saisie manuelle des engagements.~~ Écartée : elle oublie exactement comme
-  une mémoire oublie, et la double inscription — le problème que cette spec
-  vise — reste invisible tant que la seconde n'a pas été recopiée.
+  une mémoire oublie, et la double inscription — le problème que cette spec vise
+  — reste invisible tant que la seconde n'a pas été recopiée.
 - ~~Récupération automatique depuis myffbad.~~ Écartée par
-  [[027__engagements-badnet]] : `/mes-inscriptions` reflète ce que la fédération
-  enregistre, pas ce que j'ai engagé.
+  [[027__socle__engagements-badnet.tech]] : `/mes-inscriptions` reflète ce que
+  la fédération enregistre, pas ce que j'ai engagé.
 - **Récupération automatique depuis badnet, sous session.** Retenue, et portée
-  par [[027__engagements-badnet]] : badnet est l'endroit où l'inscription se
-  fait, donc celui où elle est complète.
+  par [[027__socle__engagements-badnet.tech]] : badnet est l'endroit où
+  l'inscription se fait, donc celui où elle est complète.
 
 ~~À trancher une fois la faisabilité du scraping myffbad établie.~~ **Tranché** :
 la sonde du 1er septembre 2026 a atteint `/mes-inscriptions`, 015 a cherché la
@@ -58,19 +58,19 @@ donnée à trois endroits, et 027 a retenu `badnet.fr/competitions`.
 
 ## Notes
 
-**Dépend de [[027__engagements-badnet]]**, qui acquiert les engagements et
-dessine leur table. Cette spec les affiche, rien de plus.
+**Dépend de [[027__socle__engagements-badnet.tech]]**, qui acquiert les
+engagements et dessine leur table. Cette spec les affiche, rien de plus.
 
-Recoupe [[012__recherche-de-tournois]] : un tournoi trouvé par la veille doit
-pouvoir devenir un engagement.
+Recoupe [[012__veille__recherche-de-tournois.feat]] : un tournoi trouvé par la
+veille doit pouvoir devenir un engagement.
 
-~~Bloquée par [[015__source-de-donnees]].~~ **Faite** : l'accès aux deux
-sources est en place, sessions, plafond de requêtes et archivage des captures
-compris.
+~~Bloquée par [[015__socle__source-de-donnees.tech]].~~ **Faite** : l'accès aux
+deux sources est en place, sessions, plafond de requêtes et archivage des
+captures compris.
 
 ~~Préalable : la table des engagements n'existe pas [...] c'est donc cette spec
 qui la dessine.~~ **Inversé le 5 septembre 2026 :
-[[027__engagements-badnet]] passe devant.**
+[[027__socle__engagements-badnet.tech]] passe devant.**
 
 Le raisonnement écrit ici la veille supposait que 002 démarrerait sur une saisie
 manuelle, que 027 remplacerait ensuite. Construire une saisie pour la jeter est
@@ -81,17 +81,17 @@ Ce qui reste à cette spec est donc entièrement de la présentation : le tri pa
 date, le signalement des chevauchements, et la page. C'est peu, et c'est ce qui
 la rend faisable d'un trait une fois 027 finie.
 
-Elle partage toujours avec [[012__recherche-de-tournois]] la description d'un
-tournoi — mais c'est 027 qui la paiera désormais.
+Elle partage toujours avec [[012__veille__recherche-de-tournois.feat]] la
+description d'un tournoi — mais c'est 027 qui la paiera désormais.
 
 **027 est faite (4 septembre 2026), et elle laisse deux manques à cette spec.**
 
 - **Le lieu n'est pas dans la source.** `/competitions` donne le nom, la date et
   le type ; pas la ville. Le « résolu quand » ci-dessus promet pourtant « date,
   lieu, tableaux engagés et partenaire ». Le lieu viendra de
-  [[012__recherche-de-tournois]], dont l'index public le porte avec les
-  coordonnées du gymnase — ou d'une fiche publique de tournoi, si cette spec ne
-  veut pas attendre 012. À trancher ici.
+  [[012__veille__recherche-de-tournois.feat]], dont l'index public le porte avec
+  les coordonnées du gymnase — ou d'une fiche publique de tournoi, si cette spec
+  ne veut pas attendre 012. À trancher ici.
 - **badnet ne rend qu'une date, pas un intervalle.** Le chevauchement se lira
   donc sur « le même jour » — `memeJour` est déjà écrite et testée dans le
   socle. Si « le même week-end » est ce qu'on veut, il faudra une source de
@@ -196,9 +196,9 @@ faute de quoi le battement du lundi la croirait muette. Anonyme de bout en bout,
 elle aboutit le jour où la session badnet est morte.
 
 **La table `tournoi` est le début de l'index de
-[[012__recherche-de-tournois]]**, qui disait « la première des deux traitée la
-paiera pour l'autre ». 002 est passée devant et n'a écrit que le lieu et les
-journées ; 012 y ajoutera la date limite, les tableaux proposés et les
+[[012__veille__recherche-de-tournois.feat]]**, qui disait « la première des deux
+traitée la paiera pour l'autre ». 002 est passée devant et n'a écrit que le lieu
+et les journées ; 012 y ajoutera la date limite, les tableaux proposés et les
 classements admis.
 
 Vérifié contre le vrai badnet le 5 septembre : `1 lieu(x) relevé(s) sur 1`,

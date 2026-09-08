@@ -8,9 +8,9 @@
 
 ## Contexte
 
-[[029__forces-par-tableau]] donne, pour chacun des cinq tableaux, les joueurs
-éligibles ordonnés par leur cote. Pour les deux simples, c'est toute la
-réponse.
+[[029__capitanat__forces-par-tableau.feat]] donne, pour chacun des cinq
+tableaux, les joueurs éligibles ordonnés par leur cote. Pour les deux simples,
+c'est toute la réponse.
 
 Pour le DH, le DD et le MX, non : le tableau se joue en paires, et une paire
 n'a pas de classement fédéral. En début de saison, elles sont de surcroît à
@@ -35,12 +35,13 @@ tableau donné — remonte en tête.
 - **Saisie manuelle, sans énumération.** Retenue. Énumérer toutes les paires
   possibles serait immédiat — une équipe de seize en produit soixante-quatre en
   mixte — mais soixante-quatre lignes pour en retenir trois sont du bruit, et
-  une paire saisie enregistre une intention là où une paire calculée n'enregistre
-  rien. Ce qu'on perd est réel : l'énumération pouvait révéler une paire forte à
-  laquelle on n'aurait pas pensé.
-- **Persistée en base** ([[017__persistance-sqlite]]), pas en brouillon de page.
-  Une paire est une décision de capitaine, pas un calcul : c'est exactement ce
-  que [[023__sauvegarde]] range parmi les choses qui ne se re-scrapent pas.
+  une paire saisie enregistre une intention là où une paire calculée
+  n'enregistre rien. Ce qu'on perd est réel : l'énumération pouvait révéler une
+  paire forte à laquelle on n'aurait pas pensé.
+- **Persistée en base** ([[017__socle__persistance-sqlite.tech]]), pas en
+  brouillon de page. Une paire est une décision de capitaine, pas un calcul :
+  c'est exactement ce que [[023__socle__sauvegarde.tech]] range parmi les choses
+  qui ne se re-scrapent pas.
 
 **Une paire est deux licences, rien de plus.** Son tableau se déduit des sexes —
 deux hommes DH, deux femmes DD, un de chaque MX —, et comme 005 n'accepte que
@@ -70,12 +71,13 @@ qui produirait un ordre qui ne serait ni celui du classement ni le mien. La
 comparaison ne se perd pas : le meilleur non marqué reste en tête de son bloc.
 
 **Ce que je marque et ce que le joueur déclarera sont deux choses.**
-[[010__tableaux-preferes]] porte ce que le joueur dit de lui — ses tableaux
-souhaités, refusés, ses partenaires privilégiés à lui. Cette spec porte ce que
-le capitaine décide. Les deux peuvent se contredire, et **ce désaccord est
-lui-même une information** : un joueur qui se croit à l'aise dans une paire que
-le capitaine n'aligne jamais se voit en mettant les deux côte à côte, jamais en
-les fusionnant. 010 est amendée pour écrire cette frontière ; elle ne perd rien.
+[[010__capitanat__tableaux-preferes.feat]] porte ce que le joueur dit de lui —
+ses tableaux souhaités, refusés, ses partenaires privilégiés à lui. Cette spec
+porte ce que le capitaine décide. Les deux peuvent se contredire, et **ce
+désaccord est lui-même une information** : un joueur qui se croit à l'aise dans
+une paire que le capitaine n'aligne jamais se voit en mettant les deux côte à
+côte, jamais en les fusionnant. 010 est amendée pour écrire cette frontière ;
+elle ne perd rien.
 
 **Ce qui disparaît avec le joueur.** L'import de 005 remplace la liste entière
 et supprime le membre absent, avec ses relevés. Ses paires et ses marques
@@ -130,8 +132,8 @@ les formulaires.
 **Un formulaire poste la valeur voulue, jamais « l'inverse de ce qui est
 écrit ».** Un double envoi ne fait donc pas clignoter la marque.
 
-L'amendement annoncé à [[010__tableaux-preferes]] était déjà en place : la
-frontière y figure dans les Notes, écrite au moment où 030 l'a posée.
+L'amendement annoncé à [[010__capitanat__tableaux-preferes.feat]] était déjà en
+place : la frontière y figure dans les Notes, écrite au moment où 030 l'a posée.
 
 ## Questions
 
@@ -144,10 +146,11 @@ frontière y figure dans les Notes, écrite au moment où 030 l'a posée.
 
 ## Notes
 
-Dépend de [[029__forces-par-tableau]], dont elle enrichit les cinq pages, et
-donc de 005 et 028.
+Dépend de [[029__capitanat__forces-par-tableau.feat]], dont elle enrichit les
+cinq pages, et donc de 005 et 028.
 
-Amende [[010__tableaux-preferes]] : la frontière ci-dessus est à y recopier.
+Amende [[010__capitanat__tableaux-preferes.feat]] : la frontière ci-dessus est à
+y recopier.
 
-Prépare [[011__composition-de-journee]] : une paire saisie et marquée est
-exactement ce qu'une composition de journée consommera.
+Prépare [[011__capitanat__composition-de-journee.feat]] : une paire saisie et
+marquée est exactement ce qu'une composition de journée consommera.

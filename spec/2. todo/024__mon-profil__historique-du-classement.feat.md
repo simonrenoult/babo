@@ -8,9 +8,9 @@
 
 ## Contexte
 
-[[001__classement]] affiche le dernier classement connu et écrit une ligne par
-changement de valeur, datée d'`apparu_le`. L'évolution s'accumule donc en base
-dès sa mise en service, sans que rien ne l'expose.
+[[001__mon-profil__classement.feat]] affiche le dernier classement connu et
+écrit une ligne par changement de valeur, datée d'`apparu_le`. L'évolution
+s'accumule donc en base dès sa mise en service, sans que rien ne l'expose.
 
 ## Problème à résoudre
 
@@ -46,7 +46,8 @@ liste des paliers enregistrés.
 
 ## Notes
 
-Dépend de [[001__classement]], qui porte l'acquisition et la table.
+Dépend de [[001__mon-profil__classement.feat]], qui porte l'acquisition et la
+table.
 
 Aucune variation n'est affichable avant la première publication CPPH suivant
 la mise en service de 001 : conséquence directe de l'absence d'import

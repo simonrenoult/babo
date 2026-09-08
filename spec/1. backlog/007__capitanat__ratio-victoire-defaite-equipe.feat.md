@@ -35,11 +35,11 @@ Retenue : agrégation de l'existant, saisie manuelle en dépannage.
 
 ## Notes
 
-Même calcul que [[004__ratio-victoire-defaite-par-tableau]], appliqué à un
-groupe de licences.
+Même calcul que [[004__mon-profil__ratio-victoire-defaite-par-tableau.feat]],
+appliqué à un groupe de licences.
 
-**Dépend donc de [[003__historique-de-matchs]]**, comme 004. Ces Notes ne
-déclaraient aucune dépendance, alors que la solution retenue — « agrégation de
-l'existant » — n'a rien à agréger tant que les matchs ne sont pas en base. Le
-lien passait par 004 sans être écrit, ce qui suffisait à le rendre invisible à
-un tri qui lit les Notes.
+**Dépend donc de [[003__mon-profil__historique-de-matchs.feat]]**, comme 004.
+Ces Notes ne déclaraient aucune dépendance, alors que la solution retenue — «
+agrégation de l'existant » — n'a rien à agréger tant que les matchs ne sont pas
+en base. Le lien passait par 004 sans être écrit, ce qui suffisait à le rendre
+invisible à un tri qui lit les Notes.

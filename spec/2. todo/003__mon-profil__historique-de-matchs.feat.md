@@ -27,8 +27,8 @@ période, par tableau et par adversaire, avec le score et le contexte
   aussi de socle aux statistiques.
 
 Retenue : synchronisation quotidienne, conformément à
-[[015__source-de-donnees]] — c'est la donnée de base de
-[[004__ratio-victoire-defaite-par-tableau]].
+[[015__socle__source-de-donnees.tech]] — c'est la donnée de base de
+[[004__mon-profil__ratio-victoire-defaite-par-tableau.feat]].
 
 Un match est identifié par la combinaison licence + date + événement, complétée
 du tableau et du tour, faute de quoi deux matchs joués le même jour dans la
@@ -47,18 +47,19 @@ même compétition se confondent.
 Volume attendu : quelques centaines de matchs par joueur, pas un enjeu de
 performance.
 
-~~Bloquée par [[015__source-de-donnees]].~~ **Faite** : la fiche et l'espace du
-licencié sont atteignables, et les captures sont archivées avant analyse.
+~~Bloquée par [[015__socle__source-de-donnees.tech]].~~ **Faite** : la fiche et
+l'espace du licencié sont atteignables, et les captures sont archivées avant
+analyse.
 
 **Préalable : la table des matchs n'existe pas.**
-[[017__persistance-sqlite]] a délibérément laissé ce schéma à dessiner, et 015 a
-fixé l'ordre — la sonde d'abord, sur des pages réellement observées, le schéma
-ensuite, « le dessiner avant d'avoir vu les pages serait la même erreur que de
-concevoir une interface avant ses adaptateurs ». La sonde a livré :
-`myffbad-resultats.txt` est dans le dépôt, à côté des tests.
+[[017__socle__persistance-sqlite.tech]] a délibérément laissé ce schéma à
+dessiner, et 015 a fixé l'ordre — la sonde d'abord, sur des pages réellement
+observées, le schéma ensuite, « le dessiner avant d'avoir vu les pages serait la
+même erreur que de concevoir une interface avant ses adaptateurs ». La sonde a
+livré : `myffbad-resultats.txt` est dans le dépôt, à côté des tests.
 
 Cette spec est seule sur cette table, et trois autres la liront telle quelle :
-[[004__ratio-victoire-defaite-par-tableau]],
-[[006__performance-individuelle]] et
-[[007__ratio-victoire-defaite-equipe]] n'ont pas d'autre source. C'est ce qui
-fait d'elle le meilleur point d'entrée du backlog.
+[[004__mon-profil__ratio-victoire-defaite-par-tableau.feat]],
+[[006__capitanat__performance-individuelle.feat]] et
+[[007__capitanat__ratio-victoire-defaite-equipe.feat]] n'ont pas d'autre source.
+C'est ce qui fait d'elle le meilleur point d'entrée du backlog.

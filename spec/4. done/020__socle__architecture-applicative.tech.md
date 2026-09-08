@@ -9,10 +9,11 @@
 ## Contexte
 
 Cinq specs de socle sont posées : l'accès aux sources
-[[015__source-de-donnees]], l'envoi de mail [[016__envoi-de-mail]], la
-persistance [[017__persistance-sqlite]], l'ordonnancement
-[[018__ordonnancement]] et la robustesse du scraping
-[[019__robustesse-du-scraping]]. Chacune tranche un mécanisme.
+[[015__socle__source-de-donnees.tech]], l'envoi de mail
+[[016__socle__envoi-de-mail.tech]], la persistance
+[[017__socle__persistance-sqlite.tech]], l'ordonnancement
+[[018__socle__ordonnancement.tech]] et la robustesse du scraping
+[[019__socle__robustesse-du-scraping.tech]]. Chacune tranche un mécanisme.
 
 Aucune ne dit ce qu'est Bado en tant que programme : ce qui s'exécute, sous
 quelle forme, et sur quelle plateforme. Les specs de feature parlent pourtant
@@ -49,7 +50,7 @@ est fixée, et quand le redémarrage a un responsable désigné.
 - **Node, TypeScript, Express.** Retenue. Express n'impose aucune structure :
   c'est ce qui le rend adapté à une application de cette taille, et c'est aussi
   pourquoi l'organisation du code doit être décidée à part —
-  [[022__decoupage-du-code]].
+  [[022__socle__decoupage-du-code.tech]].
 
 Exécution : l'application tourne en service supervisé, redémarré
 automatiquement en cas d'arrêt — c'est la réponse à la question laissée ouverte
@@ -58,12 +59,12 @@ par 018, et la condition du risque qui y est accepté.
 ## Questions
 
 - Qui supervise le processus et le relance ? Le mécanisme retenu est, par
-  construction, la seule pièce qui ne peut pas vivre dans l'application.
-  Tranché : une unité systemd en `Restart=always` (`deploiement/babo.service`).
-- Qui termine TLS ? Le cookie `Secure` de [[021__authentification]] rend HTTPS
-  obligatoire, et rien ne dit si c'est Express ou un proxy en amont qui s'en
-  charge. Tranché : un proxy en amont ; Express se contente de lui faire
-  confiance.
+  construction, la seule pièce qui ne peut pas vivre dans l'application. Tranché
+  : une unité systemd en `Restart=always` (`deploiement/babo.service`).
+- Qui termine TLS ? Le cookie `Secure` de [[021__socle__authentification.tech]]
+  rend HTTPS obligatoire, et rien ne dit si c'est Express ou un proxy en amont
+  qui s'en charge. Tranché : un proxy en amont ; Express se contente de lui
+  faire confiance.
 
 ## Notes
 
@@ -71,13 +72,14 @@ Une seule instance : la montée en charge horizontale est exclue par
 construction, pas par oubli.
 
 L'organisation interne du code — modules et sens des dépendances — fait l'objet
-de [[022__decoupage-du-code]]. L'authentification fait l'objet de
-[[021__authentification]].
+de [[022__socle__decoupage-du-code.tech]]. L'authentification fait l'objet de
+[[021__socle__authentification.tech]].
 
-Cadre [[015__source-de-donnees]], [[016__envoi-de-mail]],
-[[017__persistance-sqlite]], [[018__ordonnancement]] et
-[[019__robustesse-du-scraping]] : cette spec ne remplace aucune de leurs
-décisions, elle dit ce qui les héberge.
+Cadre [[015__socle__source-de-donnees.tech]],
+[[016__socle__envoi-de-mail.tech]], [[017__socle__persistance-sqlite.tech]],
+[[018__socle__ordonnancement.tech]] et
+[[019__socle__robustesse-du-scraping.tech]] : cette spec ne remplace aucune de
+leurs décisions, elle dit ce qui les héberge.
 
-À traiter en premier, avec [[017__persistance-sqlite]] : c'est le squelette
-dans lequel la sonde d'accès de 015 vient se poser.
+À traiter en premier, avec [[017__socle__persistance-sqlite.tech]] : c'est le
+squelette dans lequel la sonde d'accès de 015 vient se poser.

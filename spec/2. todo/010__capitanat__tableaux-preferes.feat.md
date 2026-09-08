@@ -23,10 +23,10 @@ au moment de composer.
 
 ## Solutions envisagées
 
-- Champs libres sur la fiche joueur. Souple, mais inexploitable
-  automatiquement.
+- Champs libres sur la fiche joueur. Souple, mais inexploitable automatiquement.
 - Préférences structurées (tableau + niveau d'envie + partenaires). Exploitable
-  par [[011__composition-de-journee]], plus de travail de modélisation.
+  par [[011__capitanat__composition-de-journee.feat]], plus de travail de
+  modélisation.
 
 Retenue : préférences structurées.
 
@@ -37,15 +37,15 @@ Retenue : préférences structurées.
 
 ## Notes
 
-Dépend de [[005__liste-des-membres-de-l-equipe]].
+Dépend de [[005__capitanat__liste-des-membres-de-l-equipe.feat]].
 
-**Frontière avec [[030__paires-et-preferences-du-capitaine]].** 030 porte un
-marqueur que *le capitaine* pose sur une paire qu'il a assemblée, ou sur un
-joueur pour un tableau donné. Cette spec-ci porte ce que *le joueur déclare* de
-lui-même — ses tableaux souhaités, ses tableaux refusés, ses partenaires
-privilégiés à lui. Elle ne perd donc rien au profit de 030 : ce sont deux
-informations différentes, et 030 n'a pas attendu celle-ci parce qu'un capitaine
-n'a besoin de personne pour savoir qui il veut aligner.
+**Frontière avec [[030__capitanat__paires-et-preferences-du-capitaine.feat]].**
+030 porte un marqueur que *le capitaine* pose sur une paire qu'il a assemblée,
+ou sur un joueur pour un tableau donné. Cette spec-ci porte ce que *le joueur
+déclare* de lui-même — ses tableaux souhaités, ses tableaux refusés, ses
+partenaires privilégiés à lui. Elle ne perd donc rien au profit de 030 : ce sont
+deux informations différentes, et 030 n'a pas attendu celle-ci parce qu'un
+capitaine n'a besoin de personne pour savoir qui il veut aligner.
 
 Les deux **peuvent se contredire**, et ce désaccord est lui-même une
 information : un joueur qui se déclare à l'aise dans une paire que le capitaine

@@ -8,12 +8,12 @@
 
 ## Contexte
 
-[[002__prochains-tournois]] liste les tournois auxquels je suis inscrit.
-[[015__source-de-donnees]] a cherché cette donnée à trois endroits sans la
-trouver au bon prix : la recherche publique badnet est anonyme mais ne connaît
-pas mes inscriptions, et la liste publique des inscrits ne couvre que les
-tournois du rayon indexé — quand l'organisateur ne masque pas ses tableaux, ce
-qui est le cas la plupart du temps.
+[[002__mon-profil__prochains-tournois.feat]] liste les tournois auxquels je suis
+inscrit. [[015__socle__source-de-donnees.tech]] a cherché cette donnée à trois
+endroits sans la trouver au bon prix : la recherche publique badnet est anonyme
+mais ne connaît pas mes inscriptions, et la liste publique des inscrits ne
+couvre que les tournois du rayon indexé — quand l'organisateur ne masque pas ses
+tableaux, ce qui est le cas la plupart du temps.
 
 ~~002 démarre donc avec une saisie manuelle en base : je recopie mes
 engagements.~~ **L'ordre est inversé : cette spec passe devant 002.** Il n'y
@@ -40,9 +40,10 @@ de 002 n'est plus qu'un complément pour les inscriptions faites hors badnet.
   compris.
 - **myffbad `/mes-inscriptions`.** Écartée : elle reflète ce que la fédération
   enregistre, pas ce que j'ai engagé — et elle ferait dépendre `veille` d'une
-  session myffbad dont [[015__source-de-donnees]] l'a justement affranchie.
-- **Liste publique des inscrits, filtrée sur ma licence.** Écartée : ne voit
-  que les tournois du rayon indexé, et les tableaux sont masqués la majorité du
+  session myffbad dont [[015__socle__source-de-donnees.tech]] l'a justement
+  affranchie.
+- **Liste publique des inscrits, filtrée sur ma licence.** Écartée : ne voit que
+  les tournois du rayon indexé, et les tableaux sont masqués la majorité du
   temps.
 
 ~~L'accès est le même rituel qu'en 015~~ — **et c'est faux, 015 l'avait déjà
@@ -62,7 +63,7 @@ réutilise vraiment :
   acquisition.
 
 **Les deux visages de badnet restent séparés.** La recherche publique de
-[[012__recherche-de-tournois]] ne
+[[012__veille__recherche-de-tournois.feat]] ne
 doit jamais passer sous session : elle est aujourd'hui exempte du risque de
 bannissement, et l'authentifier pour mutualiser un client HTTP reviendrait à
 mettre l'index quotidien de `veille` sous le même risque que le reste. Un seul
@@ -219,11 +220,12 @@ structure relevée, avec des noms inventés.
 ## Ce qui reste — et qui n'est pas de cette spec
 
 **Le lieu n'est pas dans cette source.** La liste de `/competitions` donne le
-nom, la date et le type ; pas la ville. Or [[002__prochains-tournois]] promet
-« date, lieu, tableaux engagés et partenaire ». Le lieu viendra de
-[[012__recherche-de-tournois]], dont l'index public le porte avec les
-coordonnées du gymnase — ou d'une fiche publique de tournoi, si 002 ne veut pas
-attendre. C'est une question pour 002, pas pour celle-ci.
+nom, la date et le type ; pas la ville. Or
+[[002__mon-profil__prochains-tournois.feat]] promet « date, lieu, tableaux
+engagés et partenaire ». Le lieu viendra de
+[[012__veille__recherche-de-tournois.feat]], dont l'index public le porte avec
+les coordonnées du gymnase — ou d'une fiche publique de tournoi, si 002 ne veut
+pas attendre. C'est une question pour 002, pas pour celle-ci.
 
 **Une seule date, pas un intervalle.** badnet rend un jour par tournoi. Le
 chevauchement que 002 doit signaler se lira donc sur « le même jour » ; en
@@ -253,13 +255,14 @@ déduire un week-end fabriquerait une durée qu'aucune source ne donne.
 
 ## Notes
 
-Dépend de [[015__source-de-donnees]] pour le rituel 2FA, l'écran de
+Dépend de [[015__socle__source-de-donnees.tech]] pour le rituel 2FA, l'écran de
 réauthentification, le plafond de requêtes et l'archivage des captures ; de
-[[017__persistance-sqlite]] pour le jeton ; de [[018__ordonnancement]] pour la
-passe quotidienne ; de [[019__robustesse-du-scraping]] pour la panne
-« session morte », qui vaudra ici comme là.
+[[017__socle__persistance-sqlite.tech]] pour le jeton ; de
+[[018__socle__ordonnancement.tech]] pour la passe quotidienne ; de
+[[019__socle__robustesse-du-scraping.tech]] pour la panne « session morte », qui
+vaudra ici comme là.
 
-~~À traiter après [[002__prochains-tournois]]~~ : **l'ordre est inversé.** Cette
-spec passe devant, dessine la table des engagements et la remplit ; 002 se
-contente d'afficher ce qu'elle y met. Il n'y a donc aucune saisie manuelle à
-construire puis à remplacer.
+~~À traiter après [[002__mon-profil__prochains-tournois.feat]]~~ : **l'ordre est
+inversé.** Cette spec passe devant, dessine la table des engagements et la
+remplit ; 002 se contente d'afficher ce qu'elle y met. Il n'y a donc aucune
+saisie manuelle à construire puis à remplacer.

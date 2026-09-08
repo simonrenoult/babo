@@ -29,7 +29,7 @@ relancer ceux qui n'ont pas répondu.
 - Sollicitation par mail avec réponse par lien dans l'outil. Écartée : elle
   suppose des pages accessibles sans authentification, alors que Bado est un
   service personnel protégé par identifiant et mot de passe
-  ([[021__authentification]]). C'est la seule
+  ([[021__socle__authentification.tech]]). C'est la seule
   spec qui percerait cette clôture, et elle ferait en plus transiter les
   réponses de tiers par un serveur exposé.
 
@@ -40,22 +40,23 @@ réponses, le capitaine les reporte.
 
 - Faut-il gérer une disponibilité partielle (« oui si je joue en double ») ?
 - ~~« Relancer les silencieux » se fait-il par un mail depuis l'outil
-  ([[016__envoi-de-mail]]) ?~~ **Non : à la main du capitaine.** L'outil n'a
-  pas les mails — voir Notes.
+  ([[016__socle__envoi-de-mail.tech]]) ?~~ **Non : à la main du capitaine.**
+  L'outil n'a pas les mails — voir Notes.
 - Le lien du questionnaire est-il stocké par journée d'interclub ?
 
 ## Notes
 
 **Bado n'a pas les mails des coéquipiers.**
-[[005__liste-des-membres-de-l-equipe]] a retiré le mail de la fiche d'équipe :
-myffbad ne publie pas les coordonnées de ses licenciés, et une colonne sans
-usage ne se stocke pas. « Relancer les silencieux » ne peut donc pas partir de
-l'outil — c'est un geste manuel, par téléphone ou par le fil du club, et
-l'outil se borne à afficher qui n'a pas répondu. Rouvrir la question suppose de
-remettre une colonne mail dans l'import.
+[[005__capitanat__liste-des-membres-de-l-equipe.feat]] a retiré le mail de la
+fiche d'équipe : myffbad ne publie pas les coordonnées de ses licenciés, et une
+colonne sans usage ne se stocke pas. « Relancer les silencieux » ne peut donc
+pas partir de l'outil — c'est un geste manuel, par téléphone ou par le fil du
+club, et l'outil se borne à afficher qui n'a pas répondu. Rouvrir la question
+suppose de remettre une colonne mail dans l'import.
 
-Alimente [[011__composition-de-journee]] et
-[[009__taux-de-sollicitation]]. **N'appelle plus [[016__envoi-de-mail]]** : ce
-lien datait de la version où l'outil relançait lui-même les silencieux, que la
-question barrée ci-dessus a écartée. Sans adresse en base, il n'y a rien à
-envoyer — la brique de mail reste utile ailleurs, pas ici.
+Alimente [[011__capitanat__composition-de-journee.feat]] et
+[[009__capitanat__taux-de-sollicitation.feat]]. **N'appelle plus
+[[016__socle__envoi-de-mail.tech]]** : ce lien datait de la version où l'outil
+relançait lui-même les silencieux, que la question barrée ci-dessus a écartée.
+Sans adresse en base, il n'y a rien à envoyer — la brique de mail reste utile
+ailleurs, pas ici.

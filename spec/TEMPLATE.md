@@ -1,7 +1,8 @@
 # Titre
 
 > Copier ce fichier sous le nom `id__module__mon-titre.<type>.md`, directement
-> dans le dossier d'état — ex. `spec/1. backlog/042__veille__import-csv.feat.md`.
+> dans le dossier d'état — ex.
+> `spec/1. backlog/042__veille__import-csv.feat.md`.
 > La spec se déplace de dossier d'état en dossier d'état, en gardant son nom :
 > seul l'état est une arborescence, parce que seul l'état change. Module et type
 > tiennent dans le nom, pour qu'un état se lise d'un coup d'œil.

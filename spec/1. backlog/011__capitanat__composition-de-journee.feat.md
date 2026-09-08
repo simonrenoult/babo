@@ -41,7 +41,8 @@ ensuite si le besoin se confirme.
 ## Notes
 
 Le cœur de valeur du module. Dépend de
-[[008__disponibilites-interclubs]], [[010__tableaux-preferes]] et
-[[028__nom-et-classement-de-l-equipe]] — les contraintes réglementaires
-s'ordonnent par classement, et le sexe qu'elles supposent vient du CSV de
-[[005__liste-des-membres-de-l-equipe]].
+[[008__capitanat__disponibilites-interclubs.feat]],
+[[010__capitanat__tableaux-preferes.feat]] et
+[[028__capitanat__nom-et-classement-de-l-equipe.feat]] — les contraintes
+réglementaires s'ordonnent par classement, et le sexe qu'elles supposent vient
+du CSV de [[005__capitanat__liste-des-membres-de-l-equipe.feat]].

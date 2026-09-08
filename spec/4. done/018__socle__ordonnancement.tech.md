@@ -9,12 +9,12 @@
 ## Contexte
 
 Plusieurs traitements doivent se déclencher seuls : les deux scrapings
-quotidiens de [[015__source-de-donnees]], la passe de classement de
-[[001__classement]] — hebdomadaire, le vendredi à 1 h du matin, parce que le
-CPPH est publié une fois par semaine —, le battement hebdomadaire de
-[[019__robustesse-du-scraping]], l'alerte de veille qui suit chaque indexation
-([[013__alerte-nouveau-tournoi]]), et les rappels échelonnés de
-[[014__rappel-ouverture-tournoi]].
+quotidiens de [[015__socle__source-de-donnees.tech]], la passe de classement de
+[[001__mon-profil__classement.feat]] — hebdomadaire, le vendredi à 1 h du matin,
+parce que le CPPH est publié une fois par semaine —, le battement hebdomadaire
+de [[019__socle__robustesse-du-scraping.tech]], l'alerte de veille qui suit
+chaque indexation ([[013__veille__alerte-nouveau-tournoi.feat]]), et les rappels
+échelonnés de [[014__veille__rappel-ouverture-tournoi.feat]].
 
 Aucune spec ne dit qui les déclenche.
 
@@ -41,8 +41,9 @@ redéploiement.
 
 Contraintes :
 
-- Fréquences et échéances persistées en base ([[017__persistance-sqlite]]) :
-  un redémarrage ne doit ni perdre un rappel, ni le renvoyer.
+- Fréquences et échéances persistées en base
+  ([[017__socle__persistance-sqlite.tech]]) : un redémarrage ne doit ni perdre
+  un rappel, ni le renvoyer.
 - Les sources sont ordonnancées séparément : un scraping myffbad en échec, par
   exemple faute de session valide, n'empêche pas l'indexation badnet.
 - Battement hebdomadaire à jour et heure fixes, pour que son absence se
@@ -99,7 +100,7 @@ y renoncer coûte une semaine — et l'appliquer aussi au quotidien ne coûte ri
   la même passe indéfiniment, trois fois par redémarrage.
 - Qu'est-ce qui garantit le redémarrage automatique de l'application, et qui
   n'est donc pas dans l'application elle-même ? Tranché par
-  [[020__architecture-applicative]] : un service supervisé.
+  [[020__socle__architecture-applicative.tech]] : un service supervisé.
 
 ## Notes
 
@@ -108,15 +109,17 @@ automatique. Tant qu'elle est arrêtée, plus rien ne s'exécute et rien ne
 prévient — l'absence du battement hebdomadaire reste le seul indice. Risque
 accepté.
 
-Utilisé par [[015__source-de-donnees]], [[019__robustesse-du-scraping]],
-[[013__alerte-nouveau-tournoi]] et [[014__rappel-ouverture-tournoi]].
+Utilisé par [[015__socle__source-de-donnees.tech]],
+[[019__socle__robustesse-du-scraping.tech]],
+[[013__veille__alerte-nouveau-tournoi.feat]] et
+[[014__veille__rappel-ouverture-tournoi.feat]].
 
-~~Bloque [[001__classement]]~~ : 001 était faite, sauf son déclencheur. Sa passe
-— `releverLesClassements`, dans `socle/core/passe-classement.ts` — consigne son
-rapport sous la tâche `acquisition:myffbad`, et c'est sous ce nom que le
-planificateur l'ordonnance : l'identifiant d'une tâche est celui de son rapport,
-ce qui met la prochaine échéance en regard de la dernière exécution sans table
-de correspondance.
+~~Bloque [[001__mon-profil__classement.feat]]~~ : 001 était faite, sauf son
+déclencheur. Sa passe — `releverLesClassements`, dans
+`socle/core/passe-classement.ts` — consigne son rapport sous la tâche
+`acquisition:myffbad`, et c'est sous ce nom que le planificateur l'ordonnance :
+l'identifiant d'une tâche est celui de son rapport, ce qui met la prochaine
+échéance en regard de la dernière exécution sans table de correspondance.
 
 Le bouton de `/sources` ne disparaît pas, contrairement à ce que cette note
 prévoyait : il reste en dépannage, pour ne pas avoir à attendre le vendredi

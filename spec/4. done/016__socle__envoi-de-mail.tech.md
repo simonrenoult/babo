@@ -9,10 +9,10 @@
 ## Contexte
 
 Plusieurs specs ont besoin d'envoyer un mail : l'alerte de nouveau tournoi
-[[013__alerte-nouveau-tournoi]], les rappels d'ouverture
-[[014__rappel-ouverture-tournoi]] et le socle lui-même —
-[[019__robustesse-du-scraping]] signale par mail les échecs de scraping et
-émet un battement hebdomadaire.
+[[013__veille__alerte-nouveau-tournoi.feat]], les rappels d'ouverture
+[[014__veille__rappel-ouverture-tournoi.feat]] et le socle lui-même —
+[[019__socle__robustesse-du-scraping.tech]] signale par mail les échecs de
+scraping et émet un battement hebdomadaire.
 
 Aujourd'hui cette brique est décrite dans 013, une spec de feature dont 014 se
 déclare dépendante.
@@ -20,10 +20,10 @@ déclare dépendante.
 ## Problème à résoudre
 
 L'envoi de mail est une dépendance transverse logée dans une feature. Comme 013
-dépend de [[012__recherche-de-tournois]], qui dépend de
-[[015__source-de-donnees]], qui a lui-même besoin d'envoyer des mails, le
-backlog se referme sur lui-même : la brique se retrouve en aval des specs
-qu'elle alimente, et rien ne peut être traité en premier.
+dépend de [[012__veille__recherche-de-tournois.feat]], qui dépend de
+[[015__socle__source-de-donnees.tech]], qui a lui-même besoin d'envoyer des
+mails, le backlog se referme sur lui-même : la brique se retrouve en aval des
+specs qu'elle alimente, et rien ne peut être traité en premier.
 
 Résolu quand un module unique porte l'envoi de mail, que 013, 014 et 015
 l'utilisent sans rien connaître du transport, et qu'un échec d'envoi est
@@ -38,20 +38,21 @@ observable autrement que par un mail.
 - Service tiers avec API. Délivrabilité correcte et échecs remontés
   explicitement, au prix d'un compte externe.
 
-~~À trancher — c'est la seule vraie question de cette spec, et le critère est
-la délivrabilité, pas la simplicité de mise en œuvre.~~ **Le critère s'est
+~~À trancher — c'est la seule vraie question de cette spec, et le critère est la
+délivrabilité, pas la simplicité de mise en œuvre.~~ **Le critère s'est
 effondré, et la question avec lui.** Il était bâti quand des mails partaient
-vers des tiers ; or [[008__disponibilites-interclubs]] a été amendée — Bado n'a
-pas les mails des coéquipiers et ne relance plus personne — et 013 comme 014
-n'écrivent qu'à moi. **Tous les destinataires sont une seule adresse : la
-mienne.** Un mail qu'on s'envoie à soi-même se met en liste blanche une fois, et
-le spam cesse d'être un mode de panne.
+vers des tiers ; or [[008__capitanat__disponibilites-interclubs.feat]] a été
+amendée — Bado n'a pas les mails des coéquipiers et ne relance plus personne —
+et 013 comme 014 n'écrivent qu'à moi. **Tous les destinataires sont une seule
+adresse : la mienne.** Un mail qu'on s'envoie à soi-même se met en liste blanche
+une fois, et le spam cesse d'être un mode de panne.
 
 **Retenu : le SMTP d'un compte Gmail, par `nodemailer`.** Le vrai critère
 n'était plus la délivrabilité mais le coût en dépendances, et `nodemailer` a la
 particularité rare d'être sans aucune dépendance transitive : l'argument qui
-avait fait refuser `jsonwebtoken` et `bcrypt` à [[021__authentification]] ne
-tient pas contre lui, il n'y a pas d'arbre à auditer.
+avait fait refuser `jsonwebtoken` et `bcrypt` à
+[[021__socle__authentification.tech]] ne tient pas contre lui, il n'y a pas
+d'arbre à auditer.
 
 **Port 465, chiffrement déduit du port.** TLS dès le premier octet, sans
 bascule `STARTTLS` en cours de dialogue, donc sans fenêtre où les identifiants
@@ -89,8 +90,8 @@ un risque assumé (015).
   une panne de transport devient une file qui grossit sans fin, et le jour où le
   service revient, quinze alertes périmées partent d'un coup.
 
-  Les délais de [[018__ordonnancement]] — une heure, puis quatre — ne
-  conviennent pas : ils sont calibrés pour une passe dont la donnée est
+  Les délais de [[018__socle__ordonnancement.tech]] — une heure, puis quatre —
+  ne conviennent pas : ils sont calibrés pour une passe dont la donnée est
   simplement périmée, et quatre heures de retard sur une alerte de tournoi,
   c'est l'alerte perdue.
 
@@ -107,11 +108,12 @@ un risque assumé (015).
   tard, la panne durant toujours ; au-delà d'une journée, l'information est
   périmée ou déjà remplacée par le battement hebdomadaire de 019.
 - ~~Une seule adresse de destination (la mienne), ou faut-il déjà prévoir
-  l'envoi aux coéquipiers pour [[008__disponibilites-interclubs]] ?~~ **Une
-  seule adresse, en configuration.** 008 a refermé cette porte : sans colonne
-  mail dans l'import de [[005__liste-des-membres-de-l-equipe]], il n'y a
-  personne d'autre à qui écrire. Prévoir une liste serait construire pour un
-  besoin qu'une spec a écarté par écrit.
+  l'envoi aux coéquipiers pour
+  [[008__capitanat__disponibilites-interclubs.feat]] ?~~ **Une seule adresse, en
+  configuration.** 008 a refermé cette porte : sans colonne mail dans l'import
+  de [[005__capitanat__liste-des-membres-de-l-equipe.feat]], il n'y a personne
+  d'autre à qui écrire. Prévoir une liste serait construire pour un besoin
+  qu'une spec a écarté par écrit.
 
 ## Ce qui a été fait
 
@@ -158,15 +160,16 @@ clair : **TLS n'est pas couvert**, et c'est le trou assumé de ce choix.
 
 ## Notes
 
-Utilisé par [[013__alerte-nouveau-tournoi]],
-[[014__rappel-ouverture-tournoi]] et [[019__robustesse-du-scraping]].
-**Plus par [[008__disponibilites-interclubs]]** : ce lien datait de la version
-où l'outil relançait lui-même les silencieux, que 008 a écartée faute d'adresses
-en base.
+Utilisé par [[013__veille__alerte-nouveau-tournoi.feat]],
+[[014__veille__rappel-ouverture-tournoi.feat]] et
+[[019__socle__robustesse-du-scraping.tech]]. **Plus par
+[[008__capitanat__disponibilites-interclubs.feat]]** : ce lien datait de la
+version où l'outil relançait lui-même les silencieux, que 008 a écartée faute
+d'adresses en base.
 
-Le battement hebdomadaire de [[019__robustesse-du-scraping]] est le seul moyen
-de s'apercevoir que cette brique est morte : sans mail, le silence est
-indiscernable du fonctionnement normal.
+Le battement hebdomadaire de [[019__socle__robustesse-du-scraping.tech]] est le
+seul moyen de s'apercevoir que cette brique est morte : sans mail, le silence
+est indiscernable du fonctionnement normal.
 
-À traiter avec ou avant [[019__robustesse-du-scraping]], qui en est le premier
-appelant.
+À traiter avec ou avant [[019__socle__robustesse-du-scraping.tech]], qui en est
+le premier appelant.

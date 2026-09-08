@@ -35,5 +35,5 @@ Retenue : calcul à la volée.
 
 ## Notes
 
-Dépend de [[003__historique-de-matchs]]. La même mécanique sert à
-[[007__ratio-victoire-defaite-equipe]].
+Dépend de [[003__mon-profil__historique-de-matchs.feat]]. La même mécanique sert
+à [[007__capitanat__ratio-victoire-defaite-equipe.feat]].

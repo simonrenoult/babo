@@ -37,8 +37,8 @@ Chaque donnée a une source et une seule :
 | Tournois : dates, lieu, tableaux, séries, date limite | badnet, **recherche publique** | scraping anonyme | quotidien |
 
 **Corrigé le 2 septembre 2026, deux lignes de ce tableau**
-([[005__liste-des-membres-de-l-equipe]] et
-[[028__nom-et-classement-de-l-equipe]]) :
+([[005__capitanat__liste-des-membres-de-l-equipe.feat]] et
+[[028__capitanat__nom-et-classement-de-l-equipe.feat]]) :
 
 - l'équipe n'est pas un fichier de configuration mais une **table**, alimentée
   par un CSV téléversé depuis `/sources`. Un fichier lu au démarrage serait la
@@ -54,33 +54,33 @@ Chaque donnée a une source et une seule :
 Il n'y a donc aucun arbitrage à faire entre sources, et pas d'interface
 unifiée à écrire : deux modules d'acquisition indépendants, un par site.
 
-Le classement est la seule donnée qui ne se relève pas tous les jours : le
-CPPH est publié une fois par semaine, une passe le vendredi à 1 h du matin
-suffit donc à le suivre ([[001__classement]]). Les matchs et les tournois,
-eux, bougent au fil des jours.
+Le classement est la seule donnée qui ne se relève pas tous les jours : le CPPH
+est publié une fois par semaine, une passe le vendredi à 1 h du matin suffit
+donc à le suivre ([[001__mon-profil__classement.feat]]). Les matchs et les
+tournois, eux, bougent au fil des jours.
 
 Écartés : les fichiers CPPH hebdomadaires et Poona. myffbad couvre le
 classement, y compris celui des coéquipiers, et l'équipe est saisie à la main.
 
 Accès à myffbad :
 
-- Identifiants en variable d'environnement, jamais en base. Le jeton de
-  session, lui, est persisté ([[017__persistance-sqlite]]) : c'est ce qui lui
+- Identifiants en variable d'environnement, jamais en base. Le jeton de session,
+  lui, est persisté ([[017__socle__persistance-sqlite.tech]]) : c'est ce qui lui
   fait survivre aux redémarrages.
 - **Corrigé le 1er septembre 2026 : myffbad n'a pas de 2FA.** Sa page de
   connexion ne demande que licence et mot de passe ; c'est badnet qui en a une,
   et qui le dit sur la sienne. La connexion myffbad est donc probablement
-  automatisable, ce que cette spec excluait à tort — et [[027__engagements-badnet]]
-  tient l'asymétrie à l'envers. Reste à vérifier qu'aucune 2FA ne se déclenche
-  après saisie du mot de passe, sur appareil inconnu : seule une vraie
-  connexion le dira.
-- Le jeton dure un mois (vérifié : `iat` et `exp` du JWT espacés de 30 jours,
-  à date fixe et non glissante). Tant que la connexion n'est pas automatisée,
-  sa reconduction se fait depuis un écran dédié de l'interface.
+  automatisable, ce que cette spec excluait à tort — et
+  [[027__socle__engagements-badnet.tech]] tient l'asymétrie à l'envers. Reste à
+  vérifier qu'aucune 2FA ne se déclenche après saisie du mot de passe, sur
+  appareil inconnu : seule une vraie connexion le dira.
+- Le jeton dure un mois (vérifié : `iat` et `exp` du JWT espacés de 30 jours, à
+  date fixe et non glissante). Tant que la connexion n'est pas automatisée, sa
+  reconduction se fait depuis un écran dédié de l'interface.
 
 L'exploitation quotidienne de ces scrapings — archivage des captures,
 détection des pannes, rapports, ancienneté affichée — relève de
-[[019__robustesse-du-scraping]].
+[[019__socle__robustesse-du-scraping.tech]].
 
 ## Questions
 
@@ -139,8 +139,8 @@ destinée à la carte : c'est elle qu'on lit, et non les cartes, parce qu'elle
 seule porte les coordonnées du gymnase et ne dépend pas de la mise en page.
 
 Les deux visages de badnet restent donc séparés, comme
-[[027__engagements-badnet]] l'exige : un test verrouille que la recherche
-publique ne reçoit jamais de jeton, même quand une session existe. Et
+[[027__socle__engagements-badnet.tech]] l'exige : un test verrouille que la
+recherche publique ne reçoit jamais de jeton, même quand une session existe. Et
 `/competitions` — les engagements, derrière la 2FA — sort du périmètre de cette
 spec pour rejoindre 027 : le sonder sans identifiants ne ferait qu'échouer tous
 les jours, et un rapport qui échoue toujours ne signale plus rien.
@@ -172,8 +172,8 @@ Trois choses acquises en les rejouant :
 - **Le classement est public** : il répond sans session. Cette moitié de
   l'acquisition ne dépend d'aucun jeton, donc d'aucune panne de session.
 - **Les résultats, sans session, rendent `[]` avec un statut 200** — le succès
-  vide que [[019__robustesse-du-scraping]] nomme, et que `issueDuVolume`
-  attrapait déjà avant qu'on sache qu'il surviendrait ici.
+  vide que [[019__socle__robustesse-du-scraping.tech]] nomme, et que
+  `issueDuVolume` attrapait déjà avant qu'on sache qu'il surviendrait ici.
 - **Un identifiant d'action périmé rend `404 Server action not found`** — panne
   franche, donc réparable. Ces identifiants sont datés : ils changent quand
   myffbad redéploie l'action. C'est la seule fragilité qui reste, et elle ne se
@@ -184,23 +184,25 @@ L'écran des sources reste néanmoins nécessaire, pour badnet et sa 2FA — et
 comme dépannage myffbad le jour où un identifiant d'action périmera.
 
 Usage strictement personnel, sur serveur privé. L'application est protégée par
-identifiant et mot de passe ([[021__authentification]]) ; le `noindex` n'est
-qu'un complément, il ne ferme rien par lui-même.
+identifiant et mot de passe ([[021__socle__authentification.tech]]) ; le
+`noindex` n'est qu'un complément, il ne ferme rien par lui-même.
 
 Quand la session myffbad tombe, le scraper s'arrête, le signale par mail, et
 attend une réauthentification depuis l'interface.
 
 Risque de bannissement du compte myffbad : accepté. Un passage par jour.
 
-Dépend de [[017__persistance-sqlite]] pour le jeton de session et de
-[[018__ordonnancement]] pour le déclenchement des passes. Prolongé par
-[[019__robustesse-du-scraping]].
+Dépend de [[017__socle__persistance-sqlite.tech]] pour le jeton de session et de
+[[018__socle__ordonnancement.tech]] pour le déclenchement des passes. Prolongé
+par [[019__socle__robustesse-du-scraping.tech]].
 
 Ordre de traitement : une base minimale, puis la sonde d'accès jusqu'à extraire
 un match et un tournoi réels, puis seulement le schéma définitif — le dessiner
 avant d'avoir vu les pages serait la même erreur que de concevoir une interface
 avant ses adaptateurs.
 
-Bloque [[001__classement]], [[002__prochains-tournois]],
-[[003__historique-de-matchs]], [[028__nom-et-classement-de-l-equipe]] et
-[[012__recherche-de-tournois]]. À traiter en premier.
+Bloque [[001__mon-profil__classement.feat]],
+[[002__mon-profil__prochains-tournois.feat]],
+[[003__mon-profil__historique-de-matchs.feat]],
+[[028__capitanat__nom-et-classement-de-l-equipe.feat]] et
+[[012__veille__recherche-de-tournois.feat]]. À traiter en premier.
