@@ -123,7 +123,7 @@ porteur de l'authentification sans la décrire.
 ~~Bloque la mise en ligne~~ : faite. `socle/core/authentification.ts` porte la
 politique, `jeton-hmac.ts` et `mot-de-passe-scrypt.ts` le chiffrement,
 `routeur-connexion.ts` le garde et le formulaire, `migrations/008__compte.sql`
-le compte unique. Voir [ARCHITECTURE.md](../../../ARCHITECTURE.md), section
+le compte unique. Voir [ARCHITECTURE.md](../../ARCHITECTURE.md), section
 « La porte ».
 
 Deux décisions prises en écrivant, que la spec ne posait pas :

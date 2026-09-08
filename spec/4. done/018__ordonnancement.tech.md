@@ -126,4 +126,4 @@ Fait. `socle/core/ordonnancement.ts` porte les cadences, la fenêtre de grâce,
 les réessais et la boucle de réveil ; `depot-reglages-sqlite.ts` et
 `depot-echeances-sqlite.ts` les persistent ; `migrations/007__ordonnancement.sql`
 crée les deux tables ; `/sources` affiche et règle. Voir
-[ARCHITECTURE.md](../../../ARCHITECTURE.md), section « Le planificateur ».
+[ARCHITECTURE.md](../../ARCHITECTURE.md), section « Le planificateur ».

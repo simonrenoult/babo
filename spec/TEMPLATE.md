@@ -1,8 +1,10 @@
 # Titre
 
-> Copier ce fichier sous le nom `id__mon-titre.md` (ex. `042__import-csv.md`),
-> dans `<état>/<type>/` — ex. `spec/1. backlog/feat/042__import-csv.md`.
-> La spec se déplace de dossier d'état en dossier d'état, en gardant son type.
+> Copier ce fichier sous le nom `id__mon-titre.<type>.md`, directement dans le
+> dossier d'état — ex. `spec/1. backlog/042__import-csv.feat.md`.
+> La spec se déplace de dossier d'état en dossier d'état, en gardant son nom :
+> le type est dans le fichier, pas dans l'arborescence, pour qu'un état se lise
+> d'un coup d'œil.
 
 | Champ  | Valeur                                |
 |--------|---------------------------------------|
