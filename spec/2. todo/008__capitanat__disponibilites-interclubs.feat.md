@@ -1,11 +1,11 @@
 # Collecter les disponibilités aux interclubs
 
-| Champ   | Valeur                                                     |
-|---------|------------------------------------------------------------|
-| id      | 008                                                        |
-| module  | capitanat                                                  |
-| type    | feat                                                       |
-| bloquée | ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]]~~ |
+| Champ       | Valeur                                                     |
+|-------------|------------------------------------------------------------|
+| id          | 008                                                        |
+| module      | capitanat                                                  |
+| type        | feat                                                       |
+| bloquée par | ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]]~~ |
 
 ## Contexte
 

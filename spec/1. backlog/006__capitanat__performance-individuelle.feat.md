@@ -1,11 +1,11 @@
 # Suivre la performance individuelle des joueurs
 
-| Champ   | Valeur                                                                                                                                                             |
-|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| id      | 006                                                                                                                                                                |
-| module  | capitanat                                                                                                                                                          |
-| type    | feat                                                                                                                                                               |
-| bloquée | [[003__mon-profil__historique-de-matchs.feat]], ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[028__capitanat__nom-et-classement-de-l-equipe.feat]]~~ |
+| Champ       | Valeur                                                                                                                                                             |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| id          | 006                                                                                                                                                                |
+| module      | capitanat                                                                                                                                                          |
+| type        | feat                                                                                                                                                               |
+| bloquée par | [[003__mon-profil__historique-de-matchs.feat]], ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[028__capitanat__nom-et-classement-de-l-equipe.feat]]~~ |
 
 ## Contexte
 

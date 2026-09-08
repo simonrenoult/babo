@@ -1,11 +1,11 @@
 # Ranger le code par feature plutôt que par couche
 
-| Champ   | Valeur |
-|---------|--------|
-| id      | 032    |
-| module  | socle  |
-| type    | tech   |
-| bloquée | —      |
+| Champ       | Valeur |
+|-------------|--------|
+| id          | 032    |
+| module      | socle  |
+| type        | tech   |
+| bloquée par | —      |
 
 > Ébauche : la découpe visée est esquissée, le partagé intra-module n'est pas
 > tranché.

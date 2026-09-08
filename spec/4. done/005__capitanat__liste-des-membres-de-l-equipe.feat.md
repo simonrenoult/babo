@@ -1,11 +1,11 @@
 # Lister les membres de mon équipe
 
-| Champ   | Valeur    |
-|---------|-----------|
-| id      | 005       |
-| module  | capitanat |
-| type    | feat      |
-| bloquée | —         |
+| Champ       | Valeur    |
+|-------------|-----------|
+| id          | 005       |
+| module      | capitanat |
+| type        | feat      |
+| bloquée par | —         |
 
 ## Contexte
 

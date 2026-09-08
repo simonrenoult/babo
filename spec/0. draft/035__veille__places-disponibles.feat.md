@@ -1,11 +1,11 @@
 # Écarter les tournois déjà complets
 
-| Champ   | Valeur                                      |
-|---------|---------------------------------------------|
-| id      | 035                                         |
-| module  | veille                                      |
-| type    | feat                                        |
-| bloquée | [[012__veille__recherche-de-tournois.feat]] |
+| Champ       | Valeur                                      |
+|-------------|---------------------------------------------|
+| id          | 035                                         |
+| module      | veille                                      |
+| type        | feat                                        |
+| bloquée par | [[012__veille__recherche-de-tournois.feat]] |
 
 ## Contexte
 

@@ -1,11 +1,11 @@
 # Aider à la saisie des compositions de journée
 
-| Champ   | Valeur                                                                                                                                                                                                             |
-|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| id      | 011                                                                                                                                                                                                                |
-| module  | capitanat                                                                                                                                                                                                          |
-| type    | feat                                                                                                                                                                                                               |
-| bloquée | [[008__capitanat__disponibilites-interclubs.feat]], [[010__capitanat__tableaux-preferes.feat]], ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[028__capitanat__nom-et-classement-de-l-equipe.feat]]~~ |
+| Champ       | Valeur                                                                                                                                                                                                             |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| id          | 011                                                                                                                                                                                                                |
+| module      | capitanat                                                                                                                                                                                                          |
+| type        | feat                                                                                                                                                                                                               |
+| bloquée par | [[008__capitanat__disponibilites-interclubs.feat]], [[010__capitanat__tableaux-preferes.feat]], ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[028__capitanat__nom-et-classement-de-l-equipe.feat]]~~ |
 
 ## Contexte
 

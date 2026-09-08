@@ -1,11 +1,11 @@
 # Afficher l'évolution de mon classement
 
-| Champ   | Valeur                                   |
-|---------|------------------------------------------|
-| id      | 024                                      |
-| module  | mon-profil                               |
-| type    | feat                                     |
-| bloquée | ~~[[001__mon-profil__classement.feat]]~~ |
+| Champ       | Valeur                                   |
+|-------------|------------------------------------------|
+| id          | 024                                      |
+| module      | mon-profil                               |
+| type        | feat                                     |
+| bloquée par | ~~[[001__mon-profil__classement.feat]]~~ |
 
 ## Contexte
 

@@ -7,12 +7,12 @@
 > seul l'état est une arborescence, parce que seul l'état change. Module et type
 > tiennent dans le nom, pour qu'un état se lise d'un coup d'œil.
 
-| Champ   | Valeur                                      |
-|---------|---------------------------------------------|
-| id      | `000` — `999`, unique, sur 3 chiffres       |
-| module  | nom du module concerné                      |
-| type    | voir ci-dessous                             |
-| bloquée | les specs à finir d'abord, ou `—` si aucune |
+| Champ       | Valeur                                      |
+|-------------|---------------------------------------------|
+| id          | `000` — `999`, unique, sur 3 chiffres       |
+| module      | nom du module concerné                      |
+| type        | voir ci-dessous                             |
+| bloquée par | les specs à finir d'abord, ou `—` si aucune |
 
 Les specs bloquantes se listent par leur renvoi complet, séparées par une
 virgule — ex. `[[015__socle__source-de-donnees.tech]],

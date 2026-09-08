@@ -1,11 +1,11 @@
 # Calculer le ratio victoire/défaite de l'équipe
 
-| Champ   | Valeur                                         |
-|---------|------------------------------------------------|
-| id      | 007                                            |
-| module  | capitanat                                      |
-| type    | feat                                           |
-| bloquée | [[003__mon-profil__historique-de-matchs.feat]] |
+| Champ       | Valeur                                         |
+|-------------|------------------------------------------------|
+| id          | 007                                            |
+| module      | capitanat                                      |
+| type        | feat                                           |
+| bloquée par | [[003__mon-profil__historique-de-matchs.feat]] |
 
 ## Contexte
 

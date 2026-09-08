@@ -1,11 +1,11 @@
 # Découper l'écran des sources en sous-pages
 
-| Champ   | Valeur |
-|---------|--------|
-| id      | 033    |
-| module  | socle  |
-| type    | tech   |
-| bloquée | —      |
+| Champ       | Valeur |
+|-------------|--------|
+| id          | 033    |
+| module      | socle  |
+| type        | tech   |
+| bloquée par | —      |
 
 > Ébauche : le problème est mesuré, la découpe est esquissée, l'axe n'est pas
 > tranché.

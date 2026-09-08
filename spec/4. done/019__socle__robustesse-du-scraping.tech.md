@@ -1,11 +1,11 @@
 # Rendre les scrapings observables et rejouables
 
-| Champ   | Valeur                                                                                                               |
-|---------|----------------------------------------------------------------------------------------------------------------------|
-| id      | 019                                                                                                                  |
-| module  | socle                                                                                                                |
-| type    | tech                                                                                                                 |
-| bloquée | ~~[[016__socle__envoi-de-mail.tech]], [[017__socle__persistance-sqlite.tech]], [[018__socle__ordonnancement.tech]]~~ |
+| Champ       | Valeur                                                                                                               |
+|-------------|----------------------------------------------------------------------------------------------------------------------|
+| id          | 019                                                                                                                  |
+| module      | socle                                                                                                                |
+| type        | tech                                                                                                                 |
+| bloquée par | ~~[[016__socle__envoi-de-mail.tech]], [[017__socle__persistance-sqlite.tech]], [[018__socle__ordonnancement.tech]]~~ |
 
 ## Contexte
 

@@ -1,11 +1,11 @@
 # Découper le code en modules hexagonaux
 
-| Champ   | Valeur |
-|---------|--------|
-| id      | 022    |
-| module  | socle  |
-| type    | tech   |
-| bloquée | —      |
+| Champ       | Valeur |
+|-------------|--------|
+| id          | 022    |
+| module      | socle  |
+| type        | tech   |
+| bloquée par | —      |
 
 ## Contexte
 

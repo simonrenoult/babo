@@ -1,11 +1,11 @@
 # Lister mes prochains tournois
 
-| Champ   | Valeur                                                                              |
-|---------|-------------------------------------------------------------------------------------|
-| id      | 002                                                                                 |
-| module  | mon-profil                                                                          |
-| type    | feat                                                                                |
-| bloquée | ~~[[015__socle__source-de-donnees.tech]], [[027__socle__engagements-badnet.tech]]~~ |
+| Champ       | Valeur                                                                              |
+|-------------|-------------------------------------------------------------------------------------|
+| id          | 002                                                                                 |
+| module      | mon-profil                                                                          |
+| type        | feat                                                                                |
+| bloquée par | ~~[[015__socle__source-de-donnees.tech]], [[027__socle__engagements-badnet.tech]]~~ |
 
 ## Contexte
 

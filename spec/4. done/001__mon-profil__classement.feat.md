@@ -1,11 +1,11 @@
 # Afficher mon classement
 
-| Champ   | Valeur                                                                                                                                    |
-|---------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| id      | 001                                                                                                                                       |
-| module  | mon-profil                                                                                                                                |
-| type    | feat                                                                                                                                      |
-| bloquée | ~~[[015__socle__source-de-donnees.tech]], [[018__socle__ordonnancement.tech]], [[025__mon-profil__renommage-du-module-profil.refactor]]~~ |
+| Champ       | Valeur                                                                                                                                    |
+|-------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| id          | 001                                                                                                                                       |
+| module      | mon-profil                                                                                                                                |
+| type        | feat                                                                                                                                      |
+| bloquée par | ~~[[015__socle__source-de-donnees.tech]], [[018__socle__ordonnancement.tech]], [[025__mon-profil__renommage-du-module-profil.refactor]]~~ |
 
 ## Contexte
 

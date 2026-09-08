@@ -1,11 +1,11 @@
 # Lire la fiche publique d'un tournoi sans gymnase
 
-| Champ   | Valeur |
-|---------|--------|
-| id      | 036    |
-| module  | socle  |
-| type    | fix    |
-| bloquée | —      |
+| Champ       | Valeur |
+|-------------|--------|
+| id          | 036    |
+| module      | socle  |
+| type        | fix    |
+| bloquée par | —      |
 
 ## Contexte
 

@@ -1,11 +1,11 @@
 # Identifier les sources de données
 
-| Champ   | Valeur                                                                           |
-|---------|----------------------------------------------------------------------------------|
-| id      | 015                                                                              |
-| module  | socle                                                                            |
-| type    | tech                                                                             |
-| bloquée | ~~[[017__socle__persistance-sqlite.tech]], [[018__socle__ordonnancement.tech]]~~ |
+| Champ       | Valeur                                                                           |
+|-------------|----------------------------------------------------------------------------------|
+| id          | 015                                                                              |
+| module      | socle                                                                            |
+| type        | tech                                                                             |
+| bloquée par | ~~[[017__socle__persistance-sqlite.tech]], [[018__socle__ordonnancement.tech]]~~ |
 
 ## Contexte
 

@@ -1,11 +1,11 @@
 # Voir mes forces tableau par tableau
 
-| Champ   | Valeur                                                                                                             |
-|---------|--------------------------------------------------------------------------------------------------------------------|
-| id      | 029                                                                                                                |
-| module  | capitanat                                                                                                          |
-| type    | feat                                                                                                               |
-| bloquée | ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[028__capitanat__nom-et-classement-de-l-equipe.feat]]~~ |
+| Champ       | Valeur                                                                                                             |
+|-------------|--------------------------------------------------------------------------------------------------------------------|
+| id          | 029                                                                                                                |
+| module      | capitanat                                                                                                          |
+| type        | feat                                                                                                               |
+| bloquée par | ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[028__capitanat__nom-et-classement-de-l-equipe.feat]]~~ |
 
 ## Contexte
 

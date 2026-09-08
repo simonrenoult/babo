@@ -1,11 +1,11 @@
 # Envoyer des mails depuis l'application
 
-| Champ   | Valeur                                      |
-|---------|---------------------------------------------|
-| id      | 016                                         |
-| module  | socle                                       |
-| type    | tech                                        |
-| bloquée | ~~[[017__socle__persistance-sqlite.tech]]~~ |
+| Champ       | Valeur                                      |
+|-------------|---------------------------------------------|
+| id          | 016                                         |
+| module      | socle                                       |
+| type        | tech                                        |
+| bloquée par | ~~[[017__socle__persistance-sqlite.tech]]~~ |
 
 ## Contexte
 

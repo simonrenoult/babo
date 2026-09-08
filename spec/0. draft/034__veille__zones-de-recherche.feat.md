@@ -1,11 +1,11 @@
 # Décrire le périmètre d'une veille autrement qu'en kilomètres
 
-| Champ   | Valeur                                      |
-|---------|---------------------------------------------|
-| id      | 034                                         |
-| module  | veille                                      |
-| type    | feat                                        |
-| bloquée | [[012__veille__recherche-de-tournois.feat]] |
+| Champ       | Valeur                                      |
+|-------------|---------------------------------------------|
+| id          | 034                                         |
+| module      | veille                                      |
+| type        | feat                                        |
+| bloquée par | [[012__veille__recherche-de-tournois.feat]] |
 
 ## Contexte
 
