@@ -1,10 +1,10 @@
 # Architecture
 
 Ce document décrit ce qui est en place. Il ne remplace pas les specs
-[020](<spec/4. done/020__architecture-applicative.tech.md>),
-[017](<spec/4. done/017__persistance-sqlite.tech.md>),
-[022](<spec/4. done/022__decoupage-du-code.tech.md>) et
-[015](<spec/4. done/015__source-de-donnees.tech.md>), qui portent les décisions
+[020](<spec/4. done/020__socle__architecture-applicative.tech.md>),
+[017](<spec/4. done/017__socle__persistance-sqlite.tech.md>),
+[022](<spec/4. done/022__socle__decoupage-du-code.tech.md>) et
+[015](<spec/4. done/015__socle__source-de-donnees.tech.md>), qui portent les décisions
 et leurs raisons.
 
 ## La forme de l'application
