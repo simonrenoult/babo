@@ -746,4 +746,13 @@ désormais observées, et la sauvegarde (023).
 
 L'index de tournois de 012 : la table `tournoi` existe, mais elle ne se remplit
 que depuis mes engagements. La recherche publique, elle, est instrumentée depuis
-015 et n'écrit encore rien.
+015 et n'écrit encore rien. 012 en fait désormais des **veilles nommées** — cinq
+au plus, chacune avec sa collecte quotidienne, sa zone, sa fenêtre et ses
+séries —, partageant la table `tournoi` et n'ayant en propre qu'une appartenance
+datée.
+
+Un défaut connu, en attendant : la passe des lieux échoue sur un tournoi dont
+l'organisateur n'a pas saisi de gymnase — la carte « Gymnases » ne porte alors
+aucune `<table>` et la lecture déborde du bloc. La fiche publique a une
+enveloppe que le code n'exploite pas encore, et qui donne la ville et les dates
+en ISO ; c'est par là que passe le correctif (036).

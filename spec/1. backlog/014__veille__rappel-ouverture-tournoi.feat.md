@@ -32,8 +32,22 @@ Retenue : rappels échelonnés, avec des délais par défaut modifiables.
 
 ## Questions
 
-- La date d'ouverture des inscriptions est-elle publiée de façon fiable ?
+- ~~La date d'ouverture des inscriptions est-elle publiée de façon fiable ?~~
+  **Oui, tranché le 8 septembre 2026.** Elle n'est ni dans la recherche ni dans
+  l'onglet « Présentation », mais sur l'**enveloppe** de la fiche publique —
+  celle que [[036__socle__fiche-publique-sans-gymnase.fix]] met en service :
+  `div.limit > p > span` porte « Ouverture des inscriptions 01/09/2026 08:00 »
+  et « Fermeture 01/11/2026 23:59 », **à l'heure près**. C'est ce qui rend cette
+  spec réalisable : « les places partent dans les heures qui suivent
+  l'ouverture » ne se planifie pas sur une date sans heure.
 - Comment l'outil sait-il que je me suis inscrit, pour arrêter les rappels ?
+  Piste : le rapprochement avec les engagements de
+  [[027__socle__engagements-badnet.tech]], qui portent le même identifiant
+  d'événement que l'index de 012.
+- Un tournoi suivi dont la veille qui me l'a fait connaître se resserre garde-t-il
+  ses rappels ? Oui : 012 sépare l'appartenance à une veille — qui se termine —
+  du tournoi lui-même, qui reste. C'est nommément pour cette spec que la
+  distinction a été faite.
 
 ## Notes
 

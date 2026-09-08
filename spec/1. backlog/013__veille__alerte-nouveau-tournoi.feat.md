@@ -53,12 +53,34 @@ même trou.
 
 L'envoi lui-même relève de [[016__socle__envoi-de-mail.tech]].
 
+**Une alerte par veille — amendé le 8 septembre 2026.** 012 ne porte plus un jeu
+de critères mais des **veilles nommées**, cinq au plus. « Déjà alerté » est donc
+un fait du couple (veille, tournoi), et non du tournoi seul : deux veilles qui se
+recouvrent alertent chacune la première fois qu'elles voient un tournoi, sans
+quoi la seconde créée serait muette sur tout ce que la première a déjà vu. Un
+mail par veille, dont le nom — « DH avec Louis » — est ce qui dit *pourquoi* ce
+tournoi m'est signalé. C'est la colonne `alerte_le` de la table d'appartenance
+que 012 met en place, et elle appartient à cette spec.
+
+Le rattrapage se déclenche donc à chaque **veille nouvelle**, et non plus
+seulement au premier démarrage : 012 a retenu une collecte badnet par veille,
+donc une veille créée découvre d'un coup tout un catalogue publié depuis des
+mois. C'est exactement le trou que la règle ci-dessus rebouche.
+
 ## Questions
 
 - Que se passe-t-il si un tournoi déjà notifié change de date ou de tableaux ?
-- Comment reconnaît-on un tournoi « nouvellement publié » : badnet expose-t-il
-  une date de publication, ou faut-il se fier à sa première apparition dans
-  l'index ?
+- ~~Comment reconnaît-on un tournoi « nouvellement publié » ?~~ **Tranché** :
+  badnet n'expose aucune date de publication — la sonde du 8 septembre 2026 a
+  relevé les quatorze clés de son JSON, aucune n'en porte. C'est donc la
+  **première apparition dans l'index** qui fait foi, `vu_le` sur la ligne
+  d'appartenance de 012. Corollaire à assumer : un tournoi absent d'une réponse
+  badnet un matin puis présent le lendemain ne doit pas repasser pour nouveau —
+  d'où l'appartenance datée plutôt qu'une ligne effacée et réécrite.
+- Un tournoi qui ne déclare **aucun** tableau — deux sur quarante-six, selon la
+  sonde — alerte-t-il ? Ce sont précisément les fraîchement publiés, donc ceux
+  que cette spec vise ; mais on ne peut pas dire qu'ils correspondent aux
+  critères, seulement qu'ils ne les contredisent pas encore.
 
 ## Notes
 

@@ -201,6 +201,19 @@ traitée la paiera pour l'autre ». 002 est passée devant et n'a écrit que le 
 et les journées ; 012 y ajoutera la date limite, les tableaux proposés et les
 classements admis.
 
+**Amendé le 8 septembre 2026, par 012.** La table reste unique et partagée — une
+veille ne duplique pas un tournoi qu'une autre voit déjà —, mais `gymnase` et
+`adresse` deviennent **nullables** : la recherche badnet ne les donne pas, et
+l'index porte des tournois dont aucune fiche n'a encore été relevée. Ce qui est
+propre à une veille vit dans une table d'appartenance, jamais sur le tournoi.
+
+**Et la passe des lieux s'élargit.** `acquisition:badnet:tournois` ne sert plus
+les seuls engagements : elle relève désormais toute fiche manquante, qu'elle
+soit réclamée par une inscription ou par une veille, plafonnée à une centaine
+par passage. Deux passes se disputeraient les mêmes lignes et relèveraient deux
+fois la même fiche le même matin. Le « douze tournois par saison au plus » qui
+justifiait son plafond ne tient donc plus.
+
 Vérifié contre le vrai badnet le 5 septembre : `1 lieu(x) relevé(s) sur 1`,
 `50750 → Courbevoie | Armand Silvestre | 2026-10-24, 2026-10-25`.
 
@@ -213,3 +226,10 @@ Vérifié contre le vrai badnet le 5 septembre : `1 lieu(x) relevé(s) sur 1`,
   relevé » que le dernier mot d'une rue. Aucun cas observé à ce jour.
 - **`ACTION_RECHERCHE` reste la seule action écrite en dur** du projet, et elle
   appartient à 012.
+- **Un tournoi sans gymnase saisi fait échouer la passe.** Découvert le
+  8 septembre 2026 : la carte « Gymnases » ne porte alors aucune `<table>`, la
+  regex déborde du bloc, et `FichePubliqueIllisible` est levée sur un tournoi
+  parfaitement normal. Corrigé par
+  [[036__socle__fiche-publique-sans-gymnase.fix]], qui bascule le lieu et les
+  journées sur l'enveloppe de la fiche — dates en ISO, ville nommée — et ne
+  garde la carte que pour l'adresse précise.

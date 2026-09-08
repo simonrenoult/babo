@@ -93,3 +93,14 @@ son jeton de session. À traiter avec ou avant — mais seulement pour ce qui do
 exister tout de suite : le jeton et les captures. Le schéma des matchs et des
 tournois se dessine après la sonde de 015, sur des pages réellement observées,
 pas avant.
+
+**Le schéma des tournois, dessiné en deux temps.**
+[[002__mon-profil__prochains-tournois.feat]] a posé `tournoi` et
+`tournoi_journee` le 5 septembre 2026, pour ses seuls engagements ;
+[[012__veille__recherche-de-tournois.feat]] les élargit le 8 septembre — colonnes
+de la recherche ajoutées, `gymnase` et `adresse` rendues nullables, et une table
+d'appartenance `(veille, tournoi)` à côté des veilles elles-mêmes. L'ordre voulu
+par 015 — la sonde d'abord, le schéma ensuite — a tenu jusqu'au bout : chaque
+colonne vient d'une page observée.
+
+Celui des matchs reste seul à dessiner.
