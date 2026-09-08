@@ -7,11 +7,19 @@
 > seul l'état est une arborescence, parce que seul l'état change. Module et type
 > tiennent dans le nom, pour qu'un état se lise d'un coup d'œil.
 
-| Champ  | Valeur                                |
-|--------|---------------------------------------|
-| id     | `000` — `999`, unique, sur 3 chiffres |
-| module | nom du module concerné                |
-| type   | voir ci-dessous                       |
+| Champ   | Valeur                                      |
+|---------|---------------------------------------------|
+| id      | `000` — `999`, unique, sur 3 chiffres       |
+| module  | nom du module concerné                      |
+| type    | voir ci-dessous                             |
+| bloquée | les specs à finir d'abord, ou `—` si aucune |
+
+Les specs bloquantes se listent par leur renvoi complet, séparées par une
+virgule — ex. `[[015__socle__source-de-donnees.tech]],
+[[017__socle__persistance-sqlite.tech]]`. Une seule raison de figurer là :
+sans elle, celle-ci ne peut pas commencer. Une spec qu'on préférerait faire
+avant n'est pas bloquante — c'est un ordre, et l'ordre se lit dans le backlog.
+Un blocage levé se raye dans le tableau plutôt que d'y rester à mentir.
 
 Types : `feat` (nouvelle capacité), `fix` (correctif), `refactor` (même
 comportement, meilleure forme), `tech` (chantier de socle : choix
