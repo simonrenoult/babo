@@ -1,10 +1,11 @@
 # Saisir des paires et marquer celles que je privilégie
 
-| Champ  | Valeur    |
-|--------|-----------|
-| id     | 030       |
-| module | capitanat |
-| type   | feat      |
+| Champ   | Valeur                                          |
+|---------|-------------------------------------------------|
+| id      | 030                                             |
+| module  | capitanat                                       |
+| type    | feat                                            |
+| bloquée | ~~[[029__capitanat__forces-par-tableau.feat]]~~ |
 
 ## Contexte
 

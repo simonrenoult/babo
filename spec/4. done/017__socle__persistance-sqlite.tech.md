@@ -1,10 +1,11 @@
 # Stocker l'état de l'application dans une base SQLite unique
 
-| Champ  | Valeur |
-|--------|--------|
-| id     | 017    |
-| module | socle  |
-| type   | tech   |
+| Champ   | Valeur |
+|---------|--------|
+| id      | 017    |
+| module  | socle  |
+| type    | tech   |
+| bloquée | —      |
 
 ## Contexte
 

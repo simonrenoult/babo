@@ -1,10 +1,11 @@
 # Poser la forme de l'application
 
-| Champ  | Valeur |
-|--------|--------|
-| id     | 020    |
-| module | socle  |
-| type   | tech   |
+| Champ   | Valeur |
+|---------|--------|
+| id      | 020    |
+| module  | socle  |
+| type    | tech   |
+| bloquée | —      |
 
 ## Contexte
 

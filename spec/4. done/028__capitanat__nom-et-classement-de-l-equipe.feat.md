@@ -1,10 +1,11 @@
 # Afficher le nom et le classement des membres de l'équipe
 
-| Champ  | Valeur     |
-|--------|------------|
-| id     | 028        |
-| module | capitanat  |
-| type   | feat       |
+| Champ   | Valeur                                                                                             |
+|---------|----------------------------------------------------------------------------------------------------|
+| id      | 028                                                                                                |
+| module  | capitanat                                                                                          |
+| type    | feat                                                                                               |
+| bloquée | ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]], [[015__socle__source-de-donnees.tech]]~~ |
 
 ## Contexte
 

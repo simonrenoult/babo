@@ -1,10 +1,11 @@
 # Mesurer le taux de sollicitation aux interclubs
 
-| Champ  | Valeur     |
-|--------|------------|
-| id     | 009        |
-| module | capitanat  |
-| type   | feat       |
+| Champ   | Valeur                                                                                              |
+|---------|-----------------------------------------------------------------------------------------------------|
+| id      | 009                                                                                                 |
+| module  | capitanat                                                                                           |
+| type    | feat                                                                                                |
+| bloquée | [[008__capitanat__disponibilites-interclubs.feat]], [[011__capitanat__composition-de-journee.feat]] |
 
 ## Contexte
 

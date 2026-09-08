@@ -1,10 +1,11 @@
 # Consulter mon historique de matchs
 
-| Champ  | Valeur   |
-|--------|----------|
-| id     | 003      |
-| module | mon-profil |
-| type   | feat     |
+| Champ   | Valeur                                     |
+|---------|--------------------------------------------|
+| id      | 003                                        |
+| module  | mon-profil                                 |
+| type    | feat                                       |
+| bloquée | ~~[[015__socle__source-de-donnees.tech]]~~ |
 
 ## Contexte
 

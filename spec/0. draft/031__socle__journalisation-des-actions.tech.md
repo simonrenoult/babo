@@ -1,10 +1,11 @@
 # Journaliser chaque action
 
-| Champ  | Valeur |
-|--------|--------|
-| id     | 031    |
-| module | socle  |
-| type   | tech   |
+| Champ   | Valeur |
+|---------|--------|
+| id      | 031    |
+| module  | socle  |
+| type    | tech   |
+| bloquée | —      |
 
 > Ébauche : le problème est posé, les pistes ne sont pas tranchées.
 

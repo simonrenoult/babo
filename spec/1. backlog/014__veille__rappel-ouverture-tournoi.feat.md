@@ -1,10 +1,11 @@
 # Rappeler par mail l'ouverture des inscriptions
 
-| Champ  | Valeur  |
-|--------|---------|
-| id     | 014     |
-| module | veille  |
-| type   | feat    |
+| Champ   | Valeur                                                                                                                                                                    |
+|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| id      | 014                                                                                                                                                                       |
+| module  | veille                                                                                                                                                                    |
+| type    | feat                                                                                                                                                                      |
+| bloquée | [[012__veille__recherche-de-tournois.feat]], [[036__socle__fiche-publique-sans-gymnase.fix]], ~~[[016__socle__envoi-de-mail.tech]], [[018__socle__ordonnancement.tech]]~~ |
 
 ## Contexte
 

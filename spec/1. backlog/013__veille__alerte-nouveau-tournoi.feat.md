@@ -1,10 +1,11 @@
 # Alerter par mail quand un nouveau tournoi correspond
 
-| Champ  | Valeur  |
-|--------|---------|
-| id     | 013     |
-| module | veille  |
-| type   | feat    |
+| Champ   | Valeur                                                                                                                       |
+|---------|------------------------------------------------------------------------------------------------------------------------------|
+| id      | 013                                                                                                                          |
+| module  | veille                                                                                                                       |
+| type    | feat                                                                                                                         |
+| bloquée | [[012__veille__recherche-de-tournois.feat]], ~~[[016__socle__envoi-de-mail.tech]], [[017__socle__persistance-sqlite.tech]]~~ |
 
 ## Contexte
 

@@ -1,10 +1,11 @@
 # Calculer mon ratio victoire/défaite par tableau
 
-| Champ  | Valeur   |
-|--------|----------|
-| id     | 004      |
-| module | mon-profil |
-| type   | feat     |
+| Champ   | Valeur                                         |
+|---------|------------------------------------------------|
+| id      | 004                                            |
+| module  | mon-profil                                     |
+| type    | feat                                           |
+| bloquée | [[003__mon-profil__historique-de-matchs.feat]] |
 
 ## Contexte
 

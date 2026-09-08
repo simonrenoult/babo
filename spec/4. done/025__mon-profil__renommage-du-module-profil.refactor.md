@@ -1,10 +1,11 @@
 # Renommer le module `profil` en `mon-profil`
 
-| Champ  | Valeur     |
-|--------|------------|
-| id     | 025        |
-| module | mon-profil |
-| type   | refactor   |
+| Champ   | Valeur     |
+|---------|------------|
+| id      | 025        |
+| module  | mon-profil |
+| type    | refactor   |
+| bloquée | —          |
 
 ## Contexte
 

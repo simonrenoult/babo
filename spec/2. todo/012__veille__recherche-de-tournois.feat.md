@@ -1,10 +1,11 @@
 # Rechercher des tournois selon des critères
 
-| Champ  | Valeur  |
-|--------|---------|
-| id     | 012     |
-| module | veille  |
-| type   | feat    |
+| Champ   | Valeur                                                                                      |
+|---------|---------------------------------------------------------------------------------------------|
+| id      | 012                                                                                         |
+| module  | veille                                                                                      |
+| type    | feat                                                                                        |
+| bloquée | [[036__socle__fiche-publique-sans-gymnase.fix]], ~~[[015__socle__source-de-donnees.tech]]~~ |
 
 ## Contexte
 
