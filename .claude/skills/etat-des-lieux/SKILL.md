@@ -1,6 +1,6 @@
 ---
 name: etat-des-lieux
-description: État des lieux du dossier `spec/` de babo — fait sortir du backlog les specs débloquées, liste draft/backlog/todo/doing, classe les chantiers par complexité et recommande par quoi commencer. À invoquer quand on demande « où en sont les specs », « état des lieux », « qu'est-ce que je fais ensuite », « quoi de prêt à faire », ou avant d'ouvrir un chantier.
+description: État des lieux du dossier `spec/` de babo — aligne backlog et todo sur les blocages déclarés, liste draft/backlog/todo/doing, classe les chantiers par complexité et recommande par quoi commencer. À invoquer quand on demande « où en sont les specs », « état des lieux », « qu'est-ce que je fais ensuite », « quoi de prêt à faire », ou avant d'ouvrir un chantier.
 ---
 
 # État des lieux des specs
@@ -33,7 +33,33 @@ Signale tout `renvois_inconnus` non vide — c'est un renvoi cassé — et tout
 `ligne_absente` — c'est une spec hors convention, dont on ne peut rien dire.
 Les deux se corrigent avant le reste.
 
-## 2. Faire sortir du backlog ce qui est débloqué
+## 2. Aligner les deux étages sur les blocages
+
+**`2. todo` ne contient que des specs que rien ne bloque.** C'est un invariant,
+pas une tendance : un chantier qu'on ouvre est un chantier qu'on peut finir. Le
+backlog est l'étage de ce qui attend quelqu'un d'autre. Cette section rétablit
+l'invariant dans les deux sens — et il se rompt tout seul, sans que personne
+touche à `2. todo` : il suffit qu'une spec y gagne une dépendance, ou qu'une
+autre soit rouverte.
+
+### 2a. Faire rentrer au backlog ce qui est bloqué
+
+Candidates : les specs de `2. todo` dont `bloquants` n'est **pas** vide.
+
+Elles n'ont pas à être relues : la ligne `| bloquée par |` fait foi, et une
+entrée non barrée y est une dépendance vivante. Contrôle quand même que le
+bloquant existe et n'est pas `4. done` — c'est déjà ce que `bloquants` calcule,
+mais un renvoi vers une spec supprimée sortirait en `renvois_inconnus`, pas ici.
+
+Déplace avec `git mv "spec/2. todo/<nom>.md" "spec/1. backlog/<nom>.md"`, et dis
+en une ligne **qui** la bloque. Ne raye jamais une dépendance pour garder une
+spec en `2. todo` : c'est l'inverse du geste : la spec descend, la dépendance
+reste.
+
+Si une spec rentre au backlog alors qu'elle était en cours, dis-le franchement
+plutôt que de la déplacer en silence — c'est du travail qui va s'arrêter.
+
+### 2b. Faire sortir du backlog ce qui est débloqué
 
 Candidates : les specs de `1. backlog` dont `bloquants` est vide.
 
@@ -56,14 +82,22 @@ issues :
 Déplace avec `git mv "spec/1. backlog/<nom>.md" "spec/2. todo/<nom>.md"` — le nom
 ne change jamais. Annonce chaque mouvement avec son motif en une ligne.
 
-Si rien ne bouge, dis-le : un backlog qui ne se vide pas est une information,
-pas un échec du relevé.
+Si rien ne bouge dans un sens comme dans l'autre, dis-le : un backlog qui ne se
+vide pas est une information, pas un échec du relevé.
+
+Après ces deux passes, `2. todo` ne doit plus porter une seule spec à
+`bloquants` non vide. Rejoue le relevé pour le vérifier plutôt que de le
+supposer.
 
 ## 3. Lister
 
 Un tableau par étage — `0. draft`, `1. backlog`, `2. todo` —, colonnes : id,
 titre, module, type, bloquants. Les drafts d'abord, ce sont les idées non
 instruites ; les todo en dernier, ce sont les chantiers ouvrables.
+
+La colonne `bloquants` de `2. todo` est vide par construction après la section 2
+— garde-la quand même : une colonne vide qui devrait l'être est une
+vérification, et le jour où elle ne l'est pas, le relevé est faux.
 
 ## 4. Classer par complexité
 
