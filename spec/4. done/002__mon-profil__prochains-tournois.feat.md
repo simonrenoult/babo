@@ -227,10 +227,12 @@ Vérifié contre le vrai badnet le 5 septembre : `1 lieu(x) relevé(s) sur 1`,
   relevé » que le dernier mot d'une rue. Aucun cas observé à ce jour.
 - **`ACTION_RECHERCHE` reste la seule action écrite en dur** du projet, et elle
   appartient à 012.
-- **Un tournoi sans gymnase saisi fait échouer la passe.** Découvert le
-  8 septembre 2026 : la carte « Gymnases » ne porte alors aucune `<table>`, la
-  regex déborde du bloc, et `FichePubliqueIllisible` est levée sur un tournoi
-  parfaitement normal. Corrigé par
-  [[036__socle__fiche-publique-sans-gymnase.fix]], qui bascule le lieu et les
-  journées sur l'enveloppe de la fiche — dates en ISO, ville nommée — et ne
-  garde la carte que pour l'adresse précise.
+- ~~**Un tournoi sans gymnase saisi fait échouer la passe.**~~ **Corrigé le
+  9 septembre 2026** par [[036__socle__fiche-publique-sans-gymnase.fix]], qui a
+  montré au passage que c'était le cas de sept tournois sur neuf, et non un cas
+  marginal. Le lieu et les journées se lisent désormais sur l'**enveloppe** de
+  la fiche — une seconde action que 002 n'avait pas vue, avec la ville nommée et
+  les dates en ISO ; la carte « Gymnases » ne sert plus qu'au nom de la salle,
+  à son adresse et au détail des journées, qui priment quand elle existe.
+  `gymnase`, `adresse` et `ville` sont devenus nullables, et le « Un seul
+  gymnase est retenu » ci-dessus vaut toujours — pour ceux qui en ont un.

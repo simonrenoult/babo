@@ -397,6 +397,28 @@ export function actionInterneDeLaPage(reponse: Reponse): string | null {
 }
 
 /**
+ * L'action de l'**enveloppe** de la page tournoi — spec 036.
+ *
+ * La coquille publique porte deux actions sur le même `div` de `#main` :
+ * `data-inside_page` charge l'onglet « Présentation », `data-ic_a` charge
+ * l'enveloppe — le bandeau du tournoi, avec son titre, sa ville, ses dates et
+ * ses dates d'inscription. 002 n'exploitait que la première, et se privait de
+ * la seule source qui réponde quand l'organisateur n'a pas saisi de gymnase.
+ *
+ * On la relève **sur ce div-là**, et non sur le premier `data-ic_a` venu : la
+ * barre de navigation en porte un par entrée de menu, et le premier du document
+ * est celui de l'accueil.
+ */
+const DIV_DU_CONTENU = /<div\b[^>]*\bdata-inside_page="[a-f0-9]+"[^>]*>/su;
+const ACTION_DE_L_ENVELOPPE = /data-ic_a="([a-f0-9]+)"/u;
+
+export function actionDeLEnveloppe(reponse: Reponse): string | null {
+  const div = DIV_DU_CONTENU.exec(reponse.contenu)?.[0];
+  if (div === undefined) return null;
+  return ACTION_DE_L_ENVELOPPE.exec(div)?.[1] ?? null;
+}
+
+/**
  * Les cookies anonymes du site public : la session PHP et le jeton anti-CSRF.
  *
  * badnet pose les deux dès le premier contact, sans qu'on soit connecté, et
@@ -458,6 +480,79 @@ export function contenuPublicDuTournoi(options: {
 }
 
 /**
+ * L'en-tête du tournoi, lu sur l'enveloppe — spec 036.
+ *
+ * **La source la plus sûre de la ville et des dates.** Le bouton « ajouter à
+ * mon agenda » embarque tout en JSON dans `data-datedata` :
+ *
+ * ```json
+ * {"name":"…","startDate":"2026-11-14","endDate":"2026-11-15","location":"Chambly"}
+ * ```
+ *
+ * Trois raisons de le préférer à la carte « Gymnases » que 002 lisait : il est
+ * là même quand aucun gymnase n'est saisi — sept tournois sur neuf relevés le
+ * 9 septembre 2026 —, ses dates sont en ISO plutôt qu'en libellé français, et
+ * sa ville est nommée au lieu d'être devinée derrière un code postal.
+ *
+ * `location` peut être vide : c'est une donnée absente, pas une page changée.
+ * L'attribut absent, lui, est une page changée — et cela doit s'entendre.
+ */
+export type EnTeteDuTournoi = {
+  /** La ville telle que badnet la nomme, `null` quand il ne la nomme pas. */
+  readonly ville: string | null;
+  /**
+   * Les journées du tournoi, bornes comprises.
+   *
+   * L'enveloppe ne donne qu'un intervalle ; la carte « Gymnases », quand elle
+   * existe, donne le détail jour par jour. C'est elle qui prime — un tournoi
+   * peut sauter un jour au milieu de son intervalle, et l'énumération le
+   * dirait à tort.
+   */
+  readonly journees: readonly Date[];
+};
+
+const DATEDATA = /data-datedata="([^"]*)"/u;
+
+/** Un tournoi ne dure pas un mois : au-delà, la date lue est fausse. */
+const JOURNEES_MAXIMUM = 31;
+
+export function enTeteDuTournoi(reponse: Reponse): EnTeteDuTournoi | null {
+  const brut = DATEDATA.exec(reponse.contenu)?.[1];
+  if (brut === undefined) return null;
+
+  let charge: Record<string, unknown>;
+  try {
+    charge = JSON.parse(dechapper(brut)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+
+  const ville = String(charge["location"] ?? "").trim();
+  return {
+    ville: ville === "" ? null : ville,
+    journees: journeesDeLIntervalle(String(charge["startDate"] ?? ""), String(charge["endDate"] ?? "")),
+  };
+}
+
+const JOUR_ISO = /^\d{4}-\d{2}-\d{2}$/u;
+
+function journeesDeLIntervalle(debut: string, fin: string): readonly Date[] {
+  if (!JOUR_ISO.test(debut)) return [];
+  const premier = new Date(`${debut}T12:00:00`);
+  const dernier = JOUR_ISO.test(fin) ? new Date(`${fin}T12:00:00`) : premier;
+  if (Number.isNaN(premier.getTime()) || dernier < premier) return [];
+
+  const jours: Date[] = [];
+  for (let jour = premier; jour <= dernier && jours.length < JOURNEES_MAXIMUM; ) {
+    jours.push(jour);
+    const suivant = new Date(jour);
+    suivant.setDate(suivant.getDate() + 1);
+    jour = suivant;
+  }
+  return jours;
+}
+
+/**
  * Le lieu d'un tournoi, lu sur la carte « Gymnases » — spec 002.
  *
  * Le bloc `div.places` porte le nom de la salle dans son `h3`, et son adresse
@@ -475,13 +570,25 @@ export type LieuDuTournoi = {
   readonly ville: string;
 };
 
-const BLOC_DES_LIEUX = /<div class="places">(.*?)<\/table>/su;
+/**
+ * Le bloc des gymnases, **borné** — spec 036.
+ *
+ * 002 le fermait sur la première `</table>` venue. Quand l'organisateur n'a
+ * rien saisi il n'y en a aucune dans le bloc : selon ce qui suit, la capture ne
+ * matchait pas du tout ou courait jusqu'à une table étrangère — et la passe
+ * échouait sur un tournoi parfaitement normal. Le bloc se ferme donc sur la
+ * section suivante, « Avis », et sur la fin du fragment à défaut.
+ */
+const BLOC_DES_LIEUX = /<div class="places">(.*?)(?=<div class="reviews"|$)/su;
+
+/** Ce que badnet écrit à la place d'un gymnase. Un signal, pas une absence. */
+const AUCUN_GYMNASE = /Aucun gymnase renseigné/u;
 const PREMIER_GYMNASE = /<h3>\s*([^<]+?)\s*<span>\s*<a [^>]*>\s*([^<]+?)\s*<span/su;
 const VILLE = /\b\d{5}\s+(.+?)\s*$/u;
 
 export function lieuDuTournoi(reponse: Reponse): LieuDuTournoi | null {
   const bloc = BLOC_DES_LIEUX.exec(reponse.contenu)?.[1];
-  if (bloc === undefined) return null;
+  if (bloc === undefined || AUCUN_GYMNASE.test(bloc)) return null;
 
   const trouve = PREMIER_GYMNASE.exec(bloc);
   const gymnase = trouve?.[1]?.replaceAll(/\s+/gu, " ").trim();

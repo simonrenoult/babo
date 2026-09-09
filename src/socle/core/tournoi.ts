@@ -16,18 +16,30 @@
 export type Tournoi = {
   /** L'identifiant badnet, le même que celui d'un `Engagement`. */
   readonly evenement: number;
-  /** La salle : « Armand Silvestre ». */
-  readonly gymnase: string;
-  /** L'adresse complète, telle que l'organisateur l'a saisie. */
-  readonly adresse: string;
   /**
-   * La ville, lue derrière le code postal.
+   * La salle : « Armand Silvestre » — `null` tant qu'aucune n'est saisie.
+   *
+   * **Nullable depuis 036**, et ce n'est pas une commodité : sept tournois sur
+   * neuf relevés le 9 septembre 2026 n'avaient pas de gymnase. L'organisateur
+   * réserve la salle des semaines après avoir publié, et la fiche écrit
+   * « Aucun gymnase renseigné » en attendant. Le tenir pour obligatoire faisait
+   * échouer la passe sur le cas le plus courant.
+   */
+  readonly gymnase: string | null;
+  /** L'adresse complète, telle que l'organisateur l'a saisie — `null` avec elle. */
+  readonly adresse: string | null;
+  /**
+   * La ville, nommée par l'enveloppe de la fiche, ou lue derrière le code
+   * postal quand un gymnase existe.
    *
    * C'est elle que la page affiche : « Courbevoie » répond à la question qu'on
    * se pose la veille d'un tournoi, là où l'adresse entière encombrerait une
    * colonne. L'adresse reste en base pour qui veut y aller.
+   *
+   * `null` quand badnet ne la nomme pas : la page sait dire « lieu non
+   * relevé », et une ville absente n'est pas une fiche illisible (036).
    */
-  readonly ville: string;
+  readonly ville: string | null;
   /**
    * Les journées réellement jouées, dans l'ordre.
    *

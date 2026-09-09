@@ -1,0 +1,30 @@
+<!--
+  L'enveloppe de la page tournoi, relevée le 9 septembre 2026 sur
+  `/tournoi/public/informations?eventid=51245` — spec 036.
+
+  C'est la seconde action que porte la coquille publique, et celle que 002
+  n'exploitait pas. Elle répond même quand l'organisateur n'a pas saisi de
+  gymnase — le cas de ce tournoi, et de six autres sur les neuf relevés ce
+  jour-là.
+
+  Réduite à ce qui compte, et pour deux raisons : `data-datedata` porte la
+  ville nommée et les dates en ISO, `div.limit` porte l'ouverture et la
+  fermeture des inscriptions à l'heure près — celles que 014 attend. Le reste
+  du bandeau est retiré : il porte le mail et le téléphone de l'organisateur,
+  qui ne servent à aucun test. Un gymnase est une adresse publique ; un
+  portable est celui de quelqu'un.
+-->
+<div class="flex b-infos">
+    <div class="datas">
+        <p class="date"><span class="material-icons">date_range</span>
+            <a href="#" class="ic-click" id="date-cal" data-datedata="{&quot;name&quot;:&quot;Badminton - Tournoi des portes de l'Oise&quot;,&quot;startDate&quot;:&quot;2026-11-14&quot;,&quot;endDate&quot;:&quot;2026-11-15&quot;,&quot;location&quot;:&quot;Chambly&quot;,&quot;startTime&quot;:&quot;08:00&quot;,&quot;endTime&quot;:&quot;17:00&quot;}">Les 14 et 15 novembre 2026</a>
+        </p>
+        <p class="location"><span class="material-icons">place</span><a
+                href="https://www.google.fr/maps/search/Chambly" target="_blank">Chambly</a></p>
+        <p><span class="material-icons">group</span> Nombre de joueurs : 116/400</p>
+    </div>
+    <div class="limit">
+        <p>Ouverture des inscriptions<span>01/09/2026 08:00</span></p>
+        <p>Fermeture des inscriptions<span>01/11/2026 23:59</span></p>
+    </div>
+</div>

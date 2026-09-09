@@ -3,9 +3,11 @@ import type { BaseSqlite } from "./connexion.ts";
 
 type LigneTournoi = {
   evenement: number;
-  gymnase: string;
-  adresse: string;
-  ville: string;
+  // Facultatifs depuis 036 : un tournoi publié sans salle est un tournoi
+  // normal, et c'est même le cas le plus courant.
+  gymnase: string | null;
+  adresse: string | null;
+  ville: string | null;
 };
 
 /** Adaptateur SQLite du port `DepotTournois` — specs 017 et 002. */

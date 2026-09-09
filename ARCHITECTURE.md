@@ -472,11 +472,26 @@ commerciale — ni erreur, ni redirection, ni `default_page`. C'est la capture
 archivée qui l'a dit, et la requête réelle d'un navigateur qui a donné les trois
 correctifs.
 
-**Deux requêtes, anonymes de bout en bout.** Les cookies sont obtenus à
+**Trois requêtes, anonymes de bout en bout.** Les cookies sont obtenus à
 l'instant et jetés avec la fiche : aucun compte n'est engagé, donc aucun risque
 de bannissement (015), et la passe aboutit le jour où la session badnet est
 morte — comme celle du classement depuis 028. D'où sa tâche à elle,
 `acquisition:badnet:tournois`, troisième nom sous badnet.
+
+**Le même `div` porte deux actions, et 002 n'en lisait qu'une** — spec 036.
+`data-inside_page` charge l'onglet « Présentation », `data-ic_a` charge
+l'**enveloppe** : le bandeau du tournoi, avec sa ville nommée, ses dates en ISO
+dans `data-datedata`, et l'ouverture comme la fermeture des inscriptions à
+l'heure près. C'est elle qui fait foi désormais ; la carte « Gymnases » ne sert
+plus qu'au nom de la salle, à son adresse, et au détail des journées — qui
+priment quand elle existe, l'enveloppe ne donnant que deux bornes.
+
+**Un tournoi sans salle est un tournoi normal.** Sept fiches sur neuf, relevées
+le 9 septembre 2026, n'ont aucun gymnase : l'organisateur réserve après avoir
+publié. `gymnase`, `adresse` et `ville` sont donc nullables, et la phrase
+« Aucun gymnase renseigné » est lue comme le signal explicite qu'elle est. Avant
+036, la passe échouait sur trois tournois sur quatre et 019 alertait pour une
+panne qui n'en était pas une.
 
 **Incrémentale.** Une ville ne change pas : un tournoi déjà connu n'est jamais
 redemandé. La plupart des jours la passe ne coûte aucune requête et consigne
@@ -749,10 +764,4 @@ que depuis mes engagements. La recherche publique, elle, est instrumentée depui
 015 et n'écrit encore rien. 012 en fait désormais des **veilles nommées** — cinq
 au plus, chacune avec sa collecte quotidienne, sa zone, sa fenêtre et ses
 séries —, partageant la table `tournoi` et n'ayant en propre qu'une appartenance
-datée.
-
-Un défaut connu, en attendant : la passe des lieux échoue sur un tournoi dont
-l'organisateur n'a pas saisi de gymnase — la carte « Gymnases » ne porte alors
-aucune `<table>` et la lecture déborde du bloc. La fiche publique a une
-enveloppe que le code n'exploite pas encore, et qui donne la ville et les dates
-en ISO ; c'est par là que passe le correctif (036).
+datée. Sa dernière dépendance est levée : 036 est faite.

@@ -207,9 +207,10 @@ const relverLesEngagements = () => {
  * La consigner avec les engagements ferait passer pour morte une chaîne qui va
  * très bien.
  *
- * Le plafond suit la chaîne réelle — coquille puis fiche, deux requêtes par
- * tournoi, plus une de marge — et se calcule sur ce qui **reste** à relever :
- * la passe est incrémentale, donc la plupart des jours ce plafond vaut un.
+ * Le plafond suit la chaîne réelle — coquille, enveloppe, puis fiche : **trois**
+ * requêtes par tournoi depuis 036, plus une de marge — et se calcule sur ce qui
+ * **reste** à relever : la passe est incrémentale, donc la plupart des jours ce
+ * plafond vaut un.
  */
 const relverLesTournois = () => {
   const connus = persistance.tournois.connus();
@@ -223,7 +224,7 @@ const relverLesTournois = () => {
     rapports,
     horloge: horlogeSysteme,
     acces: accesAuxFichesPubliquesBadnet({
-      client: clientPour("badnet", 2 * aRelever + 1),
+      client: clientPour("badnet", 3 * aRelever + 1),
     }),
   });
 };

@@ -5,7 +5,7 @@
 | id          | 012                                                                                         |
 | module      | veille                                                                                      |
 | type        | feat                                                                                        |
-| bloquée par | [[036__socle__fiche-publique-sans-gymnase.fix]], ~~[[015__socle__source-de-donnees.tech]]~~ |
+| bloquée par | ~~[[036__socle__fiche-publique-sans-gymnase.fix]], [[015__socle__source-de-donnees.tech]]~~ |
 
 ## Contexte
 
@@ -153,9 +153,12 @@ saisir une veille *est* la feature, l'arbitrage rendu par
 souvent vide — [[035__veille__places-disponibles.feat]] ; et le tri par
 « promu », que badnet vend et qui n'est donc pas une information.
 
-**Bloquée par [[036__socle__fiche-publique-sans-gymnase.fix]]** : la chaîne de
-fiche que cette spec va solliciter cent fois par jour échoue aujourd'hui sur un
-tournoi dont l'organisateur n'a pas saisi de gymnase.
+~~Bloquée par [[036__socle__fiche-publique-sans-gymnase.fix]]~~ : **faite le
+9 septembre 2026**, et elle a rapporté plus que le correctif. La chaîne compte
+désormais trois requêtes par tournoi et non deux — à peser dans le plafond de
+cette spec, qui en relèvera une centaine par jour. Et l'enveloppe qu'elle met en
+service porte la ville nommée, les dates en ISO et les dates d'inscription à
+l'heure près : autant que 012 n'aura pas à deviner.
 
 ~~Bloquée par [[015__socle__source-de-donnees.tech]].~~ **Faite** : la recherche
 badnet est **publique et anonyme** — un POST sur `/index.php`, sans cookie, dont

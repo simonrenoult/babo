@@ -2,9 +2,11 @@ import type { ClientHttp } from "../../core/acquisition.ts";
 import type { AccesAuxFichesPubliques } from "../../core/passe-tournois.ts";
 import type { Tournoi } from "../../core/tournoi.ts";
 import {
+  actionDeLEnveloppe,
   actionInterneDeLaPage,
   contenuPublicDuTournoi,
   cookiesAnonymes,
+  enTeteDuTournoi,
   fichePubliqueUrl,
   jetonCsrf,
   journeesDuTournoi,
@@ -33,6 +35,13 @@ import {
  * jetés avec la fiche : aucun compte n'est engagé, donc aucun risque de
  * bannissement (015). C'est ce qui permet à cette passe d'aboutir le jour où la
  * session badnet est morte.
+ *
+ * **Trois requêtes depuis 036, et non deux.** La coquille porte deux actions,
+ * et 002 n'en exploitait qu'une. L'**enveloppe** — le bandeau du tournoi — rend
+ * la ville nommée et les dates en ISO ; l'onglet « Présentation » rend le
+ * gymnase, son adresse et le détail des journées **quand l'organisateur les a
+ * saisis**, ce qui n'est le cas que d'un tournoi sur quatre. L'enveloppe est
+ * donc la source, la carte « Gymnases » le complément.
  */
 export class FichePubliqueIllisible extends Error {
   constructor(etape: string) {
@@ -62,20 +71,43 @@ export function accesAuxFichesPubliquesBadnet(options: {
       const action = actionInterneDeLaPage(coquille);
       if (action === null) throw new FichePubliqueIllisible(`l'action interne de ${url}`);
 
+      const enveloppe = actionDeLEnveloppe(coquille);
+      if (enveloppe === null) throw new FichePubliqueIllisible(`l'action d'enveloppe de ${url}`);
+
       const csrf = jetonCsrf(coquille.cookies);
       const cookies = cookiesAnonymes(coquille.cookies);
       if (csrf === null || cookies === null) {
         throw new FichePubliqueIllisible("de jeton anti-CSRF : le POST serait refusé");
       }
 
+      const enTete = enTeteDuTournoi(
+        await client.recuperer(
+          contenuPublicDuTournoi({ action: enveloppe, evenement, csrf, cookies }),
+        ),
+      );
+      // L'attribut absent est une page qui a changé, et cela doit s'entendre.
+      // Un champ vide *dedans* est une donnée que l'organisateur n'a pas
+      // saisie, ce qui est tout autre chose — 019 vise le premier, pas le
+      // second.
+      if (enTete === null) throw new FichePubliqueIllisible("d'en-tête de tournoi lisible");
+
       const fiche = await client.recuperer(
         contenuPublicDuTournoi({ action, evenement, csrf, cookies }),
       );
 
+      // La carte « Gymnases » ne fait plus foi : elle complète. Quand elle
+      // existe, ses journées priment — un tournoi peut sauter un jour au milieu
+      // de son intervalle, et l'énumération de l'enveloppe le dirait à tort.
       const lieu = lieuDuTournoi(fiche);
-      if (lieu === null) throw new FichePubliqueIllisible("de carte « Gymnases » lisible");
+      const journees = journeesDuTournoi(fiche);
 
-      return { evenement, ...lieu, journees: journeesDuTournoi(fiche) };
+      return {
+        evenement,
+        gymnase: lieu?.gymnase ?? null,
+        adresse: lieu?.adresse ?? null,
+        ville: enTete.ville ?? lieu?.ville ?? null,
+        journees: journees.length > 0 ? journees : enTete.journees,
+      };
     },
   };
 }

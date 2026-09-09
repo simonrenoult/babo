@@ -1,0 +1,21 @@
+<!--
+  La carte « Gymnases » d'un tournoi dont l'organisateur n'a rien saisi,
+  relevée le 9 septembre 2026 sur `/tournoi/public/informations?eventid=51245`
+  — spec 036.
+
+  C'est la forme qui faisait échouer la passe de 002 : le bloc ne contient
+  aucune `<table>`, et la capture qui se fermait sur la première `</table>`
+  venue partait donc chercher hors du bloc — ou ne trouvait rien du tout, ce
+  qui est le cas ici. badnet écrit une phrase à la place, et c'est elle qu'on
+  lit désormais.
+
+  La section suivante, « Avis », est conservée sur une ligne : c'est elle qui
+  borne le bloc.
+-->
+<div class="places">
+        <h2>Gymnases</h2>
+        <div class="flex">
+            <p>Aucun gymnase renseigné par l'organisateur pour le moment.</p>
+        </div>
+    </div>
+<div class="reviews"><h2>Avis sur les tournois organisés par : B.C. CHAMBLY OISE</h2></div>
