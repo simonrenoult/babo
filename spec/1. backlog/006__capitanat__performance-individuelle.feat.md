@@ -51,3 +51,10 @@ l'évolution du classement, est disponible aujourd'hui, et c'est
 
 Sans ce renvoi, 006 paraissait n'attendre que des specs faites, et serait sortie
 du backlog sur un tri qu'elle aurait fait mentir.
+
+**Le périmètre se réduit — 003 amendée le 9 septembre 2026.** 003 ne relève plus
+la seule licence de son auteur : son acquisition descend dans le socle et boucle
+sur les quinze licences suivies, comme la passe de classement de cette spec.
+Cette spec-ci hérite donc de la table remplie, et ce qui lui reste est une page
+et un calcul de forme — plus aucune acquisition. Sa dépendance à 003 ne change
+pas ; son coût, si.

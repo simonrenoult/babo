@@ -121,6 +121,21 @@ bon.
 
 La vérification de validité des licences est hors périmètre.
 
+**Le ménage s'arrête aux tables de club — amendé le 9 septembre 2026 par
+[[003__mon-profil__historique-de-matchs.feat]].** Un coéquipier retiré du
+fichier perd son nom et ses relevés de classement ; il garde ses matchs et ses
+participations. Un match est un fait passé, daté, partagé avec trois autres
+personnes : il ne cesse pas d'être le mien parce qu'un partenaire a changé de
+club, et l'effacer rendrait faux le bilan de saison de
+[[007__capitanat__ratio-victoire-defaite-equipe.feat]].
+
+**Et 003 assume un écart à la règle posée ici.** « Une colonne remplie au cas
+où serait de la donnée personnelle de tiers stockée sans usage » a justifié le
+retrait du mail ; 003 stocke pourtant le nom, la licence, le club et le
+classement des adversaires rencontrés. C'est délibéré et motivé chez elle — le
+détail est ce qui rend un match lisible — et écrit des deux côtés pour que la
+règle d'ici ne passe pas pour oubliée.
+
 Ne dépend de rien : livrable immédiatement. Bloque
 [[008__capitanat__disponibilites-interclubs.feat]],
 [[010__capitanat__tableaux-preferes.feat]] et

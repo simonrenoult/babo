@@ -104,4 +104,10 @@ d'appartenance `(veille, tournoi)` à côté des veilles elles-mêmes. L'ordre v
 par 015 — la sonde d'abord, le schéma ensuite — a tenu jusqu'au bout : chaque
 colonne vient d'une page observée.
 
-Celui des matchs reste seul à dessiner.
+~~Celui des matchs reste seul à dessiner.~~ **Dessiné le 9 septembre 2026 par
+[[003__mon-profil__historique-de-matchs.feat]]**, et en trois tables plutôt
+qu'une : le tableau joué — la ligne de résultat intégrée au CPPH —, le match, et
+la participation, une ligne par joueur présent. La sonde du même jour a montré
+que myffbad rend ces trois étages séparément, et qu'un match joué à deux
+appartient aux deux joueurs sous le même identifiant : une table unique
+l'écrirait deux fois. Plus aucun schéma n'est en attente.

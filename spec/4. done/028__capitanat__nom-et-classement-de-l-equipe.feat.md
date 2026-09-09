@@ -193,5 +193,11 @@ n'était pas dans ce ménage. Il l'est désormais — c'est de la donnée person
 au même titre que le téléphone, davantage même, puisqu'il désigne la personne là
 où un classement ne fait que la situer ([[021__socle__authentification.tech]]).
 
+**Ce ménage a une frontière, posée le 9 septembre 2026 par
+[[003__mon-profil__historique-de-matchs.feat]]** : il emporte le nom et les
+relevés de classement, jamais les matchs ni les participations. Le nom sur une
+fiche de club est une donnée du club ; le même nom sur une feuille de match est
+un fait fédéral, daté, que trois autres personnes partagent.
+
 **Passe réelle après correction :** `15 relevé(s) sur 15`, 45 disciplines,
 quinze noms et trois colonnes de classement à l'écran, sans aucune session.
