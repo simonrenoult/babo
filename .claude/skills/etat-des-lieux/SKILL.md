@@ -18,8 +18,8 @@ python3 .claude/skills/etat-des-lieux/etat.py spec > /tmp/etat.json
 
 **La dépendance est déclarée, pas devinée.** TEMPLATE.md impose à toute spec une
 ligne `| bloquée par |` dans son tableau d'en-tête : c'est elle qui fait foi, et
-une entrée barrée y est une dépendance levée. Le script la lit ; il ne
-reconstruit rien.
+elle ne porte que des blocages **vivants** — `—` quand il n'y en a pas. Le
+script la lit ; il ne reconstruit rien.
 
 Il rend un objet par spec : `id`, `module`, `type`, `etat`, `titre`, `lignes`,
 `depend_de` (la ligne d'en-tête), `bloquants` (celles qui ne sont pas
@@ -33,7 +33,24 @@ Signale tout `renvois_inconnus` non vide — c'est un renvoi cassé — et tout
 `ligne_absente` — c'est une spec hors convention, dont on ne peut rien dire.
 Les deux se corrigent avant le reste.
 
-## 2. Aligner les deux étages sur les blocages
+## 2. Aligner les étages et les lignes sur les blocages
+
+### 2a. Retirer des lignes ce qui est fait
+
+Avant de déplacer quoi que ce soit : toute spec passée en `4. done` doit avoir
+disparu du champ `| bloquée par |` de celles qu'elle bloquait, et le champ vaut
+`—` s'il ne reste rien. C'est ce que TEMPLATE.md demande — le champ ne porte que
+du vivant — et personne ne le fait au moment de clore une spec, parce qu'on
+clôt une spec en pensant à elle et pas à celles qui l'attendaient.
+
+Le décalage se lit en comparant `depend_de` (la ligne brute) à `bloquants` (ce
+qui reste ouvert) : toute entrée de la première absente de la seconde est un
+renvoi périmé à retirer. Le relevé n'en souffre pas — `bloquants` écarte déjà
+les specs faites —, mais un humain qui ouvre le fichier, si : c'est une ligne
+qui annonce un blocage qui n'existe plus.
+
+Ne remplace jamais un renvoi retiré par une mention barrée dans le tableau.
+S'il vaut d'être gardé, il va dans les `## Notes`, avec ce qu'il a coûté.
 
 **`2. todo` ne contient que des specs que rien ne bloque.** C'est un invariant,
 pas une tendance : un chantier qu'on ouvre est un chantier qu'on peut finir. Le
@@ -42,14 +59,13 @@ l'invariant dans les deux sens — et il se rompt tout seul, sans que personne
 touche à `2. todo` : il suffit qu'une spec y gagne une dépendance, ou qu'une
 autre soit rouverte.
 
-### 2a. Faire rentrer au backlog ce qui est bloqué
+### 2b. Faire rentrer au backlog ce qui est bloqué
 
 Candidates : les specs de `2. todo` dont `bloquants` n'est **pas** vide.
 
-Elles n'ont pas à être relues : la ligne `| bloquée par |` fait foi, et une
-entrée non barrée y est une dépendance vivante. Contrôle quand même que le
-bloquant existe et n'est pas `4. done` — c'est déjà ce que `bloquants` calcule,
-mais un renvoi vers une spec supprimée sortirait en `renvois_inconnus`, pas ici.
+Elles n'ont pas à être relues : la ligne `| bloquée par |` fait foi. Contrôle
+quand même que le bloquant existe — un renvoi vers une spec supprimée sortirait
+en `renvois_inconnus`, pas ici.
 
 Déplace avec `git mv "spec/2. todo/<nom>.md" "spec/1. backlog/<nom>.md"`, et dis
 en une ligne **qui** la bloque. Ne raye jamais une dépendance pour garder une
@@ -59,7 +75,7 @@ reste.
 Si une spec rentre au backlog alors qu'elle était en cours, dis-le franchement
 plutôt que de la déplacer en silence — c'est du travail qui va s'arrêter.
 
-### 2b. Faire sortir du backlog ce qui est débloqué
+### 2c. Faire sortir du backlog ce qui est débloqué
 
 Candidates : les specs de `1. backlog` dont `bloquants` est vide.
 
@@ -85,7 +101,7 @@ ne change jamais. Annonce chaque mouvement avec son motif en une ligne.
 Si rien ne bouge dans un sens comme dans l'autre, dis-le : un backlog qui ne se
 vide pas est une information, pas un échec du relevé.
 
-Après ces deux passes, `2. todo` ne doit plus porter une seule spec à
+Après ces trois passes, `2. todo` ne doit plus porter une seule spec à
 `bloquants` non vide. Rejoue le relevé pour le vérifier plutôt que de le
 supposer.
 

@@ -1,11 +1,11 @@
 # Enregistrer les tableaux préférés des joueurs
 
-| Champ       | Valeur                                                     |
-|-------------|------------------------------------------------------------|
-| id          | 010                                                        |
-| module      | capitanat                                                  |
-| type        | feat                                                       |
-| bloquée par | ~~[[005__capitanat__liste-des-membres-de-l-equipe.feat]]~~ |
+| Champ       | Valeur    |
+|-------------|-----------|
+| id          | 010       |
+| module      | capitanat |
+| type        | feat      |
+| bloquée par | —         |
 
 ## Contexte
 

@@ -1,11 +1,11 @@
 # Sauvegarder la base
 
-| Champ       | Valeur                                                                                                                        |
-|-------------|-------------------------------------------------------------------------------------------------------------------------------|
-| id          | 023                                                                                                                           |
-| module      | socle                                                                                                                         |
-| type        | tech                                                                                                                          |
-| bloquée par | ~~[[017__socle__persistance-sqlite.tech]], [[018__socle__ordonnancement.tech]], [[019__socle__robustesse-du-scraping.tech]]~~ |
+| Champ       | Valeur |
+|-------------|--------|
+| id          | 023    |
+| module      | socle  |
+| type        | tech   |
+| bloquée par | —      |
 
 ## Contexte
 

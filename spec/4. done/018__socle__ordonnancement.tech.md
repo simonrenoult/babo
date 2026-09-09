@@ -1,11 +1,11 @@
 # Ordonnancer les tâches périodiques et les échéances
 
-| Champ       | Valeur                                                                                     |
-|-------------|--------------------------------------------------------------------------------------------|
-| id          | 018                                                                                        |
-| module      | socle                                                                                      |
-| type        | tech                                                                                       |
-| bloquée par | ~~[[017__socle__persistance-sqlite.tech]], [[020__socle__architecture-applicative.tech]]~~ |
+| Champ       | Valeur |
+|-------------|--------|
+| id          | 018    |
+| module      | socle  |
+| type        | tech   |
+| bloquée par | —      |
 
 ## Contexte
 

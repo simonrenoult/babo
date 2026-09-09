@@ -29,8 +29,10 @@ LIEN = re.compile(r"\[\[([^\]]+)\]\]")
 def sans_barre(texte: str) -> str:
     """Retire les passages barrés : ils disent ce qui *n'est plus* vrai.
 
-    « ~~Bloquée par [[015]]~~ **Faite** » n'est pas une dépendance, et une ligne
-    « bloquée par » dont toutes les entrées sont barrées est une spec libre.
+    « ~~Bloquée par [[015]]~~ **Faite** » n'est pas une dépendance. Le tableau
+    d'en-tête ne contient plus de renvoi barré depuis que TEMPLATE.md lui impose
+    de ne porter que du vivant ; ce filet reste, pour la prose et pour le jour
+    où quelqu'un en réécrit un.
     C'est la convention d'amendement du dépôt ; la lire à l'envers ferait tenir
     pour bloquée une spec débloquée depuis des semaines.
     """

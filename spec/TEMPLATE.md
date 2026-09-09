@@ -19,7 +19,13 @@ virgule — ex. `[[015__socle__source-de-donnees.tech]],
 [[017__socle__persistance-sqlite.tech]]`. Une seule raison de figurer là :
 sans elle, celle-ci ne peut pas commencer. Une spec qu'on préférerait faire
 avant n'est pas bloquante — c'est un ordre, et l'ordre se lit dans le backlog.
-Un blocage levé se raye dans le tableau plutôt que d'y rester à mentir.
+
+**Le champ ne contient que du vivant.** Une spec qui passe en `4. done`
+disparaît du champ de toutes celles qu'elle bloquait ; quand il ne reste rien,
+le champ vaut `—`. Il répond à une seule question, « puis-je ouvrir cette
+spec ? », et tout ce qui n'y répond pas la brouille — un renvoi barré s'est déjà
+fait lire comme un blocage vivant. L'histoire du blocage, elle, se raconte dans
+les `## Notes`, où elle a la place de dire aussi pourquoi.
 
 Types : `feat` (nouvelle capacité), `fix` (correctif), `refactor` (même
 comportement, meilleure forme), `tech` (chantier de socle : choix
