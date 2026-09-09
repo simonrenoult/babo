@@ -78,6 +78,16 @@ export type DepotAppartenances = {
   ): { readonly entres: readonly number[]; readonly sortis: readonly number[] };
   /** Ce qu'une veille voit en ce moment, les sortis exclus. */
   tournoisDe(veille: number): readonly number[];
+  /**
+   * Quand cette veille a été relevée pour la dernière fois, `null` jamais.
+   *
+   * C'est le seul moyen de distinguer « la passe est passée et rien ne
+   * correspond » de « la passe n'est pas encore passée » — deux silences que la
+   * page disait de la même façon, ce qui fait douter de critères qui n'ont
+   * jamais servi. 019 impose la distinction partout ailleurs : « jamais
+   * relevée » n'est pas « périmée ».
+   */
+  releveeLe(veille: number): Date | null;
 };
 
 /**

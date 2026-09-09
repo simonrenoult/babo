@@ -189,6 +189,26 @@ souvent vide — [[035__veille__places-disponibles.feat]] ; et le tri par
 - **Rien n'alerte encore.** La colonne `alerte_le` est posée et n'est écrite par
   personne : c'est [[013__veille__alerte-nouveau-tournoi.feat]] qui la remplira.
 
+**Amendé le 9 septembre 2026 : trois silences, trois phrases.** La page disait
+« Aucun tournoi ne répond à ces critères » dans tous les cas où sa liste était
+vide — y compris quand la passe n'était pas encore passée. Une veille créée à
+9 h du matin attend son premier relevé jusqu'au lendemain 5 h 15 : vingt heures
+à croire que ses critères sont trop étroits alors qu'ils n'ont jamais servi.
+
+C'est la distinction que 019 impose partout ailleurs — « jamais relevée » n'est
+pas « périmée », et 001 comme 028 la disent en toutes lettres. Elle manquait
+ici. La veille porte donc `relevee_le`, écrite par la passe **même quand la
+recherche ne rend rien** : c'est précisément le cas où la page a besoin de
+savoir qu'on a cherché. Et l'écran distingue :
+
+- *pas encore relevée* — la passe n'a pas tourné, rien ne dit si les critères
+  sont bons ; l'index de `/veille` écrit « jamais relevée » et un tiret plutôt
+  qu'un zéro, qui se lirait comme un résultat ;
+- *rien dans le périmètre* — badnet n'y publie aucun tournoi à venir, donc c'est
+  le rayon ou la fenêtre qu'il faut élargir ;
+- *rien ne correspond* — badnet en a rendu, et ce sont les tableaux, les séries
+  ou la fenêtre qui les écartent. Le décompte le dit.
+
 **Vérifié contre le vrai badnet le 9 septembre 2026.** Une veille « mixte,
 séries D, 30 km autour de Paris, 120 jours, inscriptions ouvertes » : 23
 tournois indexés en une requête, 23 fiches relevées, 20 retenus, 1 aux tableaux

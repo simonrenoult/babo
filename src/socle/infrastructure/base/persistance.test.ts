@@ -39,6 +39,7 @@ describe("la base unique du socle", () => {
       "012__tournoi.sql",
       "013__tournoi_sans_gymnase.sql",
       "014__veille.sql",
+      "015__veille_relevee.sql",
     ]);
     persistance.fermer();
   });

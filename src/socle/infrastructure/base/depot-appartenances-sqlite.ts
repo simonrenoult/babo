@@ -27,6 +27,11 @@ export function depotAppartenancesSqlite(base: BaseSqlite): DepotAppartenances {
   const dedans = base.prepare(
     "select evenement from veille_tournoi where veille = ? and sorti_le is null order by evenement",
   );
+  // La date du relevé vit sur `veille`, et c'est le socle qui l'écrit : c'est
+  // lui qui relève. Il connaît la table — sa migration la crée — sans connaître
+  // la notion qui la remplit, et c'est la frontière que 012 a posée.
+  const dater = base.prepare("update veille set relevee_le = ? where id = ?");
+  const dateDuReleve = base.prepare("select relevee_le from veille where id = ?");
 
   const constater = base.transaction(
     (veille: number, evenements: readonly number[], quand: Date) => {
@@ -51,6 +56,10 @@ export function depotAppartenancesSqlite(base: BaseSqlite): DepotAppartenances {
         .map(([evenement]) => evenement);
       for (const evenement of sortis) sortir.run(horodatage, veille, evenement);
 
+      // Datée même quand la recherche n'a rien rendu : c'est précisément le cas
+      // où la page a besoin de savoir qu'on a cherché.
+      dater.run(horodatage, veille);
+
       return { entres, sortis };
     },
   );
@@ -59,5 +68,10 @@ export function depotAppartenancesSqlite(base: BaseSqlite): DepotAppartenances {
     constater: (veille, evenements, quand) => constater(veille, evenements, quand),
     tournoisDe: (veille) =>
       (dedans.all(veille) as { evenement: number }[]).map(({ evenement }) => evenement),
+
+    releveeLe(veille: number): Date | null {
+      const ligne = dateDuReleve.get(veille) as { relevee_le: string | null } | undefined;
+      return ligne?.relevee_le == null ? null : new Date(ligne.relevee_le);
+    },
   };
 }

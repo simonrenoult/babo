@@ -55,6 +55,7 @@ export function creerModuleVeille(options: {
       veilles: toutes.map((veille) => ({
         veille,
         vus: appartenances.tournoisDe(veille.id).length,
+        releveeLe: appartenances.releveeLe(veille.id),
       })),
       auPlus: VEILLES_AU_PLUS,
       fraicheur: fraicheur(),
@@ -84,6 +85,10 @@ export function creerModuleVeille(options: {
       veille,
       resultats: resultats(veille),
       fenetre: { du, au },
+      // Ce qui sépare « rien ne correspond » de « on n'a pas encore cherché ».
+      // Sans elle la page disait le premier dans les deux cas, ce qui fait
+      // douter de critères qui n'ont jamais servi (019).
+      releveeLe: appartenances.releveeLe(veille.id),
       fraicheur: fraicheur(),
     });
   });

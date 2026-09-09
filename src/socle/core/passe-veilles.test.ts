@@ -46,6 +46,7 @@ function depotAppartenances(dedans: Record<number, readonly number[]> = {}): Dep
       return { entres, sortis };
     },
     tournoisDe: (veille) => etat.get(veille) ?? [],
+    releveeLe: () => null,
   };
 }
 

@@ -80,6 +80,22 @@ describe("ce qu'une veille voit, en base", () => {
     assert.deepEqual(persistance.appartenances.tournoisDe(veille), [50750, 50898]);
   });
 
+  it("distingue « pas encore cherché » de « rien trouvé »", () => {
+    // Les deux se ressemblent — aucune ligne d'appartenance — et la page les
+    // disait de la même façon. C'est la distinction que 019 impose ailleurs :
+    // « jamais relevée » n'est pas « rien trouvé ».
+    assert.equal(persistance.appartenances.releveeLe(veille), null, "aucune passe");
+
+    persistance.appartenances.constater(veille, [], MAINTENANT);
+
+    assert.deepEqual(persistance.appartenances.tournoisDe(veille), [], "toujours rien");
+    assert.deepEqual(
+      persistance.appartenances.releveeLe(veille),
+      MAINTENANT,
+      "mais on a cherché, et c'est tout ce que la page a besoin de savoir",
+    );
+  });
+
   it("date la sortie au lieu d'effacer la ligne", () => {
     persistance.appartenances.constater(veille, [50750, 50898], MAINTENANT);
     const { sortis } = persistance.appartenances.constater(veille, [50750], PLUS_TARD);

@@ -24,7 +24,9 @@
       <th>Tableaux</th>
       <th>Séries</th>
       <th class="nombre">Tournois</th>
-      <th>État</th>
+      <th>État</th><%
+      /* « — » et « jamais relevée » plutôt qu'un zéro : un décompte nul se lit
+         comme un résultat, alors qu'aucune recherche n'a encore eu lieu. */ %>
     </tr>
     <% veilles.forEach(function (ligne) { %>
       <tr>
@@ -32,8 +34,16 @@
         <td><%= ligne.veille.rayonKm %> km</td>
         <td><%= ligne.veille.tableaux.join(", ") %></td>
         <td><%= ligne.veille.series.join(", ") %></td>
-        <td class="nombre"><%= ligne.vus %></td>
-        <td><%= ligne.veille.active ? "active" : "suspendue" %></td>
+        <td class="nombre">
+          <%= ligne.releveeLe === null ? "—" : ligne.vus %>
+        </td>
+        <td>
+          <% if (ligne.releveeLe === null) { %>
+            jamais relevée
+          <% } else { %>
+            <%= ligne.veille.active ? "active" : "suspendue" %>
+          <% } %>
+        </td>
       </tr>
     <% }); %>
   </table>

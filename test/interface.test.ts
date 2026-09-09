@@ -451,12 +451,15 @@ describe("l'application assemblée", () => {
     // aussi bien sans aucune veille en base.
     const index = await (await visiter("/veille")).text();
     assert.match(index, new RegExp(`href="${page}">DH avec Louis</a>`));
-    assert.match(index, /<td>active<\/td>/);
+    // « jamais relevée » et non « active » : la passe tourne à 5 h 15, et un
+    // zéro se lirait comme un résultat alors qu'on n'a pas encore cherché.
+    assert.match(index, /jamais relevée/);
 
     const detail = await (await visiter(page)).text();
     assert.match(detail, /rayon de 50 km/);
     assert.match(detail, /DH, MX/);
-    assert.match(detail, /Aucun tournoi ne répond à ces critères/, "l'index est vide");
+    assert.match(detail, /n'a pas encore été relevée/, "et non « aucun tournoi ne répond »");
+    assert.doesNotMatch(detail, /Aucun tournoi ne répond/);
 
     const suspension = await visiter(`${page}/etat`, {
       method: "POST",
@@ -465,6 +468,7 @@ describe("l'application assemblée", () => {
     });
     assert.equal(suspension.status, 302);
     assert.match(await (await visiter(page)).text(), /Veille suspendue/);
+    assert.match(await (await visiter("/veille")).text(), /jamais relevée/, "suspendue avant d'avoir servi");
 
     const suppression = await visiter(`${page}/supprimer`, {
       method: "POST",

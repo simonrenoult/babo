@@ -1,0 +1,15 @@
+-- Spec 012, amendée : quand cette veille a-t-elle été relevée ?
+--
+-- Sans cette date, la page ne sait pas distinguer deux silences très
+-- différents : « la passe est passée et rien ne correspond » et « la passe
+-- n'est pas encore passée ». Elle disait le premier dans les deux cas, ce qui
+-- fait douter de critères qui n'ont jamais servi.
+--
+-- C'est la distinction que 019 impose partout ailleurs — « jamais relevée »
+-- n'est pas « périmée », et 001 comme 028 le disent en toutes lettres. Elle
+-- manquait ici, et une veille créée à 9 h du matin attend son premier relevé
+-- jusqu'au lendemain 5 h 15 : vingt heures à se demander si on s'est trompé.
+--
+-- Sur `veille` plutôt que dans une table à part : une date par veille, et elle
+-- disparaît avec elle. Nulle veut dire « jamais ».
+alter table veille add column relevee_le text;

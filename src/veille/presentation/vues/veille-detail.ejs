@@ -26,8 +26,37 @@
 
 <%- include("peremption", { fraicheur }) %>
 
-<% if (resultats.retenus.length === 0) { %>
-  <p class="etat">Aucun tournoi ne répond à ces critères pour le moment.</p>
+<%
+  /*
+    Trois silences très différents, et la page les disait tous les trois de la
+    même façon — « aucun tournoi ne répond à ces critères », y compris quand
+    personne n'avait encore cherché. C'est la distinction que 019 impose
+    ailleurs : « jamais relevée » n'est pas « rien trouvé ».
+  */
+%>
+<% if (resultats.retenus.length === 0 && releveeLe === null) { %>
+  <p class="etat">
+    <strong>Cette veille n'a pas encore été relevée.</strong>
+    La recherche tourne chaque matin à 5 h 15, et les fiches des tournois
+    trouvés un quart d'heure plus tard : les premiers résultats apparaîtront
+    demain matin. Rien ne dit encore si ces critères sont trop étroits — ils
+    n'ont pas servi.
+  </p>
+<% } else if (resultats.retenus.length === 0 && resultats.enAttenteDeFiche === 0
+              && resultats.ecartes === 0 && resultats.indetermines.length === 0) { %>
+  <p class="etat">
+    <strong>La dernière recherche n'a rien rendu dans ce périmètre</strong>
+    (<%= releveeLe.toLocaleString("fr-FR") %>). badnet n'y publie aucun tournoi
+    à venir : c'est le rayon ou la fenêtre qu'il faut élargir, pas les tableaux
+    ni les séries.
+  </p>
+<% } else if (resultats.retenus.length === 0) { %>
+  <p class="etat">
+    <strong>Aucun tournoi ne répond à ces critères</strong>
+    (relevé le <%= releveeLe.toLocaleString("fr-FR") %>).
+    badnet en a rendu <%= resultats.ecartes + resultats.indetermines.length + resultats.enAttenteDeFiche %>
+    dans le périmètre : ce sont les tableaux, les séries ou la fenêtre qui les écartent.
+  </p>
 <% } else { %>
   <table>
     <tr>
