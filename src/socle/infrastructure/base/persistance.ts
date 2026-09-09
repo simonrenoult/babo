@@ -24,6 +24,8 @@ import { depotCompteSqlite } from "./depot-compte-sqlite.ts";
 import { depotCourrierSqlite } from "./depot-courrier-sqlite.ts";
 import { depotEngagementsSqlite } from "./depot-engagements-sqlite.ts";
 import { depotTournoisSqlite } from "./depot-tournois-sqlite.ts";
+import { depotAppartenancesSqlite } from "./depot-appartenances-sqlite.ts";
+import type { DepotAppartenances } from "../../core/passe-veilles.ts";
 
 /**
  * L'unique base de l'application, ouverte, migrée, et ses dépôts — spec 017.
@@ -52,6 +54,13 @@ export type Persistance = {
   readonly engagements: DepotEngagements;
   /** Les tournois eux-mêmes — lieu et journées, relevés en anonyme (002). */
   readonly tournois: DepotTournois;
+  /**
+   * Ce que chaque veille voit, et depuis quand — spec 012.
+   *
+   * Dans le socle avec `tournoi`, et non dans la feature : c'est une passe du
+   * socle qui l'écrit. La feature `veille`, elle, garde ses propres critères.
+   */
+  readonly appartenances: DepotAppartenances;
   taille(): number;
   fermer(): void;
 };
@@ -75,6 +84,7 @@ export function ouvrirLaPersistance(configuration: ConfigurationBase): Persistan
     courrier: depotCourrierSqlite(base),
     engagements: depotEngagementsSqlite(base),
     tournois: depotTournoisSqlite(base),
+    appartenances: depotAppartenancesSqlite(base),
     taille: () => tailleDeLaBase(base),
     fermer: () => base.close(),
   };

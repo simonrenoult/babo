@@ -541,6 +541,85 @@ phrases observées sur un tournoi ne font pas une taxonomie.
 rapport : l'écran d'exploitation porte les gestes, la feature porte la donnée
 (030).
 
+## La veille
+
+Spec 012. Des recherches nommées qu'on garde, et qui interrogent badnet chaque
+matin.
+
+| Pièce | Où |
+|-------|-----|
+| la veille, sa fenêtre, sa validation | `veille/core/veille.ts` |
+| le filtrage local et la distance | `veille/core/resultats.ts` |
+| le dépôt des veilles | `veille/infrastructure/depot-veilles-sqlite.ts` |
+| l'index, la passe, l'appartenance | `socle/core/passe-veilles.ts` |
+| la recherche publique branchée | `infrastructure/acquisition/veilles-badnet.ts` |
+| les quatre tables | `migrations/014__veille.sql` |
+
+**Une veille n'est pas une configuration du formulaire badnet.** « DH » et
+« D7 D8 D9 » s'y traduisent ; « moins d'une heure en transports depuis Paris »
+et « proche de la mer » n'existent nulle part chez lui — ils attendent 034. La
+veille porte donc un modèle à elle, et c'est `main.ts` qui le traduit en
+critères de requête, comme il traduit déjà les licences suivies de 028.
+
+**Une collecte par veille, cinq au plus.** Écartée, l'idée d'indexer largement
+une fois pour filtrer ensuite : elle évitait le rattrapage de 013 à chaque
+veille nouvelle, mais supposait de couvrir le périmètre de toutes les veilles
+présentes *et futures*, donc la France entière. Cinq veilles, c'est cinq
+requêtes ; le volume ne justifie pas de collecter ce que personne ne regarde.
+
+**On ne pousse à badnet que ce qui a été vérifié** : la zone, `coming`, le type,
+les catégories d'âge et les disciplines — dont le OU est exact. Pas les cases de
+classement : `nc=1` seul ne filtre rien, et `n=1` retient des tournois dont le
+`clt` dit `NC` tout en écartant un national dont le `clt` dit `N`. Un filtre
+dont on ignore la portée écarte des tournois sans qu'on sache lesquels.
+
+**Les tableaux et les séries se lisent sur la fiche, jamais sur la recherche.**
+Le champ `clt` ne rend que des familles, et se trompe — un tournoi annoncé `N`
+dont la fiche exclut N1. La fiche donne les rangs un par un, et nomme les
+tableaux : huit codes observés, dont `ST` et `SI` rangés tels quels faute
+d'équivalent, et `DX` traduit en `MX` parce que `tableau.ts` documente déjà
+cette orthographe.
+
+**Une table `tournoi` partagée, une appartenance par veille.** Le même tournoi
+apparaît dans trois veilles sur cinq ; en garder trois exemplaires ferait trois
+villes du même fait. Ce qui est propre à la veille — depuis quand elle le voit,
+et si elle a alerté — vit dans `veille_tournoi`. **Une sortie s'y date, elle ne
+s'efface pas** : avec une requête par veille, l'absence a deux sens — annulé, ou
+hors critères —, et seule une appartenance datée les distingue. C'est ce qui
+garde les rappels de 014 quand on resserre un rayon, et ce qui empêche un
+tournoi qui sort puis rentre de réalerter (013).
+
+**Deux sources, deux moitiés de la même ligne.** La recherche écrit le nom, les
+coordonnées et la date limite ; la fiche écrit le lieu, les journées, les
+tableaux et les séries. Chaque écriture ne nomme que ses colonnes : sans cela,
+le premier relevé de fiche effacerait la date limite sur laquelle la veille
+filtre, et le tournoi disparaîtrait d'elle sans que rien ne le dise. C'est
+`fiche_relevee_le`, et non l'existence de la ligne, qui dit à la passe des
+fiches ce qui lui reste à faire.
+
+**La distance se calcule ici.** Le champ `distance` de badnet est vide deux fois
+sur trois et faux quand il ne l'est pas — 9 km annoncés pour 1,6 km réels. Son
+`rayon`, lui, coupe juste : vérifié, 47 marqueurs tous dans les 50 km demandés.
+Le filtre local n'est donc pas une correction mais une ceinture, utile le jour
+où l'on resserre une veille — l'index garde l'ancien périmètre jusqu'au
+lendemain.
+
+**Une tâche, `acquisition:badnet:veilles`, à 5 h 15** — entre les engagements de
+5 h et les fiches de 5 h 30, sans enchaînement. Échec ligne à ligne : « 4
+veilles sur 5, "Tournois en région" muette ». Et l'écart entre ce que badnet
+annonce et ce qu'il géolocalise est consigné à chaque passe, le jour où il
+cesserait de placer ses tournois sur sa carte.
+
+**La passe des fiches est plafonnée** à cent par passage. Douze tournois par
+saison ne demandaient pas de borne ; une veille en apporte vingt-trois le
+premier jour, et une veille large en apporterait cent — trois cents requêtes
+d'affilée sont la seule façon de se faire remarquer d'un site qui ne demandait
+rien.
+
+**Un tournoi qui ne déclare rien est montré à part, jamais écarté.** Ce sont les
+tournois fraîchement publiés, donc ceux que 013 existe pour attraper et ceux qui
+se remplissent le plus vite. « Indéterminé » n'est pas « pas pour moi ».
+
 ## L'observabilité
 
 Spec 019. Le mode de panne d'un scraper n'est pas l'exception, c'est le **succès
@@ -759,9 +838,5 @@ il se lit en mettant les deux côte à côte, jamais en les fusionnant.
 Le schéma des matchs, que 015 laisse volontairement à dessiner sur les pages
 désormais observées, et la sauvegarde (023).
 
-L'index de tournois de 012 : la table `tournoi` existe, mais elle ne se remplit
-que depuis mes engagements. La recherche publique, elle, est instrumentée depuis
-015 et n'écrit encore rien. 012 en fait désormais des **veilles nommées** — cinq
-au plus, chacune avec sa collecte quotidienne, sa zone, sa fenêtre et ses
-séries —, partageant la table `tournoi` et n'ayant en propre qu'une appartenance
-datée. Sa dernière dépendance est levée : 036 est faite.
+Les alertes et les rappels de la veille (013 et 014), que 012 vient de
+débloquer : la colonne `alerte_le` est posée et personne ne l'écrit.

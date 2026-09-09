@@ -1,9 +1,52 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
-<p>Module en place, sans métier : les specs suivantes viendront le remplir.</p>
-<ul>
-  <li>Recherche de tournois — spec 012</li>
-  <li>Alerte de nouveau tournoi — spec 013</li>
-  <li>Rappel d'ouverture — spec 014</li>
-</ul>
+
+<p>
+  Une veille est une recherche qu'on nomme et qu'on garde — « DH avec Louis »,
+  « Tournois en région avec l'équipe ». Chacune interroge badnet chaque matin à
+  5 h 15 et retient les tournois qui répondent à ses critères. Cinq au plus :
+  au-delà, on ne les relit plus.
+</p>
+
+<% if (veilles.length === 0) { %>
+  <p class="etat">
+    Aucune veille. La première se crée en une minute : un nom, un point de
+    départ, un rayon, une fenêtre de dates, les tableaux que je joue et les
+    séries où je suis admis.
+  </p>
+<% } else { %>
+  <%- include("peremption", { fraicheur }) %>
+
+  <table>
+    <tr>
+      <th>Veille</th>
+      <th>Périmètre</th>
+      <th>Tableaux</th>
+      <th>Séries</th>
+      <th class="nombre">Tournois</th>
+      <th>État</th>
+    </tr>
+    <% veilles.forEach(function (ligne) { %>
+      <tr>
+        <td><a href="/veille/<%= ligne.veille.id %>"><%= ligne.veille.nom %></a></td>
+        <td><%= ligne.veille.rayonKm %> km</td>
+        <td><%= ligne.veille.tableaux.join(", ") %></td>
+        <td><%= ligne.veille.series.join(", ") %></td>
+        <td class="nombre"><%= ligne.vus %></td>
+        <td><%= ligne.veille.active ? "active" : "suspendue" %></td>
+      </tr>
+    <% }); %>
+  </table>
+<% } %>
+
+<% if (veilles.length < auPlus) { %>
+  <p><a href="/veille/nouvelle">Créer une veille</a></p>
+<% } else { %>
+  <p class="etat">
+    Cinq veilles, le maximum. Pour en créer une autre, il faut en supprimer une
+    — ou en suspendre une, si c'est son relevé quotidien qu'on veut arrêter
+    sans perdre ce qu'elle a déjà vu.
+  </p>
+<% } %>
+
 <%- include("pied") %>

@@ -65,9 +65,17 @@ rendu. Un filtre dont on ignore la portée écarte des tournois sans qu'on sache
 lesquels — précisément ce que cette spec veut cesser de subir.
 
 Reste en local aussi la **distance à vol d'oiseau**, recalculée sur les `lat`
-et `lng` du JSON : le `rayon` de badnet n'est pas une coupe stricte — Chambly,
-à 65 km, ressort d'un rayon 50 — et son champ `distance` est faux quand il n'est
-pas vide (9 km annoncés pour 1,6 km réels).
+et `lng` du JSON. ~~Parce que le `rayon` de badnet n'est pas une coupe
+stricte.~~ **Corrigé le 9 septembre 2026 : il l'est.** Une recherche au rayon 50
+autour de Paris rend 47 marqueurs, tous à 50 km ou moins — l'affirmation
+inverse, reprise d'une sonde sans être vérifiée, était fausse.
+
+La vraie raison tient : le champ `distance` de badnet est vide deux fois sur
+trois et faux quand il ne l'est pas (9 km annoncés pour 1,6 km réels), et la
+page doit afficher une distance. Le filtre qui en découle ne coûte rien et sert
+le jour où l'on resserre le rayon d'une veille : l'index garde jusqu'au
+lendemain les tournois de l'ancien périmètre, et la page est juste tout de
+suite.
 
 **Les tableaux et les séries se lisent sur la fiche, jamais sur la recherche.**
 Le JSON ne rend que des familles (`"N, R, D, P, NC"`), et il ment : un tournoi
@@ -152,6 +160,50 @@ saisir une veille *est* la feature, l'arbitrage rendu par
 Écarté de la v1 : le filtre « places disponibles », qui porte sur une jauge
 souvent vide — [[035__veille__places-disponibles.feat]] ; et le tri par
 « promu », que badnet vend et qui n'est donc pas une information.
+
+## Ce que cette spec laisse ouvert
+
+- **badnet écrit `DX` pour le mixte, et sept autres codes.** Le relevé du
+  9 septembre 2026 en a rendu huit — SH, SD, DH, DD, MX, plus `ST`, `SI` et
+  `DX`. Les deux premiers n'ont pas d'équivalent connu et sont rangés tels
+  quels ; `DX`, lui, est traduit en `MX`, parce que `tableau.ts` l'écrit déjà —
+  « `MX` et non `DX` : c'est l'écriture de la fédération ». Sans cette
+  traduction, une veille « mixte » manquait « Choisy ton double 8 », qui en
+  propose un. Reconnaître une orthographe n'est pas inventer une donnée ; le
+  jour où un neuvième code apparaît, il sera rangé tel quel et se verra à
+  l'écran.
+- **La ville vient de la carte, l'enveloppe en second** — l'inverse de ce que
+  036 avait retenu, corrigé sur 24 fiches réelles. Le `location` de l'enveloppe
+  est une saisie libre : il rend « gymnase Long Rayage à Lisses » là où le code
+  postal de la carte donne « Lisses ». La carte étant absente trois fois sur
+  quatre, l'enveloppe garde tout son rôle — mais en second, et il reste des
+  tournois dont la ville est un nom de gymnase.
+- **Le tri se fait sur la première journée, donc après le relevé de fiche.** La
+  recherche ne donne aucune date exploitable — son champ `date` est un libellé
+  français, parfois vide. Un tournoi découvert à 5 h 15 n'a donc ni date ni
+  tableaux avant 5 h 30 : la page le compte à part (« en attente de leur
+  fiche ») plutôt que de le ranger n'importe où.
+- **Le plafond de cent fiches par passe n'a jamais été atteint.** Une veille de
+  30 km autour de Paris rend 23 tournois. Il protège du jour où l'on ouvre une
+  veille à 150 km — la mesure le dira avant que l'estimation ne le devine (019).
+- **Rien n'alerte encore.** La colonne `alerte_le` est posée et n'est écrite par
+  personne : c'est [[013__veille__alerte-nouveau-tournoi.feat]] qui la remplira.
+
+**Vérifié contre le vrai badnet le 9 septembre 2026.** Une veille « mixte,
+séries D, 30 km autour de Paris, 120 jours, inscriptions ouvertes » : 23
+tournois indexés en une requête, 23 fiches relevées, 20 retenus, 1 aux tableaux
+non déclarés, 2 écartés par les critères.
+
+**Une correction en cours de route.** « Le `rayon` de badnet n'est pas une coupe
+stricte » était faux — repris d'une sonde sans être vérifié. Une recherche au
+rayon 50 rend 47 marqueurs, tous à 50 km ou moins. Le filtre local reste, pour
+la raison écrite plus haut, mais ce n'est pas celle-là.
+
+**Le lint d'architecture a fait son travail.** Le premier test du dépôt
+d'appartenance importait le dépôt des veilles pour poser une ligne : le socle ne
+connaît aucune feature (022), et la règle l'a refusé. Le test insère désormais
+sa veille en SQL brut — ce qui dit exactement ce que le socle sait, la table,
+sans ce qu'il ne sait pas, la notion.
 
 ~~Bloquée par [[036__socle__fiche-publique-sans-gymnase.fix]]~~ : **faite le
 9 septembre 2026**, et elle a rapporté plus que le correctif. La chaîne compte

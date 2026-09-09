@@ -5,7 +5,7 @@
 | id          | 014                                                                                                                                                                       |
 | module      | veille                                                                                                                                                                    |
 | type        | feat                                                                                                                                                                      |
-| bloquée par | [[012__veille__recherche-de-tournois.feat]], [[036__socle__fiche-publique-sans-gymnase.fix]], ~~[[016__socle__envoi-de-mail.tech]], [[018__socle__ordonnancement.tech]]~~ |
+| bloquée par | ~~[[012__veille__recherche-de-tournois.feat]], [[036__socle__fiche-publique-sans-gymnase.fix]], [[016__socle__envoi-de-mail.tech]], [[018__socle__ordonnancement.tech]]~~ |
 
 ## Contexte
 

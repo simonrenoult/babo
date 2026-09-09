@@ -34,18 +34,29 @@ function depot(engagements: readonly Engagement[]): DepotEngagements {
 
 function lieux(tournois: readonly Tournoi[] = []): DepotTournois {
   return {
-    enregistrer: () => {},
+    enregistrerLaFiche: () => {},
+    enregistrerDepuisLaRecherche: () => {},
     parEvenement: () => new Map(tournois.map((tournoi) => [tournoi.evenement, tournoi])),
     connus: () => new Set(tournois.map(({ evenement }) => evenement)),
+    sansFiche: () => [],
   };
 }
 
 function tournoi(evenement: number, jours: readonly string[]): Tournoi {
   return {
     evenement,
+    nom: null,
     gymnase: "Armand Silvestre",
     adresse: "188 Rue Armand Silvestre 92400 Courbevoie",
     ville: "Courbevoie",
+    latitude: null,
+    longitude: null,
+    dateLimite: null,
+    familles: null,
+    categories: null,
+    tableaux: [],
+    series: [],
+    ficheRelevee: true,
     journees: jours.map((jour) => new Date(`${jour}T12:00:00`)),
   };
 }

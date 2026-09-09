@@ -10,9 +10,10 @@ import { creerModuleMonProfil } from "../src/mon-profil/presentation/module-web.
 import { creerModuleCapitanat } from "../src/capitanat/presentation/module-web.ts";
 import { depotCoequipiersSqlite } from "../src/capitanat/infrastructure/depot-coequipiers-sqlite.ts";
 import { depotPreferencesSqlite } from "../src/capitanat/infrastructure/depot-preferences-sqlite.ts";
+import { depotVeillesSqlite } from "../src/veille/infrastructure/depot-veilles-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "../src/capitanat/infrastructure/csv-equipe.ts";
 import { ImportRefuse } from "../src/capitanat/core/coequipier.ts";
-import { moduleVeille } from "../src/veille/presentation/module-web.ts";
+import { creerModuleVeille } from "../src/veille/presentation/module-web.ts";
 import { etatDeLaSource, tacheDAcquisition, tacheDesEngagements } from "../src/socle/core/acquisition.ts";
 import { SOURCES } from "../src/socle/core/source.ts";
 import { licence } from "../src/socle/core/licence.ts";
@@ -93,6 +94,7 @@ describe("l'application assemblée", () => {
   let persistance: ReturnType<typeof ouvrirLaPersistance>;
   let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
   let preferences: ReturnType<typeof depotPreferencesSqlite>;
+  let veilles: ReturnType<typeof depotVeillesSqlite>;
   /** Le dépôt décoré de 019 : celui que `main.ts` donne aux passes. */
   let rapports: ReturnType<typeof enAlertant>;
   let courrier: ReturnType<typeof creerCourrier>;
@@ -116,6 +118,7 @@ describe("l'application assemblée", () => {
     persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
     coequipiers = depotCoequipiersSqlite(persistance.base);
     preferences = depotPreferencesSqlite(persistance.base);
+    veilles = depotVeillesSqlite(persistance.base);
     reseau = reseauRejoue();
 
     // Le courrier sans transport : les messages s'écrivent en base et personne
@@ -196,7 +199,14 @@ describe("l'application assemblée", () => {
           fraicheur: fraicheurDeTest,
           horloge: horlogeSysteme,
         }),
-        moduleVeille,
+        creerModuleVeille({
+          veilles,
+          tournois: persistance.tournois,
+          appartenances: persistance.appartenances,
+          fraicheur: () => fraicheurDeTest(null),
+          horloge: horlogeSysteme,
+          mesSeries: () => ["D8", "D9"],
+        }),
       ],
       etatDuSocle: () => ({
         tailleDeLaBase: persistance.taille(),
@@ -372,13 +382,15 @@ describe("l'application assemblée", () => {
     const bientot = new Date(Date.now() + 20 * 24 * 60 * 60_000);
     const lendemain = new Date(bientot.getTime() + 24 * 60 * 60_000);
 
-    persistance.tournois.enregistrer(
+    persistance.tournois.enregistrerLaFiche(
       {
         evenement: 1,
         gymnase: "Armand Silvestre",
         adresse: "188 Rue Armand Silvestre 92400 Courbevoie",
         ville: "Courbevoie",
         journees: [bientot, lendemain],
+        tableaux: [],
+        series: [],
       },
       new Date(),
     );
@@ -403,6 +415,80 @@ describe("l'application assemblée", () => {
     const reponse = await visiter(`/capitanat`);
 
     assert.match(await reponse.text(), /Aucune équipe importée/);
+  });
+
+  /**
+   * La chaîne entière de 012 : le formulaire, la vérification, la base, la page.
+   *
+   * Ce sont les premières écritures de `veille`, et elles vivent ici et non sur
+   * `/sources` — l'arbitrage de 030 : l'écran d'exploitation porte les gestes,
+   * saisir une veille *est* la feature.
+   */
+  it("crée une veille, l'affiche, la suspend, puis la supprime", async () => {
+    const creation = await visiter("/veille", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams([
+        ["nom", "DH avec Louis"],
+        ["latitude", "48.8534"],
+        ["longitude", "2.3488"],
+        ["rayonKm", "50"],
+        ["fenetre", "glissante"],
+        ["fenetreJours", "90"],
+        ["tableaux", "DH"],
+        ["tableaux", "MX"],
+        ["series", "D8"],
+        ["series", "D9"],
+        ["ouvertes", "1"],
+      ]).toString(),
+    });
+    assert.equal(creation.status, 302);
+    const page = creation.headers.get("location") ?? "";
+    assert.match(page, /^\/veille\/\d+$/);
+
+    // Sur le lien de la ligne, jamais sur le nom : le paragraphe d'en-tête
+    // cite « DH avec Louis » en exemple, et une assertion sur le nom passerait
+    // aussi bien sans aucune veille en base.
+    const index = await (await visiter("/veille")).text();
+    assert.match(index, new RegExp(`href="${page}">DH avec Louis</a>`));
+    assert.match(index, /<td>active<\/td>/);
+
+    const detail = await (await visiter(page)).text();
+    assert.match(detail, /rayon de 50 km/);
+    assert.match(detail, /DH, MX/);
+    assert.match(detail, /Aucun tournoi ne répond à ces critères/, "l'index est vide");
+
+    const suspension = await visiter(`${page}/etat`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "active=0",
+    });
+    assert.equal(suspension.status, 302);
+    assert.match(await (await visiter(page)).text(), /Veille suspendue/);
+
+    const suppression = await visiter(`${page}/supprimer`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "",
+    });
+    assert.equal(suppression.status, 302);
+    const apres = await (await visiter("/veille")).text();
+    assert.doesNotMatch(apres, new RegExp(`href="${page}"`));
+    assert.match(apres, /Aucune veille\./);
+  });
+
+  it("refuse une veille qui ne filtrerait rien, et le dit sans rien écrire", async () => {
+    const refus = await visiter("/veille", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "nom=Tout&latitude=48.85&longitude=2.34&rayonKm=50&fenetre=glissante&fenetreJours=90",
+    });
+
+    assert.equal(refus.status, 400);
+    const corps = await refus.text();
+    assert.match(corps, /Aucun tableau/);
+    assert.match(corps, /Aucune série/);
+    assert.match(await (await visiter("/veille")).text(), /Aucune veille\./, "rien n'est écrit");
   });
 
   it("importe un CSV déposé depuis les sources, et l'affiche sur le capitanat", async () => {

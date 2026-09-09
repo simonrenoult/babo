@@ -3,6 +3,8 @@ import type { Engagement, TableauEngage } from "../../core/engagement.ts";
 import type { TournoiEngage } from "../../core/passe-engagements.ts";
 import { tableauEngage } from "../../core/engagement.ts";
 import type { Licence } from "../../core/licence.ts";
+import type { Discipline } from "../../core/classement.ts";
+import { LETTRES, type Lettre } from "../../core/classement.ts";
 
 /**
  * Le module d'acquisition badnet — spec 015, source des tournois.
@@ -29,12 +31,28 @@ export const ACTION_RECHERCHE = "78032b44baaa5e0ee59389b30e2ebdae";
 const TOURNOIS_INDIVIDUELS = "70";
 
 /**
+ * Les catégories d'âge que le formulaire coche — spec 012.
+ *
+ * Le nom du champ est la valeur : badnet attend `jeunes=1`, `seniors=1`. Les
+ * quatre sont relevées sur le formulaire réel, le 8 septembre 2026.
+ */
+export const CATEGORIES = ["jeunes", "seniors", "veterans", "parabad"] as const;
+
+export type Categorie = (typeof CATEGORIES)[number];
+
+/**
  * Les critères que le formulaire public accepte — spec 012.
  *
- * Volontairement partiel : ce que la sonde a besoin d'exercer. Le formulaire
- * en propose bien d'autres — département, ligue, catégories d'âge,
- * disciplines, familles de classement — et ils s'ajouteront quand 012 dira
- * lesquels comptent.
+ * **On ne pousse que ce qu'on a vérifié.** La sonde du 8 septembre 2026 a
+ * exercé chaque champ : la géolocalisation, `coming`, le type, les catégories
+ * d'âge et les disciplines filtrent comme on l'attend — l'union de `single` et
+ * `mixte` rend exactement les résultats de la requête qui coche les deux.
+ *
+ * Les cases de classement, non : `nc=1` seul ne filtre rien, et la sélection
+ * de `n=1` retient des tournois dont le `clt` dit `NC` tout en écartant un
+ * national dont le `clt` dit `N`. Un filtre dont on ignore la portée écarte des
+ * tournois sans qu'on sache lesquels — précisément ce que 012 veut cesser de
+ * subir. Les séries se filtrent donc en local, sur la fiche.
  */
 export type CriteresDeRecherche = {
   /** Centre de la recherche, en « longitude;latitude » — c'est la forme qu'attend badnet. */
@@ -42,10 +60,23 @@ export type CriteresDeRecherche = {
   readonly rayonKm: number;
   /** À venir seulement : sans quoi la recherche remonte les tournois passés. */
   readonly aVenir: boolean;
+  /**
+   * Simple, double, mixte — jamais SH ni DH : badnet ne distingue pas le genre.
+   * Vide veut dire « toutes », comme le formulaire décoché.
+   */
+  readonly disciplines?: readonly Discipline[];
+  readonly categories?: readonly Categorie[];
+};
+
+/** Le nom du champ que badnet attend pour chaque discipline. */
+const CHAMP_DE_LA_DISCIPLINE: Record<Discipline, string> = {
+  simple: "single",
+  double: "double",
+  mixte: "mixte",
 };
 
 export function rechercheDeTournois(criteres: CriteresDeRecherche): Requete {
-  const { autourDe, rayonKm, aVenir } = criteres;
+  const { autourDe, rayonKm, aVenir, disciplines = [], categories = [] } = criteres;
   const champs = new URLSearchParams({
     ic_a: ACTION_RECHERCHE,
     ic_ajax: "1",
@@ -55,6 +86,12 @@ export function rechercheDeTournois(criteres: CriteresDeRecherche): Requete {
     rayon: String(rayonKm),
   });
   if (aVenir) champs.set("coming", "1");
+  // Cochées seulement : une case décochée est absente du POST, et « aucune
+  // cochée » veut dire « toutes » — cocher les trois disciplines et n'en cocher
+  // aucune rendent la même liste, mais la seconde forme est celle du formulaire
+  // au repos.
+  for (const discipline of disciplines) champs.set(CHAMP_DE_LA_DISCIPLINE[discipline], "1");
+  for (const categorie of categories) champs.set(categorie, "1");
 
   return {
     url: ROUTEUR,
@@ -90,6 +127,15 @@ export type TournoiPublie = {
   /** Libellés tels quels : badnet les rend en français, parfois en HTML. */
   readonly dateLibellee: string;
   readonly echeanceLibellee: string;
+  /**
+   * La date limite d'inscription, au jour près — spec 012.
+   *
+   * Elle se lit dans l'attribut `title` du fragment `deadline`
+   * (« Inscr. av. le 03/09/2026 »), et **là seulement** : le texte visible est
+   * relatif au jour de la requête (« 2 jours restants »), donc faux dès le
+   * lendemain. `null` quand badnet n'annonce pas de limite.
+   */
+  readonly dateLimite: Date | null;
 };
 
 const MARQUEURS = /data-markers="([^"]*)"/;
@@ -120,7 +166,37 @@ function versTournoi(brut: Record<string, unknown>): TournoiPublie {
     url: String(brut["url"] ?? ""),
     dateLibellee: String(brut["date"] ?? ""),
     echeanceLibellee: String(brut["deadline"] ?? ""),
+    dateLimite: dateLimiteDeLEcheance(String(brut["deadline"] ?? "")),
   };
+}
+
+const LIMITE = /title="Inscr\. av\. le (\d{2})\/(\d{2})\/(\d{4})"/u;
+
+function dateLimiteDeLEcheance(echeance: string): Date | null {
+  const trouve = LIMITE.exec(echeance);
+  if (trouve === null) return null;
+  const [, jour, mois, annee] = trouve;
+  // Midi, comme les journées de 002 : une date sans heure que minuit ferait
+  // basculer de jour au moindre décalage à l'affichage.
+  return new Date(`${annee}-${mois}-${jour}T12:00:00`);
+}
+
+/**
+ * Le nombre de résultats que badnet annonce, en tête de son fragment — 012.
+ *
+ * **Il ne coïncide pas avec la liste.** `data-markers` ne porte que les
+ * tournois géolocalisés : 46 sur les 54 annoncés au rayon 50, les absents étant
+ * ceux dont le lieu n'est pas géocodable — « Comité Départemental 93 »,
+ * « Fédération Française de Badminton ». On les ignore, faute de pouvoir les
+ * filtrer à la distance, mais l'écart se consigne : le jour où badnet cesse de
+ * géolocaliser, le rapport le dit au lieu que l'index maigrisse en silence
+ * (019).
+ */
+const DECOMPTE = /<p class="flex cpt">[^<]*<span>\s*(\d+)/u;
+
+export function nombreAnnonce(reponse: Reponse): number | null {
+  const trouve = DECOMPTE.exec(reponse.contenu)?.[1];
+  return trouve === undefined ? null : Number(trouve);
 }
 
 /** Les entités HTML de l'attribut, et elles seules : le contenu est du JSON. */
@@ -624,6 +700,86 @@ export function journeesDuTournoi(reponse: Reponse): readonly Date[] {
   // Midi, comme 027 l'écrit déjà en base : une date de tournoi n'a pas d'heure,
   // et minuit local bascule de jour au moindre décalage à l'affichage.
   return jours.sort().map((jour) => new Date(`${jour}T12:00:00`));
+}
+
+/**
+ * Les tableaux réellement proposés, lus sur la fiche — spec 012.
+ *
+ * **C'est la seule source qui les nomme.** La recherche ne connaît que trois
+ * disciplines — simple, double, mixte —, quand le critère utile est SH, DH ou
+ * MX : je ne joue pas le SD. La fiche, elle, écrit le code en toutes lettres
+ * dans l'en-tête de son tableau des jauges.
+ *
+ * On rend **le code et rien d'autre**. Le libellé qui le suit dit tout et son
+ * contraire selon l'organisateur — « oui », « Série 1 », « S1 », « P10-NC »,
+ * « U13-Ben », ou rien —, et un même code revient autant de fois qu'il y a de
+ * séries ou de catégories dans ce tableau.
+ *
+ * On ne traduit pas — à une exception près, et elle est documentée. Le relevé du
+ * 9 septembre 2026 a rendu **huit** codes, dont `ST` et `SI` que le projet ne
+ * connaît pas : les refuser ferait perdre le tournoi entier, les réécrire serait
+ * inventer un fait fédéral (028). Mais `DX` **est** `MX` : `tableau.ts` l'écrit
+ * déjà — « `MX` et non `DX` : c'est l'écriture de la fédération ». Le laisser tel
+ * quel ferait manquer à une veille « mixte » un tournoi qui en propose un, ce
+ * qui est exactement le défaut que 012 vient corriger. Reconnaître une
+ * orthographe n'est pas inventer une donnée.
+ */
+const SYNONYMES: Record<string, string> = { DX: "MX" };
+const BLOC_DES_TABLEAUX = /<h3>Tableaux.*?<table>(.*?)<\/table>/su;
+const CODE_DU_TABLEAU = /<div class="b-jauge">\s*<div>\s*([A-Z]{2})\b/gu;
+
+export function tableauxDuTournoi(reponse: Reponse): readonly string[] {
+  const bloc = BLOC_DES_TABLEAUX.exec(reponse.contenu)?.[1];
+  if (bloc === undefined) return [];
+  const codes = [...bloc.matchAll(CODE_DU_TABLEAU)].map((trouve) => trouve[1] ?? "");
+  return [...new Set(codes.map((code) => SYNONYMES[code] ?? code))].sort();
+}
+
+/**
+ * Les séries admises, rang par rang — spec 012.
+ *
+ * **La recherche ment sur ce point, la fiche non.** Son champ `clt` ne rend que
+ * des familles (« N, R, D, P, NC ») et se trompe : un tournoi annoncé `N` dont
+ * la fiche exclut N1. Le tableau « Classements » de la fiche donne le détail —
+ * « N2 N3 | R4 R5 R6 | D7 D8 D9 | P10 P11 P12 | NC » —, ce qui se compare
+ * directement au barème de 001.
+ *
+ * Une famille non admise porte une croix, et NC une coche sans rang : c'est
+ * l'en-tête qui dit de quelle famille il s'agit, et non le rang de la colonne —
+ * un ordre de colonnes se réécrit plus facilement qu'un intitulé.
+ *
+ * Aucun tableau du tout : le tournoi n'a rien déclaré, et c'est une information.
+ * Il n'est pas écarté, il est mis à part (012).
+ */
+const BLOC_DES_CLASSEMENTS = /<h3>Classements.*?<table>(.*?)<\/table>/su;
+const ENTETE = /<th[^>]*>\s*([^<\s]+)\s*<\/th>/gu;
+const CELLULE = /<td[^>]*>(.*?)<\/td>/gsu;
+
+export function seriesDuTournoi(reponse: Reponse): readonly Lettre[] {
+  const bloc = BLOC_DES_CLASSEMENTS.exec(reponse.contenu)?.[1];
+  if (bloc === undefined) return [];
+
+  const familles = [...bloc.matchAll(ENTETE)].map((trouve) => trouve[1] ?? "");
+  const admises = new Set<Lettre>();
+
+  for (const [rang, cellule] of [...bloc.matchAll(CELLULE)].entries()) {
+    const contenu = cellule[1] ?? "";
+    for (const mot of contenu.replaceAll(/<[^>]*>/gu, " ").split(/\s+/u)) {
+      if (estUneLettre(mot)) admises.add(mot);
+    }
+    // La famille cochée sans rang : NC n'a qu'un niveau, donc pas de case à
+    // lui donner. C'est l'en-tête de sa colonne qui la nomme.
+    const famille = familles[rang];
+    if (famille !== undefined && estUneLettre(famille) && /icons check/u.test(contenu)) {
+      admises.add(famille);
+    }
+  }
+
+  return [...admises].sort((a, b) => LETTRES.indexOf(a) - LETTRES.indexOf(b));
+}
+
+function estUneLettre(valeur: string): valeur is Lettre {
+  return (LETTRES as readonly string[]).includes(valeur);
 }
 
 /** L'action portée par le formulaire de connexion, en champ caché. */

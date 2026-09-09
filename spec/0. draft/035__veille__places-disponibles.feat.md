@@ -5,7 +5,7 @@
 | id          | 035                                         |
 | module      | veille                                      |
 | type        | feat                                        |
-| bloquée par | [[012__veille__recherche-de-tournois.feat]] |
+| bloquée par | ~~[[012__veille__recherche-de-tournois.feat]]~~ |
 
 ## Contexte
 

@@ -1,6 +1,6 @@
 import type { ClientHttp } from "../../core/acquisition.ts";
 import type { AccesAuxFichesPubliques } from "../../core/passe-tournois.ts";
-import type { Tournoi } from "../../core/tournoi.ts";
+import type { FicheDeTournoi } from "../../core/tournoi.ts";
 import {
   actionDeLEnveloppe,
   actionInterneDeLaPage,
@@ -12,6 +12,8 @@ import {
   journeesDuTournoi,
   lieuDuTournoi,
   moduleBadnet,
+  seriesDuTournoi,
+  tableauxDuTournoi,
 } from "./badnet.ts";
 
 /**
@@ -56,7 +58,7 @@ export function accesAuxFichesPubliquesBadnet(options: {
   const { client } = options;
 
   return {
-    async ficheDe(evenement: number): Promise<Tournoi> {
+    async ficheDe(evenement: number): Promise<FicheDeTournoi> {
       const url = fichePubliqueUrl(evenement);
       const coquille = await client.recuperer({ url, jeton: null });
 
@@ -105,8 +107,18 @@ export function accesAuxFichesPubliquesBadnet(options: {
         evenement,
         gymnase: lieu?.gymnase ?? null,
         adresse: lieu?.adresse ?? null,
-        ville: enTete.ville ?? lieu?.ville ?? null,
+        // La carte d'abord, l'enveloppe ensuite — l'inverse de ce que 036 avait
+        // retenu, corrigé le 9 septembre 2026 sur 24 fiches réelles : le
+        // `location` de l'enveloppe est une saisie libre, et rend parfois
+        // « gymnase Long Rayage à Lisses » là où le code postal de la carte
+        // donne « Lisses ». La carte reste absente trois fois sur quatre, donc
+        // l'enveloppe garde tout son rôle — mais en second.
+        ville: lieu?.ville ?? enTete.ville ?? null,
         journees: journees.length > 0 ? journees : enTete.journees,
+        // Ce que 012 attendait de cette chaîne : les tableaux nommés et les
+        // séries rang par rang, que la recherche ne sait pas rendre.
+        tableaux: tableauxDuTournoi(fiche),
+        series: seriesDuTournoi(fiche),
       };
     },
   };

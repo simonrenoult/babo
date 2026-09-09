@@ -2,7 +2,7 @@ import { tacheDesTournois } from "./acquisition.ts";
 import type { DepotEngagements } from "./engagement.ts";
 import type { Horloge } from "./horloge.ts";
 import type { DepotRapports, RapportArchive } from "./rapport-execution.ts";
-import type { DepotTournois, Tournoi } from "./tournoi.ts";
+import type { DepotTournois, FicheDeTournoi } from "./tournoi.ts";
 
 /**
  * La passe qui relève le lieu de mes tournois — spec 002.
@@ -15,14 +15,30 @@ import type { DepotTournois, Tournoi } from "./tournoi.ts";
  *
  * **Incrémentale.** Une ville ne change pas : relire douze fiches par jour pour
  * une donnée figée est exactement le genre de passe qui fait bannir un compte
- * (015). Elle ne demande que les tournois absents de l'index — donc rien, la
- * plupart des jours, et deux requêtes le lendemain d'une inscription nouvelle.
+ * (015). Elle ne demande que les tournois dont la fiche n'a jamais été relevée
+ * — donc rien, la plupart des jours, et trois requêtes le lendemain d'une
+ * inscription nouvelle.
+ *
+ * **Elle sert deux demandes depuis 012**, et non plus les seuls engagements :
+ * une veille remplit l'index de tournois sans ville ni tableaux, et c'est cette
+ * passe qui va les chercher. Deux passes se disputeraient les mêmes lignes et
+ * relèveraient deux fois la même fiche le même matin.
+ *
+ * **Plafonnée.** Douze tournois par saison ne demandaient pas de borne ; une
+ * veille large en apporte cent le premier jour, soit trois cents requêtes
+ * d'affilée — la seule façon de se faire remarquer d'un site qui ne demandait
+ * rien. Au-delà du plafond la passe s'arrête et dit ce qui reste ; le lendemain
+ * reprend. La veille se remplit en deux ou trois jours, ce qui est sans
+ * importance pour un catalogue à trois mois.
  *
  * Elle ne lève rien : toute panne devient un rapport (019).
  */
 export type AccesAuxFichesPubliques = {
-  ficheDe(evenement: number): Promise<Tournoi>;
+  ficheDe(evenement: number): Promise<FicheDeTournoi>;
 };
+
+/** Cent fiches, trois requêtes chacune : le plafond d'une passe polie. */
+export const FICHES_PAR_PASSE = 100;
 
 export async function releverLesTournois(options: {
   /**
@@ -56,10 +72,18 @@ export async function releverLesTournois(options: {
     });
 
   const connus = tournois.connus();
-  const aRelever = engagements
-    .tous()
-    .map(({ evenement }) => evenement)
-    .filter((evenement) => !connus.has(evenement));
+  // Les deux demandes réunies, dédoublonnées : mes engagements, qui peuvent
+  // désigner un tournoi dont aucune ligne n'existe encore, et les tournois que
+  // les veilles ont indexés sans fiche.
+  const demandes = [
+    ...new Set([
+      ...engagements.tous().map(({ evenement }) => evenement),
+      ...tournois.sansFiche(),
+    ]),
+  ].filter((evenement) => !connus.has(evenement));
+
+  const aRelever = demandes.slice(0, FICHES_PAR_PASSE);
+  const reportees = demandes.length - aRelever.length;
 
   // Rien à faire n'est pas rien à dire : une passe d'acquisition muette est
   // indistinguable d'une passe morte, et c'est le trou que 019 a passé une spec
@@ -73,7 +97,7 @@ export async function releverLesTournois(options: {
 
   for (const evenement of aRelever) {
     try {
-      tournois.enregistrer(await acces.ficheDe(evenement), horloge.maintenant());
+      tournois.enregistrerLaFiche(await acces.ficheDe(evenement), horloge.maintenant());
       releves.push(evenement);
     } catch (erreur) {
       // Une fiche muette n'arrête pas la passe : c'est la clémence de 027 et
@@ -83,7 +107,10 @@ export async function releverLesTournois(options: {
     }
   }
 
-  const detail = `${releves.length} lieu(x) relevé(s) sur ${aRelever.length}${manques.length === 0 ? "" : ` — ${manques.join(" ; ")}`}`;
+  const detail =
+    `${releves.length} fiche(s) relevée(s) sur ${aRelever.length}` +
+    (reportees === 0 ? "" : `, ${reportees} reportée(s) au lendemain`) +
+    (manques.length === 0 ? "" : ` — ${manques.join(" ; ")}`);
 
   return releves.length === 0
     ? consigner("echec", 0, detail)

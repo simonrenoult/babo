@@ -1,0 +1,128 @@
+<%- include("entete", { titre }) %>
+<h2><%= titre %></h2>
+
+<% if (motifs.length > 0) { %>
+  <p class="etat">Rien n'a été enregistré :</p>
+  <ul>
+    <% motifs.forEach(function (motif) { %><li><%= motif %></li><% }); %>
+  </ul>
+<% } %>
+
+<form method="post" action="<%= veille === null || veille.id === 0 ? "/veille" : "/veille/" + veille.id %>">
+  <p>
+    <label>Nom
+      <input type="text" name="nom" required maxlength="60"
+             value="<%= veille === null ? "" : veille.nom %>"
+             placeholder="DH avec Louis">
+    </label>
+    <span class="etat">C'est ce nom qui dira, dans le mail d'alerte, pourquoi ce tournoi m'est signalé.</span>
+  </p>
+
+  <h3>Périmètre</h3>
+  <p class="etat">
+    Un point et un rayon, à vol d'oiseau. Le temps de trajet réel est le vrai
+    critère, et il attend une spec à lui : depuis Paris, 40 km au nord-ouest
+    font 35 minutes de train, 40 km au sud-est deux changements et 1 h 20.
+  </p>
+  <p>
+    <label>Latitude
+      <input type="number" step="any" name="latitude" required
+             value="<%= veille === null ? "48.8534" : veille.latitude %>">
+    </label>
+    <label>Longitude
+      <input type="number" step="any" name="longitude" required
+             value="<%= veille === null ? "2.3488" : veille.longitude %>">
+    </label>
+    <label>Rayon (km)
+      <input type="number" name="rayonKm" min="1" max="500" required
+             value="<%= veille === null ? 50 : veille.rayonKm %>">
+    </label>
+  </p>
+
+  <h3>Fenêtre de dates</h3>
+  <p>
+    <label>
+      <input type="radio" name="fenetre" value="glissante"
+             <%= veille === null || veille.fenetre.nature === "glissante" ? "checked" : "" %>>
+      Glissante, sur
+    </label>
+    <input type="number" name="fenetreJours" min="1" max="365"
+           value="<%= veille !== null && veille.fenetre.nature === "glissante" ? veille.fenetre.jours : 90 %>">
+    jours
+  </p>
+  <p>
+    <label>
+      <input type="radio" name="fenetre" value="intervalle"
+             <%= veille !== null && veille.fenetre.nature === "intervalle" ? "checked" : "" %>>
+      Du
+    </label>
+    <input type="date" name="fenetreDu"
+           value="<%= veille !== null && veille.fenetre.nature === "intervalle" ? veille.fenetre.du.toISOString().slice(0, 10) : "" %>">
+    au
+    <input type="date" name="fenetreAu"
+           value="<%= veille !== null && veille.fenetre.nature === "intervalle" ? veille.fenetre.au.toISOString().slice(0, 10) : "" %>">
+  </p>
+  <p class="etat">
+    Pas de récurrence annuelle : « tous les novembres » a l'air utile et ne
+    l'est pas — ce qu'on veut vraiment, c'est « pendant les vacances de la
+    Toussaint », dont les dates changent chaque année.
+  </p>
+
+  <h3>Tableaux</h3>
+  <p class="etat">
+    badnet ne connaît que simple, double et mixte : c'est ce qu'on lui demande.
+    Le genre se filtre ici, sur la fiche du tournoi, qui nomme SH, SD, DH, DD et MX.
+  </p>
+  <p>
+    <% tousLesTableaux.forEach(function (tableau) { %>
+      <label>
+        <input type="checkbox" name="tableaux" value="<%= tableau %>"
+               <%= veille !== null && veille.tableaux.includes(tableau) ? "checked" : "" %>>
+        <%= intitules[tableau] %>
+      </label>
+    <% }); %>
+  </p>
+
+  <h3>Séries admises</h3>
+  <p class="etat">
+    Saisies, jamais déduites de mon classement : une paire entre par la série la
+    plus haute des deux, et un classement bouge à chaque CPPH — une veille qui
+    changerait de sens toute seule un vendredi matin serait une veille à qui je
+    ne ferais plus confiance. Les cases cochées par défaut sont mes séries du
+    moment.
+  </p>
+  <p>
+    <% toutesLesSeries.forEach(function (serie) { %>
+      <label>
+        <input type="checkbox" name="series" value="<%= serie %>"
+               <%= (veille === null ? seriesProposees : veille.series).includes(serie) ? "checked" : "" %>>
+        <%= serie %>
+      </label>
+    <% }); %>
+  </p>
+
+  <h3>Catégories d'âge</h3>
+  <p>
+    <% toutesLesCategories.forEach(function (categorie) { %>
+      <label>
+        <input type="checkbox" name="categories" value="<%= categorie %>"
+               <%= veille !== null && veille.categories.includes(categorie) ? "checked" : "" %>>
+        <%= categorie %>
+      </label>
+    <% }); %>
+    <span class="etat">Aucune cochée : toutes.</span>
+  </p>
+
+  <p>
+    <label>
+      <input type="checkbox" name="ouvertes" value="1"
+             <%= veille === null || veille.ouvertes ? "checked" : "" %>>
+      Seulement les tournois dont les inscriptions ne sont pas closes
+    </label>
+  </p>
+
+  <p><button type="submit">Enregistrer</button></p>
+</form>
+
+<p><a href="/veille">Retour aux veilles</a></p>
+<%- include("pied") %>

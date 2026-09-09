@@ -30,20 +30,25 @@ import { transportNodemailer } from "./socle/infrastructure/courrier/transport-n
 import { jetonHmac } from "./socle/infrastructure/authentification/jeton-hmac.ts";
 import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de-passe-scrypt.ts";
 import type { Licence } from "./socle/core/licence.ts";
+import type { Lettre } from "./socle/core/classement.ts";
 import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
 import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
 import { accesAuxEngagementsBadnet } from "./socle/infrastructure/acquisition/engagements-badnet.ts";
 import { accesAuxFichesPubliquesBadnet } from "./socle/infrastructure/acquisition/tournois-badnet.ts";
 import { releverLesEngagements } from "./socle/core/passe-engagements.ts";
-import { releverLesTournois } from "./socle/core/passe-tournois.ts";
+import { FICHES_PAR_PASSE, releverLesTournois } from "./socle/core/passe-tournois.ts";
+import { releverLesVeilles, tacheDesVeilles } from "./socle/core/passe-veilles.ts";
+import { accesALaRechercheBadnet } from "./socle/infrastructure/acquisition/veilles-badnet.ts";
 import { creerModuleMonProfil } from "./mon-profil/presentation/module-web.ts";
 import { creerModuleCapitanat } from "./capitanat/presentation/module-web.ts";
 import { ImportRefuse } from "./capitanat/core/coequipier.ts";
 import { depotCoequipiersSqlite } from "./capitanat/infrastructure/depot-coequipiers-sqlite.ts";
 import { depotPreferencesSqlite } from "./capitanat/infrastructure/depot-preferences-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "./capitanat/infrastructure/csv-equipe.ts";
-import { moduleVeille } from "./veille/presentation/module-web.ts";
+import { creerModuleVeille } from "./veille/presentation/module-web.ts";
+import { depotVeillesSqlite } from "./veille/infrastructure/depot-veilles-sqlite.ts";
+import { disciplinesDe } from "./veille/core/veille.ts";
 
 /**
  * Point de composition — specs 020 et 022.
@@ -78,6 +83,16 @@ const coequipiers = depotCoequipiersSqlite(persistance.base);
  * capitaine, donc une notion de feature, et le socle n'en connaît aucune (022).
  */
 const preferencesDuCapitaine = depotPreferencesSqlite(persistance.base);
+
+/**
+ * Les veilles — spec 012.
+ *
+ * Même base, même raison que les deux dépôts au-dessus : une veille est une
+ * recherche que *je* nomme et que je garde, donc une notion de feature, et le
+ * socle n'en connaît aucune (022). Ce qu'une veille *voit*, en revanche, est
+ * écrit par une passe du socle et vit avec les tournois.
+ */
+const veilles = depotVeillesSqlite(persistance.base);
 
 const modulesDAcquisition = [creerModuleMyffbad(configuration.licence), moduleBadnet];
 const reseau = clientFetch();
@@ -209,14 +224,21 @@ const relverLesEngagements = () => {
  *
  * Le plafond suit la chaîne réelle — coquille, enveloppe, puis fiche : **trois**
  * requêtes par tournoi depuis 036, plus une de marge — et se calcule sur ce qui
- * **reste** à relever : la passe est incrémentale, donc la plupart des jours ce
- * plafond vaut un.
+ * **reste** à relever, borné par le plafond de la passe elle-même : depuis 012
+ * une veille peut apporter cent tournois d'un coup, et trois cents requêtes
+ * d'affilée sont la seule façon de se faire remarquer d'un site qui ne
+ * demandait rien.
  */
 const relverLesTournois = () => {
   const connus = persistance.tournois.connus();
-  const aRelever = persistance.engagements
-    .tous()
-    .filter(({ evenement }) => !connus.has(evenement)).length;
+  const demandes = new Set([
+    ...persistance.engagements.tous().map(({ evenement }) => evenement),
+    ...persistance.tournois.sansFiche(),
+  ]);
+  const aRelever = Math.min(
+    [...demandes].filter((evenement) => !connus.has(evenement)).length,
+    FICHES_PAR_PASSE,
+  );
 
   return releverLesTournois({
     engagements: persistance.engagements,
@@ -226,6 +248,42 @@ const relverLesTournois = () => {
     acces: accesAuxFichesPubliquesBadnet({
       client: clientPour("badnet", 3 * aRelever + 1),
     }),
+  });
+};
+
+/**
+ * La passe des veilles — spec 012.
+ *
+ * **Le socle ne connaît pas les veilles**, et c'est ici que les deux se
+ * rencontrent : chaque veille active devient une `RechercheDeTournois`, une
+ * forme qui ne porte que ce que le formulaire badnet sait filtrer. Les séries,
+ * les tableaux nommés et la fenêtre restent dans la feature, qui les applique
+ * en lisant l'index — c'est la traduction que 022 attend d'un point de
+ * composition, et celle que `licencesSuivies` fait déjà pour 028.
+ *
+ * Le plafond est large et sans rapport avec le nombre de tournois : une requête
+ * par veille, cinq au plus, plus une de marge. C'est la requête la moins chère
+ * du projet.
+ */
+const relverLesVeilles = () => {
+  const actives = veilles.toutes().filter(({ active }) => active);
+
+  return releverLesVeilles({
+    recherches: actives.map((veille) => ({
+      id: veille.id,
+      intitule: veille.nom,
+      autourDe: { longitude: veille.longitude, latitude: veille.latitude },
+      rayonKm: veille.rayonKm,
+      // Déduites des tableaux : badnet ne distingue pas le genre, et deux
+      // champs qui peuvent se contredire en font toujours un de faux.
+      disciplines: disciplinesDe(veille.tableaux),
+      categories: veille.categories,
+    })),
+    tournois: persistance.tournois,
+    appartenances: persistance.appartenances,
+    rapports,
+    horloge: horlogeSysteme,
+    acces: accesALaRechercheBadnet({ client: clientPour("badnet", actives.length + 1) }),
   });
 };
 
@@ -324,6 +382,28 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
       active: true,
     },
     executer: relverLesTournois,
+  },
+  /**
+   * Les veilles — spec 012.
+   *
+   * À 5 h 15, **entre** les engagements de 5 h et les fiches de 5 h 30 : ce
+   * qu'une veille découvre est détaillé un quart d'heure plus tard, sans qu'on
+   * ait à enchaîner les deux passes. Un enchaînement remettrait d'ailleurs une
+   * requête anonyme dans le sillage d'une passe sous session, ce que 015
+   * interdit.
+   *
+   * Grâce large, comme ses voisines : cette donnée est périmable, pas datée. Un
+   * relevé rattrapé à midi reste juste.
+   */
+  {
+    tache: tacheDesVeilles(),
+    intitule: "Relever mes veilles (badnet, anonyme)",
+    reglageParDefaut: {
+      cadence: { nature: "quotidienne", heure: 5, minute: 15 },
+      graceMinutes: 12 * 60,
+      active: true,
+    },
+    executer: relverLesVeilles,
   },
   /**
    * Le battement hebdomadaire — spec 019.
@@ -432,6 +512,33 @@ function cadenceDe(tache: string) {
  * disparaîtrait avec les lignes — la page dirait « jamais relevé » le lendemain
  * d'une passe parfaite.
  */
+/**
+ * L'ancienneté du relevé des veilles, sur la cadence de leur propre passe — 019.
+ *
+ * Une troisième fonction, et non l'une des deux autres : les passes tombent
+ * indépendamment, et 019 interdit nommément l'ancienneté globale.
+ */
+const fraicheurDesVeilles = () =>
+  fraicheur(
+    rapports.dernierSucces(tacheDesVeilles())?.demarreLe ?? null,
+    cadenceDe(tacheDesVeilles()),
+    horlogeSysteme.maintenant(),
+  );
+
+/**
+ * Mes séries du moment, proposées comme valeur de départ d'une veille — 012.
+ *
+ * Un confort, et rien de plus : 012 a refusé de déduire le critère de mon
+ * classement — une veille qui changerait de sens toute seule à chaque
+ * publication du CPPH serait une veille à qui je ne ferais plus confiance. Une
+ * case cochée d'avance, elle, se décoche.
+ */
+const mesSeries = (): readonly Lettre[] => [
+  ...new Set(
+    persistance.classements.derniers(configuration.licence).map(({ lettre }) => lettre),
+  ),
+];
+
 const fraicheurDesEngagements = () =>
   fraicheur(
     rapports.dernierSucces(tacheDesEngagements())?.demarreLe ?? null,
@@ -484,7 +591,14 @@ const application = creerApplication({
       fraicheur: fraicheurDuClassement,
       horloge: horlogeSysteme,
     }),
-    moduleVeille,
+    creerModuleVeille({
+      veilles,
+      tournois: persistance.tournois,
+      appartenances: persistance.appartenances,
+      fraicheur: fraicheurDesVeilles,
+      horloge: horlogeSysteme,
+      mesSeries: () => mesSeries(),
+    }),
   ],
   etatDuSocle: () => ({
     tailleDeLaBase: persistance.taille(),

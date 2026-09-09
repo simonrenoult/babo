@@ -5,7 +5,7 @@
 | id          | 013                                                                                                                          |
 | module      | veille                                                                                                                       |
 | type        | feat                                                                                                                         |
-| bloquée par | [[012__veille__recherche-de-tournois.feat]], ~~[[016__socle__envoi-de-mail.tech]], [[017__socle__persistance-sqlite.tech]]~~ |
+| bloquée par | ~~[[012__veille__recherche-de-tournois.feat]], [[016__socle__envoi-de-mail.tech]], [[017__socle__persistance-sqlite.tech]]~~ |
 
 ## Contexte
 
@@ -85,7 +85,11 @@ mois. C'est exactement le trou que la règle ci-dessus rebouche.
 
 ## Notes
 
-Dépend de [[012__veille__recherche-de-tournois.feat]] pour la donnée et de
-[[016__socle__envoi-de-mail.tech]] pour l'envoi. Les tournois déjà notifiés sont
+~~Dépend de [[012__veille__recherche-de-tournois.feat]]~~ : **faite le
+9 septembre 2026**, et elle a posé le terrain — la table `veille_tournoi` porte
+déjà `alerte_le`, que personne n'écrit. Une appartenance datée y distingue
+« jamais vu » de « revenu après une sortie », ce qui est exactement la
+distinction dont cette spec a besoin. Reste l'envoi, par
+[[016__socle__envoi-de-mail.tech]]. Les tournois déjà notifiés sont
 conservés en base ([[017__socle__persistance-sqlite.tech]]) : c'est ce qui
 garantit qu'on n'alerte jamais deux fois pour le même.

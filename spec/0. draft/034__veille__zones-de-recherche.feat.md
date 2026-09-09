@@ -5,7 +5,7 @@
 | id          | 034                                         |
 | module      | veille                                      |
 | type        | feat                                        |
-| bloquée par | [[012__veille__recherche-de-tournois.feat]] |
+| bloquée par | ~~[[012__veille__recherche-de-tournois.feat]]~~ |
 
 ## Contexte
 
@@ -80,6 +80,7 @@ seule chose qui compte : comment une veille porte plusieurs zones, et ce que
 Reportée de 012, qui livre le cercle et le vol d'oiseau et laisse le reste ici.
 
 La v1 de 012 recalcule déjà la distance à vol d'oiseau en local, par-dessus le
-`rayon` envoyé à badnet — dont la sonde du 8 septembre 2026 a montré qu'il n'est
-pas une coupe stricte (Chambly à 65 km ressort d'un rayon 50). Le point
-d'accroche existe donc : c'est ce filtre local que cette spec remplace.
+`rayon` envoyé à badnet — non que celui-ci coupe mal, la sonde du 9 septembre
+2026 a vérifié qu'il coupe juste, mais parce que la page doit afficher une
+distance et que le champ `distance` de badnet est faux. Le point d'accroche
+existe donc : c'est ce filtre local que cette spec remplace.

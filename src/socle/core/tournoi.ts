@@ -1,3 +1,5 @@
+import type { Lettre } from "./classement.ts";
+
 /**
  * Un tournoi, tel que badnet le publie — spec 002.
  *
@@ -13,9 +15,33 @@
  * la date limite d'inscription, les tableaux proposés et les classements
  * admis, sans avoir à déplacer ce qui est là.
  */
+/**
+ * Les catégories d'âge, telles que le formulaire de recherche les coche — 012.
+ *
+ * Le nom du champ *est* la valeur : badnet attend `jeunes=1`, `seniors=1`. Elles
+ * vivent dans le `core` et non dans le module d'acquisition parce qu'une veille
+ * les porte dans ses critères, et qu'un `core` ne connaît pas son
+ * infrastructure (022).
+ */
+export const CATEGORIES = ["jeunes", "seniors", "veterans", "parabad"] as const;
+
+export type Categorie = (typeof CATEGORIES)[number];
+
+export function estUneCategorie(valeur: string): valeur is Categorie {
+  return (CATEGORIES as readonly string[]).includes(valeur);
+}
+
 export type Tournoi = {
   /** L'identifiant badnet, le même que celui d'un `Engagement`. */
   readonly evenement: number;
+  /**
+   * Le nom du tournoi — « 5ème tournoi de Taverny ».
+   *
+   * Il vient de la recherche (012), pas de la fiche : un tournoi entré dans
+   * l'index par mes seuls engagements n'en a pas, et la page de 002 affiche
+   * alors l'intitulé que `/competitions` lui donne.
+   */
+  readonly nom: string | null;
   /**
    * La salle : « Armand Silvestre » — `null` tant qu'aucune n'est saisie.
    *
@@ -50,23 +76,131 @@ export type Tournoi = {
    * moitié du week-end.
    */
   readonly journees: readonly Date[];
+  /**
+   * Les coordonnées du gymnase, telles que la recherche les publie — 012.
+   *
+   * C'est d'elles que vient la distance, et c'est le seul chemin fiable : le
+   * champ `distance` de badnet est vide deux fois sur trois, et faux quand il
+   * ne l'est pas — 9 km annoncés pour 1,6 km réels, 38 pour 13.
+   */
+  readonly latitude: number | null;
+  readonly longitude: number | null;
+  /**
+   * La date limite d'inscription, au jour près — 012.
+   *
+   * Lue sur la recherche, dans l'attribut `title` de `deadline` : présente
+   * partout, gratuite, et suffisante pour filtrer. L'heure exacte est sur
+   * l'enveloppe de la fiche, et c'est 014 qui en aura besoin.
+   */
+  readonly dateLimite: Date | null;
+  /**
+   * Les familles de classement et les catégories, telles que la recherche les
+   * annonce : « N, R, D, P, NC », « Jeunes ».
+   *
+   * Gardées **sans être réinterprétées**, et à côté des séries lues sur la
+   * fiche plutôt qu'à leur place : elles mentent — un tournoi annoncé `N` dont
+   * la fiche exclut N1. Les garder toutes les deux fait voir l'écart.
+   */
+  readonly familles: string | null;
+  readonly categories: string | null;
+  /**
+   * Les tableaux réellement proposés, tels que la fiche les code — 012.
+   *
+   * Des chaînes et non des `Tableau` : le relevé du 9 septembre 2026 en a rendu
+   * sept, dont `ST` et `SI` que le projet ne connaît pas. Les refuser ferait
+   * perdre le tournoi entier, les traduire serait inventer.
+   *
+   * Vide veut dire « rien de déclaré », pas « aucun tableau » — l'organisateur
+   * n'a pas fini sa saisie, ce qui est le propre d'un tournoi fraîchement
+   * publié.
+   */
+  readonly tableaux: readonly string[];
+  /** Les séries admises, rang par rang, lues sur la fiche — 012. */
+  readonly series: readonly Lettre[];
+  /**
+   * La fiche a-t-elle été relevée ?
+   *
+   * Depuis 012, une ligne de `tournoi` peut naître d'une recherche, sans ville,
+   * sans tableaux et sans journées. C'est ce drapeau, et non l'existence de la
+   * ligne, qui dit à la passe des fiches ce qu'il lui reste à faire.
+   */
+  readonly ficheRelevee: boolean;
+};
+
+/**
+ * Ce que la fiche publique d'un tournoi rend — specs 002, 036 et 012.
+ *
+ * Un sous-ensemble de `Tournoi`, et pas `Tournoi` lui-même : la fiche ignore le
+ * nom, les coordonnées et la date limite, qui viennent de la recherche. Les
+ * confondre obligerait la chaîne à inventer des champs qu'elle n'a pas lus.
+ */
+export type FicheDeTournoi = {
+  readonly evenement: number;
+  readonly gymnase: string | null;
+  readonly adresse: string | null;
+  readonly ville: string | null;
+  readonly journees: readonly Date[];
+  readonly tableaux: readonly string[];
+  readonly series: readonly Lettre[];
+};
+
+/**
+ * Ce qu'une ligne de la recherche publique rend — spec 012.
+ *
+ * Défini dans le `core` et non dans le module badnet : c'est la passe qui le
+ * manipule, et un `core` ne connaît pas son infrastructure (022). Le module
+ * d'acquisition traduit sa propre lecture vers cette forme.
+ */
+export type TournoiDeLaRecherche = {
+  readonly evenement: number;
+  readonly nom: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly dateLimite: Date | null;
+  readonly familles: string;
+  readonly categories: string;
 };
 
 /** Port : `infrastructure` en fournit l'adaptateur SQLite. */
 export type DepotTournois = {
   /**
-   * Écrit ou réécrit un tournoi.
+   * Écrit ou réécrit ce que la fiche publique a rendu.
    *
    * Un par un, et non par remplacement intégral comme les engagements : ici
    * chaque ligne vient d'une requête indépendante, et une passe qui échoue à
    * mi-course ne doit pas effacer ce que la précédente avait obtenu. C'est
    * aussi ce qui rend la passe incrémentale possible.
+   *
+   * Elle **ne touche pas** à ce que la recherche a écrit : le nom, les
+   * coordonnées et la date limite ne sont pas de son ressort, et les remettre à
+   * blanc ferait disparaître un tournoi de sa veille au premier relevé de
+   * fiche.
    */
-  enregistrer(tournoi: Tournoi, quand: Date): void;
+  enregistrerLaFiche(fiche: FicheDeTournoi, quand: Date): void;
+  /**
+   * Écrit ce qu'une passe de veille a vu — spec 012.
+   *
+   * Symétrique de la précédente : elle ne touche ni au gymnase, ni aux
+   * journées, ni aux tableaux, qui viennent de la fiche. Deux sources, deux
+   * moitiés de la même ligne, et aucune qui écrase l'autre.
+   */
+  enregistrerDepuisLaRecherche(
+    tournois: readonly TournoiDeLaRecherche[],
+    quand: Date,
+  ): void;
   /** Par identifiant badnet : c'est ainsi que la page les rapproche des engagements. */
   parEvenement(evenements: readonly number[]): ReadonlyMap<number, Tournoi>;
-  /** Ce qui est déjà connu, pour ne pas le redemander — une ville ne change pas. */
+  /**
+   * Ce dont la fiche est déjà relevée, pour ne pas la redemander — une ville ne
+   * change pas.
+   *
+   * **Ce n'est plus « les lignes qui existent ».** Depuis 012 une recherche
+   * insère des tournois sans fiche : confondre les deux ferait croire la passe
+   * des fiches à jour le jour où une veille remplit l'index.
+   */
   connus(): ReadonlySet<number>;
+  /** Ce qu'il reste à relever, le plus proche d'abord — spec 012. */
+  sansFiche(): readonly number[];
 };
 
 /**

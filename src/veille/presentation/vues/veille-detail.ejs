@@ -1,0 +1,102 @@
+<%- include("entete", { titre }) %>
+<h2><%= titre %></h2>
+
+<% if (!veille.active) { %>
+  <p class="etat">
+    Veille suspendue : elle ne cherche plus et n'alerte plus. Ce qu'elle a déjà
+    vu est conservé — c'est tout l'intérêt de la suspendre plutôt que de la
+    supprimer.
+  </p>
+<% } %>
+
+<p class="etat">
+  Dans un rayon de <%= veille.rayonKm %> km autour de
+  <%= veille.latitude.toFixed(4) %>, <%= veille.longitude.toFixed(4) %> —
+  à vol d'oiseau.
+  <% if (veille.fenetre.nature === "glissante") { %>
+    Tournois des <%= veille.fenetre.jours %> prochains jours,
+  <% } else { %>
+    Tournois du <%= fenetre.du.toLocaleDateString("fr-FR") %> au
+    <%= fenetre.au.toLocaleDateString("fr-FR") %>,
+  <% } %>
+  en <%= veille.tableaux.join(", ") %>, séries <%= veille.series.join(", ") %><%
+  if (veille.categories.length > 0) { %>, <%= veille.categories.join(", ") %><% } %><%
+  if (veille.ouvertes) { %>, inscriptions encore ouvertes<% } %>.
+</p>
+
+<%- include("peremption", { fraicheur }) %>
+
+<% if (resultats.retenus.length === 0) { %>
+  <p class="etat">Aucun tournoi ne répond à ces critères pour le moment.</p>
+<% } else { %>
+  <table>
+    <tr>
+      <th>Tournoi</th>
+      <th>Quand</th>
+      <th>Où</th>
+      <th class="nombre">Distance</th>
+      <th>Tableaux</th>
+      <th>Inscription avant</th>
+    </tr>
+    <% resultats.retenus.forEach(function (t) { %>
+      <tr>
+        <td><a href="<%= t.fiche %>" target="_blank" rel="noreferrer"><%= t.nom %></a></td>
+        <td><%= t.quand %></td>
+        <td><%= t.ville === null ? "lieu non relevé" : t.ville %></td>
+        <td class="nombre"><%= t.distanceKm === null ? "—" : t.distanceKm + " km" %></td>
+        <td><%= t.tableaux.join(", ") %></td>
+        <td><%= t.dateLimite === null ? "—" : t.dateLimite.toLocaleDateString("fr-FR") %></td>
+      </tr>
+    <% }); %>
+  </table>
+<% } %>
+
+<% if (resultats.indetermines.length > 0) { %>
+  <h3>Tableaux non déclarés</h3>
+  <p>
+    Ces tournois sont dans le périmètre, mais leur organisateur n'a pas encore
+    saisi ses tableaux ni ses séries. Ce sont le plus souvent les tournois
+    fraîchement publiés — ceux qui se remplissent le plus vite. Ils sont donc
+    montrés à part plutôt qu'écartés : « non déclaré » n'est pas « pas pour
+    moi ».
+  </p>
+  <table>
+    <tr><th>Tournoi</th><th>Quand</th><th>Où</th><th class="nombre">Distance</th><th>Inscription avant</th></tr>
+    <% resultats.indetermines.forEach(function (t) { %>
+      <tr>
+        <td><a href="<%= t.fiche %>" target="_blank" rel="noreferrer"><%= t.nom %></a></td>
+        <td><%= t.quand %></td>
+        <td><%= t.ville === null ? "lieu non relevé" : t.ville %></td>
+        <td class="nombre"><%= t.distanceKm === null ? "—" : t.distanceKm + " km" %></td>
+        <td><%= t.dateLimite === null ? "—" : t.dateLimite.toLocaleDateString("fr-FR") %></td>
+      </tr>
+    <% }); %>
+  </table>
+<% } %>
+
+<p class="etat">
+  <%= resultats.ecartes %> tournoi<%= resultats.ecartes > 1 ? "s" : "" %> écarté<%= resultats.ecartes > 1 ? "s" : "" %> par les critères.
+  <% if (resultats.enAttenteDeFiche > 0) { %>
+    <%= resultats.enAttenteDeFiche %> en attente de leur fiche : la recherche passe
+    à 5 h 15, les fiches à 5 h 30. Ils apparaîtront demain.
+  <% } %>
+</p>
+
+<h3>Gérer cette veille</h3>
+<p><a href="/veille/<%= veille.id %>/modifier">Modifier les critères</a></p>
+
+<form method="post" action="/veille/<%= veille.id %>/etat">
+  <input type="hidden" name="active" value="<%= veille.active ? "0" : "1" %>">
+  <button type="submit"><%= veille.active ? "Suspendre" : "Réactiver" %></button>
+</form>
+
+<form method="post" action="/veille/<%= veille.id %>/supprimer">
+  <button type="submit">Supprimer</button>
+  <span class="etat">
+    La suppression emporte ce que la veille a vu : recréée, elle alerterait de
+    nouveau sur tout. Suspendre garde cette mémoire.
+  </span>
+</form>
+
+<p><a href="/veille">Retour aux veilles</a></p>
+<%- include("pied") %>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { DepotEngagements, Engagement } from "./engagement.ts";
 import type { DepotRapports, RapportArchive, RapportExecution } from "./rapport-execution.ts";
-import type { DepotTournois, Tournoi } from "./tournoi.ts";
+import type { DepotTournois, FicheDeTournoi } from "./tournoi.ts";
 import type { AccesAuxFichesPubliques } from "./passe-tournois.ts";
 import { releverLesTournois } from "./passe-tournois.ts";
 
@@ -44,17 +44,20 @@ function depotRapports(): DepotRapports & { readonly consignes: RapportExecution
 
 function depotTournois(
   deja: readonly number[] = [],
-): DepotTournois & { readonly ecrits: Tournoi[] } {
-  const ecrits: Tournoi[] = [];
+  sansFiche: readonly number[] = [],
+): DepotTournois & { readonly ecrits: FicheDeTournoi[] } {
+  const ecrits: FicheDeTournoi[] = [];
   const connus = new Set(deja);
   return {
     ecrits,
-    enregistrer: (tournoi) => {
-      ecrits.push(tournoi);
-      connus.add(tournoi.evenement);
+    enregistrerLaFiche: (fiche) => {
+      ecrits.push(fiche);
+      connus.add(fiche.evenement);
     },
+    enregistrerDepuisLaRecherche: () => {},
     parEvenement: () => new Map(),
     connus: () => connus,
+    sansFiche: () => sansFiche.filter((evenement) => !connus.has(evenement)),
   };
 }
 
@@ -73,6 +76,8 @@ function acces(
         gymnase: "Armand Silvestre",
         adresse: "188 Rue Armand Silvestre 92400 Courbevoie",
         ville: "Courbevoie",
+        tableaux: ["DH", "MX"],
+        series: [],
         journees: [new Date("2026-10-24T12:00:00")],
       });
     },
@@ -162,7 +167,7 @@ describe("la passe des fiches publiques de tournoi", () => {
 
     assert.equal(rapport.issue, "succes");
     assert.equal(rapport.volumeExtrait, 2);
-    assert.match(rapport.detail ?? "", /2 lieu\(x\) relevé\(s\) sur 3/);
+    assert.match(rapport.detail ?? "", /2 fiche\(s\) relevée\(s\) sur 3/);
     assert.match(rapport.detail ?? "", /2 : coupure réseau/);
   });
 
