@@ -513,3 +513,135 @@ describe("les tâches entre elles", () => {
     assert.equal(etat?.dernierRapport, null, "la passe consigne elle-même, la doublure ne le fait pas");
   });
 });
+
+describe("le déclenchement à la main", () => {
+  it("exécute hors fenêtre de grâce : l'échéance est clôturée et la suivante inscrite", async () => {
+    // On est bien au-delà des 48 h de grâce : un réveil abandonnerait. Le
+    // déclenchement manuel, lui, court-circuite la fenêtre — c'est tout son
+    // sens (spec 037).
+    const tache = tacheTemoin("acquisition:myffbad", ["succes"], CLASSEMENT);
+    const { ordonnanceur, horloge, echeances } = monter([tache], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+    horloge.aller(new Date(2026, 8, 8, 12, 0)); // mardi : plus de 48 h de retard
+
+    const passage = await ordonnanceur.executerMaintenant("acquisition:myffbad");
+
+    assert.equal(tache.appels, 1, "la grâce est court-circuitée, la passe tourne");
+    assert.equal(passage.verdict, "executee");
+    assert.equal(echeances.lignes[0]?.etat, "faite", "l'échéance est clôturée");
+    assert.deepEqual(
+      echeances.prochaine("acquisition:myffbad")?.prevueLe,
+      new Date(2026, 8, 11, 1, 0),
+      "et la suivante est inscrite",
+    );
+  });
+
+  it("consigne le rapport sous l'identifiant de la tâche, pas en double", async () => {
+    const tache = tacheTemoin("acquisition:myffbad", ["succes"], CLASSEMENT);
+    const { ordonnanceur, horloge, rapports } = monter([tache], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+    horloge.aller(VENDREDI_1H);
+
+    const passage = await ordonnanceur.executerMaintenant("acquisition:myffbad");
+
+    // La doublure ne consigne pas elle-même : le seul rapport est celui que la
+    // passe rend, sous l'identifiant de la tâche — le planificateur n'en ajoute
+    // aucun en double sur le coup du déclenchement (037).
+    assert.equal(rapports.consignes.length, 0, "aucun rapport ajouté par l'ordonnanceur");
+    assert.equal(passage.rapport?.tache, "acquisition:myffbad");
+  });
+
+  it("un échec manuel est un coup unique : ni réessai, ni reportee", async () => {
+    const tache = tacheTemoin("acquisition:myffbad", ["echec"], CLASSEMENT);
+    const { ordonnanceur, horloge, echeances } = monter([tache], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+    horloge.aller(VENDREDI_1H);
+
+    const passage = await ordonnanceur.executerMaintenant("acquisition:myffbad");
+
+    assert.equal(passage.verdict, "executee", "le déclenchement ne se dit pas reporté");
+    assert.equal(passage.rapport?.issue, "echec", "mais le rapport montre l'échec");
+    assert.equal(tache.appels, 1);
+    // L'échéance est clôturée et la suivante inscrite : aucun réessai à une
+    // heure — c'est ce qu'une passe échouée au réveil aurait inscrit (018).
+    assert.equal(echeances.lignes[0]?.etat, "faite");
+    assert.deepEqual(
+      echeances.prochaine("acquisition:myffbad")?.prevueLe,
+      new Date(2026, 8, 11, 1, 0),
+    );
+  });
+
+  it("refuse une tâche inconnue, la consigne en `inconnue`, sans rien exécuter", async () => {
+    const tache = tacheTemoin("acquisition:myffbad", ["succes"], CLASSEMENT);
+    const { ordonnanceur, rapports } = monter([tache], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+
+    const passage = await ordonnanceur.executerMaintenant("inconnue:pouet");
+
+    assert.equal(passage.verdict, "inconnue");
+    assert.equal(tache.appels, 0, "une tâche qui n'existe pas ne tourne pas");
+    assert.equal(rapports.consignes[0]?.issue, "echec");
+    assert.match(rapports.consignes[0]?.detail ?? "", /tâche inconnue/);
+  });
+
+  it("refuse une tâche suspendue et une cadence ponctuelle", async () => {
+    const tache = tacheTemoin("acquisition:myffbad", ["succes"], CLASSEMENT);
+    const { ordonnanceur } = monter([tache], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+    ordonnanceur.regler({ tache: "acquisition:myffbad", ...CLASSEMENT, active: false });
+
+    await assert.rejects(
+      () => ordonnanceur.executerMaintenant("acquisition:myffbad"),
+      /inactive/,
+    );
+
+    const ponctuelle = tacheTemoin("rappel", ["succes"], {
+      cadence: { nature: "ponctuelle" },
+      graceMinutes: 60,
+      active: true,
+    });
+    const ponctuel = monter([ponctuelle], MERCREDI_MIDI);
+    await assert.rejects(() => ponctuel.ordonnanceur.executerMaintenant("rappel"), /ponctuelle/);
+  });
+
+  it("partage le verrou du réveil : un déclenchement attend la passe en cours, sans la doubler", async () => {
+    // Une tâche dont l'exécution reste en vol, pour ouvrir une passe qui dure.
+    let relacher!: () => void;
+    const enVol = new Promise<void>((resoudre) => {
+      relacher = resoudre;
+    });
+    let appels = 0;
+    const lente: TacheOrdonnancee = {
+      tache: "acquisition:myffbad",
+      intitule: "passe lente",
+      reglageParDefaut: CLASSEMENT,
+      executer: () => {
+        appels += 1;
+        return enVol.then(() => ({
+          id: appels,
+          tache: "acquisition:myffbad",
+          demarreLe: new Date(),
+          termineLe: new Date(),
+          issue: "succes" as const,
+          volumeExtrait: 1,
+          detail: null,
+        }));
+      },
+    };
+    const { ordonnanceur, horloge } = monter([lente], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+    horloge.aller(VENDREDI_1H);
+
+    const premier = ordonnanceur.executerMaintenant("acquisition:myffbad");
+    await Promise.resolve();
+    assert.equal(appels, 1, "la première passe est en vol");
+
+    const second = ordonnanceur.executerMaintenant("acquisition:myffbad");
+    await Promise.resolve();
+    assert.equal(appels, 1, "le second attend le verrou, il ne lance rien en parallèle");
+
+    relacher();
+    await Promise.all([premier, second]);
+    assert.equal(appels, 2, "le second joue sa propre passe, en séquence — jamais en double");
+  });
+});

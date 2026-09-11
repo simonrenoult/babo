@@ -234,10 +234,11 @@ un seul coéquipier qui change de club ferait tomber le classement de toute
 l'équipe. Le succès vide de 019 descend du même coup au niveau du joueur — celui
 dont l'action ne rend rien est muet, même si les autres parlent.
 
-Le planificateur la déclenche chaque vendredi à 1 h du matin (018). `/sources`
-la lance aussi à la main, en dépannage — sur l'écran d'exploitation, jamais sur
-`/mon-profil`, où un bouton mettrait le plafond d'un passage par jour entre les
-mains de l'utilisateur —, et l'import de l'équipe l'enchaîne.
+Le planificateur la déclenche chaque vendredi à 1 h du matin (018), et l'import
+de l'équipe l'enchaîne dans la foulée (028). La lancer à la main se fait sur
+`/sources`, par la colonne **Lancer** du tableau d'ordonnancement — sur
+l'écran d'exploitation, jamais sur `/mon-profil`, où un bouton mettrait le
+plafond d'un passage par jour entre les mains de l'utilisateur (037, 001).
 
 ## La porte
 
@@ -329,6 +330,21 @@ Les cadences et les grâces sont des données, modifiables depuis `/sources` :
 c'est ce qui a fait écarter le cron système, dont la configuration s'édite hors
 de l'application. Les valeurs de départ sont posées au premier démarrage et ne
 recouvrent jamais un réglage modifié depuis.
+
+**Chaque tâche se déclenche aussi à la main — spec 037.** Une colonne
+**Lancer** sur le tableau d'ordonnancement appelle `executerMaintenant`, qui
+joue la passe comme un réveil l'aurait faite : grâce court-circuitée, échéance
+clôturée à `faite`, suivante inscrite, rapport consigné sous l'identifiant de
+la tâche par le même chemin — le seul module qui possède à la fois l'échéance
+et le rapport. Coup unique, sans réessai : un échec se lit dans le rapport
+aussitôt, et on relance à la main. Le verrou `enCours` du réveil est partagé :
+un déclenchement pendant une passe attend qu'elle finisse puis joue la sienne,
+sans jamais se superposer à elle ni aux requêtes du compte (015). L'import de
+l'équipe (028, 005) enchaîne sa passe par ce même geste, et les anciens boutons
+`/classement`, `/engagements`, `/tournois` ont disparu : toute passe passe par
+le planificateur. Règle uniforme, une exception — le battement n'a pas de
+bouton, son silence étant l'information que 019 préserve ; une tâche inconnue
+répond 404, une suspendue, une ponctuelle (014) ou le battement 400.
 
 ## Le courrier
 

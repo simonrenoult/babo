@@ -25,14 +25,19 @@ la cote et la lettre de la passe hebdomadaire.
 Cette passe relève noms et classements pour tout le monde d'un coup, et
 **sans aucune session** : la fiche myffbad et l'action qui porte le classement
 répondent à froid. Le planificateur la déclenche seul, chaque vendredi à 1 h du
-matin (spec 018) ; le bouton de `/sources` ne sert plus qu'au dépannage.
+matin (spec 018) ; sur `/sources`, le tableau d'ordonnancement la lance à la
+main d'un clic dans sa colonne **Lancer** (spec 037).
 
 Ce planificateur vit dans le processus et porte les deux natures de tâches :
 les passes périodiques et les échéances calculées au fil de l'eau. Ses cadences
 et ses fenêtres de grâce se règlent depuis `/sources`, sans redéploiement. Une
 échéance manquée pendant un arrêt est rejouée si elle tient encore dans sa
 grâce, abandonnée sinon — un rappel J-1 envoyé à J+2 est pire qu'un rappel
-manquant. Un échec est rejoué deux fois, à une heure puis à quatre.
+manquant. Un échec est rejoué deux fois, à une heure puis à quatre. Chaque
+tâche active à cadence se déclenche aussi à la main, depuis le tableau (spec
+037) : la passe tourne exactement comme au réveil — grâce court-circuitée,
+échéance clôturée, suivante inscrite, rapport affiché aussitôt — mais en coup
+unique, sans réessai silencieux.
 
 Voir
 [ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et

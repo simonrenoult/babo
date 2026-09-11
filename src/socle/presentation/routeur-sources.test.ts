@@ -83,7 +83,7 @@ const RAPPORT: RapportArchive = {
   detail: "8 relevé(s) sur 8",
 };
 
-/** Ce que l'écran affiche du planificateur — spec 018. */
+/** Ce que l'écran affiche du planificateur — spec 018, complété pour 037. */
 const TACHES: readonly EtatDeLaTache[] = [
   {
     tache: "acquisition:myffbad",
@@ -104,6 +104,45 @@ const TACHES: readonly EtatDeLaTache[] = [
     },
     dernierRapport: RAPPORT,
   },
+  {
+    // Un rappel de veille (014) : une échéance ponctuelle n'est pas une passe.
+    tache: "rappel:veille",
+    intitule: "Rappel d'ouverture (ponctuel)",
+    reglage: {
+      tache: "rappel:veille",
+      cadence: { nature: "ponctuelle" },
+      graceMinutes: 60,
+      active: true,
+    },
+    prochaine: null,
+    dernierRapport: null,
+  },
+  {
+    // Une tâche suspendue : pas de bouton, elle ne se lance pas non plus.
+    tache: "acquisition:badnet",
+    intitule: "Acquisition badnet (suspendue)",
+    reglage: {
+      tache: "acquisition:badnet",
+      cadence: { nature: "quotidienne", heure: 2, minute: 0 },
+      graceMinutes: 720,
+      active: false,
+    },
+    prochaine: null,
+    dernierRapport: null,
+  },
+  {
+    // Le battement de 019 : son silence est l'information, donc pas de bouton.
+    tache: "battement",
+    intitule: "Battement hebdomadaire",
+    reglage: {
+      tache: "battement",
+      cadence: { nature: "hebdomadaire", jour: 1, heure: 8, minute: 0 },
+      graceMinutes: 0,
+      active: true,
+    },
+    prochaine: null,
+    dernierRapport: null,
+  },
 ];
 
 type Trace = {
@@ -111,14 +150,13 @@ type Trace = {
   oublies: Source[];
   sondes: number;
   connectes: Source[];
-  releves: number;
+  declenchements: string[];
   importes: string[];
   reglages: ReglageDeTache[];
   mailsDeTest: number;
   codes: [Source, string][];
   attendus: { readonly source: Source; readonly demandeeLe: Date }[];
   engagements: number;
-  tournois: number;
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
@@ -127,14 +165,13 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     oublies: [],
     sondes: 0,
     connectes: [],
-    releves: 0,
+    declenchements: [],
     importes: [],
     reglages: [],
     mailsDeTest: 0,
     codes: [],
     attendus: [],
     engagements: 0,
-    tournois: 0,
   };
   return {
     trace,
@@ -194,19 +231,11 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         return Promise.resolve();
       },
       codesAttendus: () => trace.attendus,
-      releverLesEngagements: () => Promise.resolve({ ...RAPPORT, tache: "acquisition:badnet:engagements", volumeExtrait: 2, detail: "2 engagement(s) sur 2" }),
       engagements: () => trace.engagements,
-      releverLesTournois: () => {
-        trace.tournois += 1;
-        return Promise.resolve({
-          ...RAPPORT,
-          tache: "acquisition:badnet:tournois",
-          volumeExtrait: 2,
-          detail: "2 fiche(s) atteinte(s) sur 2",
-        });
-      },
-      relever: () => {
-        trace.releves += 1;
+      executerMaintenant: (tache) => {
+        trace.declenchements.push(tache);
+        // La doublure rend ce que `main.ts` rendrait : le rapport du
+        // déclenchement, sous l'identifiant que la route a lié au chemin (037).
         return Promise.resolve(RAPPORT);
       },
       sonder: () => {
@@ -413,32 +442,6 @@ describe("l'écran des sources", () => {
     assert.deepEqual(trace.codes, []);
   });
 
-  /**
-   * Premier temps de 027 : on obtient la page et on l'archive, on n'en lit
-   * rien. La capture est ce sur quoi le schéma se dessinera.
-   */
-  it("relève les engagements et rend le rapport de la passe", async () => {
-    const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources/engagements", new URLSearchParams());
-
-    assert.equal(reponse.statut, 200);
-    assert.match(reponse.corps, /2 engagement\(s\) sur 2/);
-  });
-
-  /**
-   * Premier temps de 002 : la fiche publique est atteinte et archivée, rien
-   * n'en est lu. Le rapport nomme jusqu'où on est allé, et c'est sur lui qu'on
-   * décidera si la ville se lit là ou s'il faut attendre 012.
-   */
-  it("relève les fiches publiques et rend le rapport de la passe", async () => {
-    const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/tournois", new URLSearchParams());
-
-    assert.equal(reponse.statut, 200);
-    assert.equal(trace.tournois, 1);
-    assert.match(reponse.corps, /2 fiche\(s\) atteinte\(s\) sur 2/);
-  });
-
   it("renvoie la liste des engagements sur la feature, et n'en garde que le décompte", async () => {
     // La frontière de 030 : `/sources` porte l'exploitation, la feature porte
     // la donnée. Deux écrans qui affichent la même table en affichent deux
@@ -462,17 +465,66 @@ describe("l'écran des sources", () => {
     assert.match(reponse.corps, /atteinte/);
   });
 
-  it("lance la passe et rend son rapport, ligne par ligne", async () => {
-    // Le bouton est ici, sur l'écran d'exploitation, et non sur « Mon profil » :
-    // 001 écarte le « rafraîchir maintenant » entre les mains de l'utilisateur.
-    // 018 déclenchera la même passe, et ce bouton n'aura plus qu'à dépanner.
+  it("déclenche une tâche du tableau par le geste unique, et rend son rapport", async () => {
+    // Le bouton est sur le tableau d'ordonnancement, et tout passe par le même
+    // geste : la route lie la tâche du chemin, appelle `executerMaintenant`, et
+    // réaffiche l'écran avec le rapport du déclenchement (spec 037).
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/classement", new URLSearchParams());
+    const reponse = await interroger(
+      acces,
+      "/sources/ordonnancement/acquisition:myffbad/executer",
+      new URLSearchParams(),
+    );
 
     assert.equal(reponse.statut, 200);
-    assert.equal(trace.releves, 1);
+    assert.deepEqual(trace.declenchements, ["acquisition:myffbad"], "la tâche est lue dans le chemin");
+    assert.match(reponse.corps, /Dernier déclenchement/);
     assert.match(reponse.corps, /8 relevé\(s\) sur 8/, "le décompte que 028 exige");
     assert.match(reponse.corps, /24 disciplines relevées/, "le volume, pas le nombre de pages");
+  });
+
+  it("refuse une tâche inconnue en 404, sans rien déclencher", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(
+      acces,
+      "/sources/ordonnancement/inconnue:pouet/executer",
+      new URLSearchParams(),
+    );
+
+    assert.equal(reponse.statut, 404);
+    assert.deepEqual(trace.declenchements, []);
+  });
+
+  it("refuse le battement, une tâche suspendue et une échéance ponctuelle", async () => {
+    for (const cible of ["battement", "acquisition:badnet", "rappel:veille"]) {
+      const { acces, trace } = ecran();
+      const reponse = await interroger(
+        acces,
+        `/sources/ordonnancement/${cible}/executer`,
+        new URLSearchParams(),
+      );
+
+      assert.equal(reponse.statut, 400, cible);
+      assert.deepEqual(trace.declenchements, [], cible);
+    }
+  });
+});
+
+describe("le tableau d'ordonnancement", () => {
+  it("porte un bouton Lancer par tâche active à cadence, sauf le battement", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/sources");
+
+    // La tâche de classement relève d'une cadence : elle porte le bouton.
+    const classe = /action="\/sources\/ordonnancement\/acquisition:myffbad\/executer"/.exec(
+      reponse.corps,
+    );
+    assert.ok(classe, "la tâche à cadence porte un bouton Lancer");
+
+    // Le battement (019), la ponctuelle (014) et la suspendue n'en portent pas.
+    assert.doesNotMatch(reponse.corps, /action="[^"]*battement[^"]*executer"/);
+    assert.doesNotMatch(reponse.corps, /action="[^"]*rappel:veille[^"]*executer"/);
+    assert.doesNotMatch(reponse.corps, /action="[^"]*acquisition:badnet[^"]*executer"/);
   });
 });
 

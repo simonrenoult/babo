@@ -235,6 +235,16 @@ export type Ordonnanceur = {
   amorcer(): void;
   /** Exécute tout ce qui est dû. Ne lève jamais : une tâche en panne devient un rapport. */
   reveiller(): Promise<readonly Passage[]>;
+  /**
+   * Déclenche une tâche à la main — spec 037.
+   *
+   * Joue la passe comme un réveil l'aurait faite, grâce court-circuitée :
+   * l'échéance est clôturée à `faite`, la suivante inscrite et le rapport
+   * consigné sous l'identifiant de la tâche. Coup unique, sans réessai.
+   *
+   * Refuse (en levant) une tâche inconnue, suspendue ou ponctuelle.
+   */
+  executerMaintenant(tache: string): Promise<Passage>;
   demarrer(): void;
   arreter(): void;
   etat(): readonly EtatDeLaTache[];
@@ -259,8 +269,46 @@ export function creerOrdonnanceur(options: {
   // Un réveil à la fois. Une passe qui dure plus d'une minute ne doit pas se
   // superposer à elle-même : deux exécutions concurrentes de la même passe
   // doubleraient les requêtes sur un compte dont le bannissement est un risque
-  // assumé (015).
+  // assumé (015). Le même verrou protège le déclenchement à la main (037).
   let enCours = false;
+  // Résolue quand la passe en cours se termine ; `null` quand rien ne tourne.
+  // C'est ce qui permet à `executerMaintenant` d'attendre silencieusement
+  // qu'une passe — réveil ou déclenchement — finisse avant la sienne : un clic
+  // pendant une passe ne la double pas, il s'enchaîne (037, 015).
+  let finDeLaPasse: Promise<void> | null = null;
+  let marquerLaFin: (() => void) | null = null;
+
+  const commencerUnePasse = (): void => {
+    enCours = true;
+    finDeLaPasse = new Promise<void>((resoudre) => {
+      marquerLaFin = () => {
+        enCours = false;
+        finDeLaPasse = null;
+        resoudre();
+      };
+    });
+  };
+
+  const finirLaPasse = (): void => {
+    marquerLaFin?.();
+    marquerLaFin = null;
+  };
+
+  /** Joue l'exécution d'une tâche, et la consigne en échec si elle lève (018). */
+  const jouer = async (tache: TacheOrdonnancee, demarreLe: Date): Promise<RapportArchive | null> => {
+    try {
+      return await tache.executer();
+    } catch (erreur) {
+      // Une passe bien écrite ne lève pas (elle consigne). Celle qui lève quand
+      // même ne doit pas emporter le planificateur avec elle, ni les autres
+      // tâches du même réveil : les sources sont ordonnancées séparément.
+      return consigner(
+        tache.tache,
+        demarreLe,
+        `exception non rattrapée : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+      );
+    }
+  };
 
   const reglageDe = (tache: TacheOrdonnancee): ReglageDeTache =>
     reglages.lire(tache.tache) ?? { tache: tache.tache, ...tache.reglageParDefaut };
@@ -284,19 +332,7 @@ export function creerOrdonnanceur(options: {
 
   const executer = async (echeance: Echeance, tache: TacheOrdonnancee): Promise<Passage> => {
     const demarreLe = horloge.maintenant();
-    let rapport: RapportArchive | null;
-    try {
-      rapport = await tache.executer();
-    } catch (erreur) {
-      // Une passe bien écrite ne lève pas (elle consigne). Celle qui lève quand
-      // même ne doit pas emporter le planificateur avec elle, ni les autres
-      // tâches du même réveil : les sources sont ordonnancées séparément.
-      rapport = consigner(
-        echeance.tache,
-        demarreLe,
-        `exception non rattrapée : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
-      );
-    }
+    const rapport = await jouer(tache, demarreLe);
 
     const tentatives = echeance.tentatives + 1;
 
@@ -361,8 +397,10 @@ export function creerOrdonnanceur(options: {
   };
 
   const reveiller = async (): Promise<readonly Passage[]> => {
+    // Un réveil pendant un réveil se laisse tomber : le réveil suivant, une
+    // minute plus tard, repassera ce qui reste dû. On n'empile pas.
     if (enCours) return [];
-    enCours = true;
+    commencerUnePasse();
     const passages: Passage[] = [];
     try {
       // Une par une, dans l'ordre où elles étaient dues. Séquentiel parce
@@ -372,9 +410,67 @@ export function creerOrdonnanceur(options: {
         passages.push(await passer(echeance));
       }
     } finally {
-      enCours = false;
+      finirLaPasse();
     }
     return passages;
+  };
+
+  const executerMaintenant = async (nom: string): Promise<Passage> => {
+    // Le verrou partagé avec le réveil : une passe qui dure ne se superpose ni
+    // à elle-même ni à un réveil simultané (018, plafond de 015). Un clic
+    // pendant une passe en cours attend — silencieusement — qu'elle finisse,
+    // puis joue sa propre passe et rend son rapport (spec 037).
+    while (finDeLaPasse !== null) {
+      await finDeLaPasse;
+    }
+    commencerUnePasse();
+    try {
+      const tache = parNom.get(nom);
+
+      // Une tâche inconnue n'est jamais exécutée. La route répond 404 avant
+      // d'arriver ici dans le cas courant ; la consigner quand même garde une
+      // trace déchiffrable d'un appel direct (037).
+      if (tache === undefined) {
+        const rapport = consigner(
+          nom,
+          horloge.maintenant(),
+          "tâche inconnue : déclenchement refusé, non exécutée.",
+        );
+        return { tache: nom, prevueLe: horloge.maintenant(), verdict: "inconnue", rapport };
+      }
+
+      const reglage = reglageDe(tache);
+      if (!reglage.active) {
+        throw new Error(`Tâche inactive, non déclenchable à la main : ${nom}`);
+      }
+      if (reglage.cadence.nature === "ponctuelle") {
+        throw new Error(`Échéance ponctuelle, non déclenchable à la main : ${nom}`);
+      }
+
+      // On repart de l'échéance en attente, comme un réveil — la fenêtre de
+      // grâce est court-circuitée : on l'exécute même hors fenêtre. Faute
+      // d'échéance (cas défensif d'une tâche active à cadence, qui en a
+      // normalement toujours une), on en inscrit une et on rend la main.
+      const echeance = echeances.prochaine(nom);
+      if (echeance === null) {
+        planifier(tache, horloge.maintenant());
+        return { tache: nom, prevueLe: horloge.maintenant(), verdict: "executee", rapport: null };
+      }
+
+      const demarreLe = horloge.maintenant();
+      const rapport = await jouer(tache, demarreLe);
+
+      // Coup unique : l'échéance est clôturée à `faite` et la suivante
+      // inscrite, même en cas d'échec — le réessai à une et quatre heures est
+      // propre au réveil. Sur un déclenchement manuel, le rapport montre
+      // l'échec tout de suite et on relance à la main (spec 037).
+      echeances.clore(echeance.id, "faite", horloge.maintenant());
+      planifier(tache, horloge.maintenant());
+
+      return { tache: nom, prevueLe: echeance.prevueLe, verdict: "executee", rapport };
+    } finally {
+      finirLaPasse();
+    }
   };
 
   const reveillerEnJournalisant = (): void => {
@@ -384,6 +480,7 @@ export function creerOrdonnanceur(options: {
   return {
     amorcer,
     reveiller,
+    executerMaintenant,
 
     demarrer(): void {
       if (minuterie !== null) return;

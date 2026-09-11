@@ -7,6 +7,7 @@ import type { EtatDeLaTache, JourDeLaSemaine, ReglageDeTache } from "../core/ord
 import type { ResultatDeSonde } from "../core/sonde.ts";
 import type { Source } from "../core/source.ts";
 import { estUneSource } from "../core/source.ts";
+import { TACHE_BATTEMENT } from "../core/battement.ts";
 
 /**
  * Ce que l'écran des sources a besoin de savoir faire — spec 015.
@@ -32,13 +33,6 @@ export type AccesAuxSources = {
   /** Les sources dont un code est attendu, et depuis quand. */
   codesAttendus(): readonly { readonly source: Source; readonly demandeeLe: Date }[];
   /**
-   * Relève mes engagements sur badnet et les écrit en base — spec 027.
-   *
-   * La même passe que le planificateur déclenche chaque matin : le bouton
-   * n'est qu'un dépannage, comme celui du classement (001, 018).
-   */
-  releverLesEngagements(): Promise<RapportArchive>;
-  /**
    * Combien d'engagements sont en base — spec 002.
    *
    * Un décompte, et non plus la table : depuis 002 la liste vit sur
@@ -48,31 +42,16 @@ export type AccesAuxSources = {
    * versions.
    */
   engagements(): number;
-  /**
-   * Relève le lieu de mes tournois sur leur fiche publique — spec 002.
-   *
-   * Anonyme : elle ne dépend d'aucune session, donc elle aboutit même quand
-   * celle de badnet est morte. Incrémentale : une ville ne change pas, un
-   * tournoi déjà connu n'est jamais redemandé. La même passe que le
-   * planificateur lance chaque matin ; ce bouton ne sert qu'au dépannage.
-   */
-  releverLesTournois(): Promise<RapportArchive>;
   oublier(source: Source): void;
   sonder(): Promise<readonly ResultatDeSonde[]>;
   /**
-   * Lance la passe qui relève noms et classements — specs 001 et 028.
+   * Déclenche à la main une tâche ordonnancée — spec 037.
    *
-   * Une seule passe, pour moi et pour l'équipe : nous sommes tous dans la même
-   * liste, et deux passes auraient produit deux dates affichées.
-   *
-   * Ici et non sur `/mon-profil` : 001 écarte le bouton « rafraîchir
-   * maintenant », qui mettrait le plafond d'un passage par jour entre les
-   * mains de l'utilisateur. Celui-ci est sur l'écran d'exploitation, il sert à
-   * constater une passe réelle à la mise en service. Depuis
-   * [[018__ordonnancement]], le planificateur déclenche la même passe chaque
-   * vendredi à 1 h : ce bouton ne sert plus qu'au dépannage.
+   * La même passe, le même chemin qu'un réveil : grâce court-circuitée,
+   * échéance clôturée, suivante inscrite, rapport consigné sous l'identifiant
+   * de la tâche. Coup unique, sans réessai.
    */
-  relever(): Promise<RapportArchive>;
+  executerMaintenant(tache: string): Promise<RapportArchive | null>;
   /**
    * Remplace l'équipe par le contenu d'un CSV — spec 005.
    *
@@ -167,11 +146,9 @@ export function routeurSources(acces: AccesAuxSources): Router {
     reponse: Response,
     vue: {
       sonde?: readonly ResultatDeSonde[] | null;
-      passe?: RapportArchive | null;
+      declenchement?: RapportArchive | null;
       equipe?: ResultatDImport | null;
       mailDeTest?: MessageDepose | null;
-      engagements?: RapportArchive | null;
-      tournois?: RapportArchive | null;
       connexion?: { readonly source: Source; readonly issue: string } | null;
     },
   ): void => {
@@ -181,15 +158,16 @@ export function routeurSources(acces: AccesAuxSources): Router {
       deploiements: acces.deploiements(),
       taches: acces.ordonnancement(),
       rapports: acces.rapports(),
+      // Le battement ne porte pas de bouton : passé au tableau pour que la
+      // vue ne reçoive pas la règle en dur (spec 037).
+      battement: TACHE_BATTEMENT,
       // Relu après le geste, jamais avant : un mail de test déposé doit
       // apparaître dans la file du même écran que le bouton qui l'a déposé.
       courrier: acces.courrier(),
       sonde: vue.sonde ?? null,
-      passe: vue.passe ?? null,
+      declenchement: vue.declenchement ?? null,
       equipe: vue.equipe ?? null,
       mailDeTest: vue.mailDeTest ?? null,
-      engagements: vue.engagements ?? null,
-      tournois: vue.tournois ?? null,
       engagementsEnBase: acces.engagements(),
       connexion: vue.connexion ?? null,
       codesAttendus: acces.codesAttendus(),
@@ -219,10 +197,38 @@ export function routeurSources(acces: AccesAuxSources): Router {
       .catch(suite);
   });
 
-  routeur.post("/classement", (_requete, reponse, suite) => {
+  routeur.post("/ordonnancement/:tache/executer", (_requete, reponse, suite) => {
+    const tache = _requete.params.tache;
+
+    // La cible se juge sur le tableau d'ordonnancement, la seule vue que le
+    // port expose des tâches déclarées : inconnue → 404, non déclenchable →
+    // 400. Un appel direct à la route ne doit jamais faire tourner une passe
+    // qui ne devrait pas tourner (spec 037).
+    const etat = acces.ordonnancement().find((candidate) => candidate.tache === tache);
+    if (etat === undefined) {
+      return rendreTacheInconnue(reponse, tache);
+    }
+    if (tache === TACHE_BATTEMENT) {
+      return rendreTacheNonDeclenchable(
+        reponse,
+        tache,
+        "C'est le battement hebdomadaire : son silence est précisément l'information qu'il préserve (019).",
+      );
+    }
+    if (!etat.reglage.active) {
+      return rendreTacheNonDeclenchable(reponse, tache, "La tâche est suspendue (case « active » décochée).");
+    }
+    if (etat.reglage.cadence.nature === "ponctuelle") {
+      return rendreTacheNonDeclenchable(
+        reponse,
+        tache,
+        "Une échéance ponctuelle se déclenche à son échéance, pas à la main — un rappel J-1 envoyé à J+2 est pire qu'un rappel manquant (014).",
+      );
+    }
+
     acces
-      .relever()
-      .then((passe) => ecran(reponse, { passe }))
+      .executerMaintenant(tache)
+      .then((declenchement) => ecran(reponse, { declenchement }))
       .catch(suite);
   });
 
@@ -324,22 +330,6 @@ export function routeurSources(acces: AccesAuxSources): Router {
       .catch(suite);
   });
 
-  /** Le relevé des engagements — spec 027. La passe que le planificateur joue chaque matin. */
-  routeur.post("/engagements", (_requete, reponse, suite) => {
-    acces
-      .releverLesEngagements()
-      .then((engagements) => ecran(reponse, { engagements }))
-      .catch(suite);
-  });
-
-  /** Le relevé des lieux — spec 002. Anonyme, incrémental, et de dépannage ici. */
-  routeur.post("/tournois", (_requete, reponse, suite) => {
-    acces
-      .releverLesTournois()
-      .then((tournois) => ecran(reponse, { tournois }))
-      .catch(suite);
-  });
-
   routeur.post("/:source/oubli", (requete, reponse) => {
     const source = requete.params.source;
     if (!estUneSource(source)) return rendreInconnue(reponse, source);
@@ -355,6 +345,20 @@ function rendreInconnue(reponse: Response, source: string): void {
   reponse.status(404).render("erreur", {
     titre: "Source inconnue",
     message: `« ${source} » n'est pas une source connue. Babo n'en connaît que deux : myffbad et badnet (spec 015).`,
+  });
+}
+
+function rendreTacheInconnue(reponse: Response, tache: string): void {
+  reponse.status(404).render("erreur", {
+    titre: "Tâche inconnue",
+    message: `« ${tache} » n'est pas une tâche ordonnancée. Rien n'a été exécuté.`,
+  });
+}
+
+function rendreTacheNonDeclenchable(reponse: Response, tache: string, raison: string): void {
+  reponse.status(400).render("erreur", {
+    titre: "Tâche non déclenchable",
+    message: `« ${tache} » ne se déclenche pas à la main. ${raison}`,
   });
 }
 

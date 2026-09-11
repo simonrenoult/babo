@@ -41,6 +41,14 @@
   l'événement. Un échec est réessayé deux fois, à une heure puis à quatre ;
   au-delà, la tâche attend son occurrence suivante.
 </p>
+<p>
+  La colonne <strong>Lancer</strong> déclenche une tâche à la main, comme si le
+  planificateur s'était réveillé : grâce court-circuitée, échéance clôturée,
+  suivante inscrite, rapport consigné — et affiché aussitôt sous le tableau
+  (spec 037). Coup unique, sans réessai : un échec se lit là, et on relance à la
+  main. Le battement n'en a pas, car son absence est précisément ce qu'il
+  annonce.
+</p>
 
 <%
   const JOURS = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi",
@@ -57,6 +65,7 @@
   <tr>
     <th>Tâche</th><th>Cadence</th><th>Grâce</th>
     <th>Prochaine échéance</th><th>Tentatives</th><th>Dernière issue</th>
+    <th>Action</th>
   </tr>
   <% for (const tache of taches) { %>
     <tr>
@@ -77,9 +86,29 @@
           jamais exécutée
         <% } %>
       </td>
+      <td>
+        <%# Règle uniforme, une exception : toute tâche active à cadence porte %>
+        <%# un bouton Lancer, sauf le battement dont le silence est exactement %>
+        <%# l'information qu'il préserve (037, 019). Les ponctuelles ne sont %>
+        <%# pas des passes (014). %>
+        <% if (tache.reglage.active && tache.reglage.cadence.nature !== "ponctuelle" && tache.tache !== battement) { %>
+          <form method="post" action="/sources/ordonnancement/<%= tache.tache %>/executer">
+            <button type="submit">Lancer</button>
+          </form>
+        <% } else { %>
+          —
+        <% } %>
+      </td>
     </tr>
   <% } %>
 </table>
+
+<%# Le rapport du dernier déclenchement, juste sous le tableau : c'est là %>
+<%# qu'on a cliqué, et c'est le verdict qu'on cherche immédiatement (037). %>
+<% if (declenchement) { %>
+  <h3>Dernier déclenchement</h3>
+  <%- include("rapport-de-passe", { passe: declenchement }) %>
+<% } %>
 
 <% for (const tache of taches) { %>
   <form method="post" action="/sources/ordonnancement">
@@ -284,27 +313,6 @@
   </table>
 <% } %>
 
-<h2>Relever noms et classements</h2>
-<p>
-  La passe qui relève, pour moi et pour chaque membre de l'équipe, le nom et le
-  classement sur myffbad, les écrit en base et laisse un rapport (specs 001 et
-  028). Une seule passe pour tout le monde, et <strong>entièrement anonyme</strong> :
-  elle ne présente aucune session, donc le vendredi où le jeton est mort, le
-  classement est relevé quand même.
-</p>
-<p>
-  Elle est ici, sur l'écran d'exploitation, et non sur « Mon profil » : 001
-  écarte le bouton « rafraîchir maintenant », qui mettrait le plafond d'un
-  passage par jour entre les mains de l'utilisateur. Depuis 018, le
-  planificateur la déclenche seul — voir sa cadence plus haut ; ce bouton ne
-  sert plus qu'au dépannage, quand on ne veut pas attendre l'échéance.
-</p>
-<form method="post" action="/sources/classement"><button type="submit">Relever noms et classements</button></form>
-
-<% if (passe) { %>
-  <%- include("rapport-de-passe", { passe }) %>
-<% } %>
-
 <h2>Importer l'équipe</h2>
 <p>
   La liste des membres de l'équipe, telle que <a href="/capitanat">Capitanat</a>
@@ -386,11 +394,12 @@
   <% } %>
 <% } %>
 
-<h2>Relever mes engagements</h2>
+<h2>Mes engagements</h2>
 <p>
   Mes inscriptions de tournoi, relevées sur badnet sous session (spec 027) :
   tournoi, date, tableaux engagés et partenaire. Le planificateur lance cette
-  passe chaque matin à 5 h ; ce bouton ne sert qu'au dépannage.
+  passe chaque matin à 5 h ; la relancer se fait sur le tableau
+  d'ordonnancement, colonne <strong>Lancer</strong> (spec 037).
 </p>
 <p>
   <strong>Elle coûte cher en requêtes</strong>, et c'est assumé : badnet sert
@@ -398,8 +407,6 @@
   fiche, aucun identifiant d'action n'étant écrit en dur. C'est ce qui évite
   qu'un redéploiement de badnet fasse tomber la passe sans prévenir.
 </p>
-<form method="post" action="/sources/engagements"><button type="submit">Relever mes engagements</button></form>
-
 <p class="etat">
   <% if (engagementsEnBase === 0) { %>
     Aucun engagement en base. En intersaison c'est normal : la passe le consigne
@@ -411,40 +418,6 @@
     écran porte l'exploitation, la feature porte la donnée (spec 002).
   <% } %>
 </p>
-
-<% if (engagements) { %>
-  <p class="etat">
-    Passe <strong><%= engagements.issue %></strong>, terminée le
-    <%= engagements.termineLe.toLocaleString("fr-FR") %>.
-    <br><%= engagements.detail %>
-  </p>
-<% } %>
-
-<h2>Relever le lieu des tournois</h2>
-<p>
-  La ville d'un tournoi n'est pas sur <code>/competitions</code> : elle se lit
-  sur sa fiche publique, que cette passe va chercher <strong>en anonyme</strong>
-  (spec 002). Sans session, donc elle aboutit même le jour où celle de badnet est
-  morte — et sans risque pour le compte. Le planificateur la lance chaque matin à
-  5 h 30, juste après les engagements ; ce bouton ne sert qu'au dépannage.
-</p>
-<p>
-  <strong>Elle ne redemande jamais un tournoi déjà connu</strong> : une ville ne
-  change pas. La plupart des jours elle ne coûte aucune requête et consigne
-  « n connus, aucun à relever » — ce qui suffit au battement du lundi pour ne pas
-  la croire muette. Elle rapporte aussi les journées réelles du tournoi, que la
-  face sous session ne donne pas : c'est d'elles que vient « du 24 au 25 octobre »
-  sur <a href="/mon-profil">mon profil</a>.
-</p>
-<form method="post" action="/sources/tournois"><button type="submit">Relever le lieu des tournois</button></form>
-
-<% if (tournois) { %>
-  <p class="etat">
-    Passe <strong><%= tournois.issue %></strong>, terminée le
-    <%= tournois.termineLe.toLocaleString("fr-FR") %>.
-    <br><%= tournois.detail %>
-  </p>
-<% } %>
 
 <% if (connexion) { %>
   <p class="etat">

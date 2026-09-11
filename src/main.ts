@@ -663,7 +663,15 @@ const application = creerApplication({
         throw erreur;
       }
 
-      return { issue: "importee", membres: equipe.length, releve: await relever() };
+      return {
+        issue: "importee",
+        membres: equipe.length,
+        // La passe suit par le même geste que le bouton — spec 037 : l'import
+        // d'équipe enchaîne sa passe par `executerMaintenant`, pour que la
+        // règle « toute passe passe par le planificateur » tienne sans
+        // exception.
+        releve: (await ordonnanceur.executerMaintenant(tacheDAcquisition("myffbad"))).rapport,
+      };
     },
 
     connecter: async (source) => {
@@ -704,25 +712,16 @@ const application = creerApplication({
         .map(({ source, demandeeLe }) => ({ source, demandeeLe })),
 
     /**
-     * Le premier temps de 027 : obtenir la page, pas la comprendre.
+     * Déclenche à la main une tâche ordonnancée — spec 037.
      *
-     * Aucun parseur, aucune table. La capture est archivée par le décorateur
-     * `enArchivant` comme toute requête sortante, et c'est elle qu'on lira pour
-     * dessiner la suite — l'ordre que 015 a fixé et que 019 rend rejouable :
-     * `npm run capture -- <id>`.
+     * Le seul port que les passes empruntent désormais, bouton comme import :
+     * aucune n'appelle sa passe en direct, toutes passent par le planificateur.
      */
-    // Le bouton de dépannage : la même passe que le planificateur déclenche
-    // chaque matin, comme celui du classement (001, 018).
-    releverLesEngagements: relverLesEngagements,
+    executerMaintenant: async (tache) => (await ordonnanceur.executerMaintenant(tache)).rapport,
 
     // Un décompte, plus la table : depuis 002 la liste vit sur `/mon-profil`.
     // `/sources` porte l'exploitation, la feature porte la donnée (030).
     engagements: () => persistance.engagements.compter(),
-
-    // Le premier temps de 002 : atteindre la fiche publique et l'archiver.
-    // Aucun parseur ne la lit encore — c'est la capture qu'elle laisse qui
-    // servira à en écrire un (015).
-    releverLesTournois: relverLesTournois,
 
     sonder: () =>
       sonder({
@@ -732,11 +731,6 @@ const application = creerApplication({
         rapports,
         horloge: horlogeSysteme,
       }),
-
-    // La passe de 001, élargie à l'équipe par 028. C'est exactement la
-    // fonction que l'ordonnanceur appelle chaque vendredi (018) : le bouton
-    // n'est plus qu'un dépannage, la passe est la même.
-    relever,
 
     // L'historique, que 019 réclame : par mail seul on ne voit que les échecs,
     // jamais la semaine qui s'est bien passée. `derniers` était déclaré depuis

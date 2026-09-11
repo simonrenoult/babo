@@ -103,6 +103,8 @@ describe("l'application assemblée", () => {
   let passe: () => Promise<RapportArchive>;
   let cookie: string;
   let authentification: ReturnType<typeof creerAuthentification>;
+  /** Le geste unique de 037, monté comme dans `main.ts` : toute passe passe par ici. */
+  let executerMaintenant: (tache: string) => Promise<RapportArchive | null>;
 
   /** Toute requête porte le cookie : la porte de 021 est réelle dans ce montage. */
   function visiter(chemin: string, options: RequestInit = {}): Promise<Response> {
@@ -159,6 +161,10 @@ describe("l'application assemblée", () => {
         horloge: horlogeSysteme,
       });
     };
+    executerMaintenant = (tache) =>
+      tache === tacheDAcquisition("myffbad")
+        ? passe()
+        : Promise.reject(new Error(`tâche non branchée dans ce test : ${tache}`));
 
     const application = creerApplication({
       configuration: {
@@ -236,17 +242,12 @@ describe("l'application assemblée", () => {
         confirmerLeCode: () => Promise.resolve(),
         codesAttendus: () => [],
         engagements: () => persistance.engagements.compter(),
-        releverLesEngagements: () =>
-          Promise.reject(new Error("relevé non branché dans ce test")),
-        // La chaîne touche au réseau : l'assemblage vérifie qu'elle est
-        // montée, pas qu'elle atteint badnet.
-        releverLesTournois: () =>
-          Promise.reject(new Error("relevé des fiches non branché dans ce test")),
+        // La chaîne de la passe touche au réseau : l'assemblage vérifie qu'elle
+        // est montée (037), pas qu'elle atteint myffbad.
+        executerMaintenant,
         // La sonde touche au réseau : l'assemblage vérifie qu'elle est montée,
         // pas qu'elle atteint les sites fédéraux.
         sonder: () => Promise.resolve([]),
-        // La passe touche au réseau : idem, l'assemblage vérifie le montage.
-        relever: () => Promise.reject(new Error("passe non branchée dans ce test")),
         // L'ordonnancement se teste sur son propre cœur (018) : ici on vérifie
         // que l'écran le monte, pas que la minuterie bat.
         courrier: () => courrier.etat(),
@@ -254,8 +255,9 @@ describe("l'application assemblée", () => {
         rapports: () => rapports.derniers(50),
         ordonnancement: () => [],
         reglerLaTache: () => {},
-        // L'import enchaîne la passe (028), et le tout est vrai sauf le
-        // réseau : parseurs, dépôts, passe, page. C'est la chaîne entière, du
+        // L'import enchaîne la passe (028, 037) par le même geste que le
+        // bouton — `executerMaintenant` — et le tout est vrai sauf le réseau :
+        // parseurs, dépôts, passe, page. C'est la chaîne entière, du
         // téléversement à l'affichage, que ce test tient.
         importerLEquipe: async (csv) => {
           let equipe;
@@ -266,7 +268,11 @@ describe("l'application assemblée", () => {
             if (erreur instanceof ImportRefuse) return { issue: "refusee", motifs: erreur.motifs };
             throw erreur;
           }
-          return { issue: "importee", membres: equipe.length, releve: await passe() };
+          return {
+            issue: "importee",
+            membres: equipe.length,
+            releve: await executerMaintenant(tacheDAcquisition("myffbad")),
+          };
         },
       },
     });
