@@ -16,7 +16,7 @@ Cinq specs de socle sont posées : l'accès aux sources
 [[018__socle__ordonnancement.tech]] et la robustesse du scraping
 [[019__socle__robustesse-du-scraping.tech]]. Chacune tranche un mécanisme.
 
-Aucune ne dit ce qu'est Bado en tant que programme : ce qui s'exécute, sous
+Aucune ne dit ce qu'est Babo en tant que programme : ce qui s'exécute, sous
 quelle forme, et sur quelle plateforme. Les specs de feature parlent pourtant
 déjà de « l'interface » et du « serveur » comme si c'était acquis.
 

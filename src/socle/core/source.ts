@@ -1,5 +1,5 @@
 /**
- * Les deux sites fédéraux dont Bado tire ses données — spec 015.
+ * Les deux sites fédéraux dont Babo tire ses données — spec 015.
  *
  * Chaque donnée a une source et une seule ; les deux sont acquises et
  * ordonnancées séparément, pour qu'une panne de l'une n'arrête pas l'autre.

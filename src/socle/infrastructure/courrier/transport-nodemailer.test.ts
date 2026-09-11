@@ -131,9 +131,9 @@ function configuration(port: number): ConfigurationCourrier {
   return {
     hote: "127.0.0.1",
     port,
-    utilisateur: "bado@exemple.fr",
+    utilisateur: "babo@exemple.fr",
     motDePasse: "mot-de-passe-application",
-    expediteur: "bado@exemple.fr",
+    expediteur: "babo@exemple.fr",
     destinataire: "contact@exemple.fr",
   };
 }
@@ -156,16 +156,16 @@ describe("le transport nodemailer", () => {
     const transport = transportNodemailer(configuration(faux.port));
 
     await transport.envoyer({
-      sujet: "[Bado] Panne de scraping",
+      sujet: "[Babo] Panne de scraping",
       html: "<p>myffbad n'a rien rendu.</p>",
       texte: "myffbad n'a rien rendu.",
     });
 
     const dialogue = faux.recu().join("\n");
-    assert.match(dialogue, /MAIL FROM:<bado@exemple\.fr>/);
+    assert.match(dialogue, /MAIL FROM:<babo@exemple\.fr>/);
     assert.match(dialogue, /RCPT TO:<contact@exemple\.fr>/);
     // Le sujet accentué voyage encodé — `=?UTF-8?…?=` — et non en octets bruts.
-    assert.match(dialogue, /Subject: .*Bado/);
+    assert.match(dialogue, /Subject: .*Babo/);
     assert.match(dialogue, /multipart\/alternative/);
   });
 
@@ -173,7 +173,7 @@ describe("le transport nodemailer", () => {
     const faux = await serveur("aucune");
     const transport = transportNodemailer(configuration(faux.port));
 
-    await transport.envoyer({ sujet: "[Bado] Tournois", html: "<p>Trois tournois.</p>" });
+    await transport.envoyer({ sujet: "[Babo] Tournois", html: "<p>Trois tournois.</p>" });
 
     const dialogue = faux.recu().join("\n");
     assert.match(dialogue, /Content-Type: text\/html/);
@@ -189,7 +189,7 @@ describe("le transport nodemailer", () => {
     const transport = transportNodemailer(configuration(faux.port));
 
     await assert.rejects(
-      transport.envoyer({ sujet: "[Bado] Panne", html: "<p>panne</p>" }),
+      transport.envoyer({ sujet: "[Babo] Panne", html: "<p>panne</p>" }),
       /535|Invalid login|authentication/i,
     );
   });
@@ -198,6 +198,6 @@ describe("le transport nodemailer", () => {
     const faux = await serveur("coupure");
     const transport = transportNodemailer(configuration(faux.port));
 
-    await assert.rejects(transport.envoyer({ sujet: "[Bado] Panne", html: "<p>panne</p>" }));
+    await assert.rejects(transport.envoyer({ sujet: "[Babo] Panne", html: "<p>panne</p>" }));
   });
 });

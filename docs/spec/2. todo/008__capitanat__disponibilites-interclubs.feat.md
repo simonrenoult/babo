@@ -28,13 +28,13 @@ relancer ceux qui n'ont pas répondu.
 - Saisie par le capitaine, la collecte se faisant via un questionnaire externe
   (Doodle, Framadate) dont le lien est diffusé aux joueurs. Retenue.
 - Sollicitation par mail avec réponse par lien dans l'outil. Écartée : elle
-  suppose des pages accessibles sans authentification, alors que Bado est un
+  suppose des pages accessibles sans authentification, alors que Babo est un
   service personnel protégé par identifiant et mot de passe
   ([[021__socle__authentification.tech]]). C'est la seule
   spec qui percerait cette clôture, et elle ferait en plus transiter les
   réponses de tiers par un serveur exposé.
 
-Le questionnaire externe reste hors de l'outil : Bado n'en lit pas les
+Le questionnaire externe reste hors de l'outil : Babo n'en lit pas les
 réponses, le capitaine les reporte.
 
 ## Questions
@@ -47,7 +47,7 @@ réponses, le capitaine les reporte.
 
 ## Notes
 
-**Bado n'a pas les mails des coéquipiers.**
+**Babo n'a pas les mails des coéquipiers.**
 [[005__capitanat__liste-des-membres-de-l-equipe.feat]] a retiré le mail de la
 fiche d'équipe : myffbad ne publie pas les coordonnées de ses licenciés, et une
 colonne sans usage ne se stocke pas. « Relancer les silencieux » ne peut donc

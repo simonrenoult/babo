@@ -62,7 +62,7 @@ const ETATS: readonly EtatDeLaSource[] = [
 /** Un mail de test resté en attente : le SMTP n'est pas configuré (016). */
 const MAIL_DE_TEST: MessageDepose = {
   id: 1,
-  sujet: "[Bado] Mail de test",
+  sujet: "[Babo] Mail de test",
   html: "<p>Le courrier fonctionne.</p>",
   texte: "Le courrier fonctionne.",
   deposeLe: new Date("2026-09-03T09:00:00Z"),

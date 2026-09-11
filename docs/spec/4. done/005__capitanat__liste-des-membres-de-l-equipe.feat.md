@@ -116,7 +116,7 @@ coéquipiers s'y ajoute en acquisition anonyme.
 Les coordonnées vivent en base chiffrée, sur un serveur privé, derrière
 l'authentification de [[021__socle__authentification.tech]]. **L'application ne
 doit pas être joignable depuis internet tant que 021 n'est pas faite** — c'est
-vrai de tout Bado, et ça l'est doublement le jour où on importe l'équipe pour de
+vrai de tout Babo, et ça l'est doublement le jour où on importe l'équipe pour de
 bon.
 
 La vérification de validité des licences est hors périmètre.

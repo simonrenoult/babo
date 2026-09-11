@@ -9,7 +9,7 @@
 
 ## Contexte
 
-Trois specs s'appuient déjà sur l'idée que Bado est fermé :
+Trois specs s'appuient déjà sur l'idée que Babo est fermé :
 [[015__socle__source-de-donnees.tech]] en fait la protection réelle du service,
 dont le `noindex` n'est qu'un complément ;
 [[005__capitanat__liste-des-membres-de-l-equipe.feat]] y range les coordonnées
@@ -21,7 +21,7 @@ Aucune ne dit comment la porte fonctionne.
 ## Problème à résoudre
 
 Le serveur est joignable depuis internet — c'est la condition pour consulter
-Bado en club ou en tournoi. Il sert des mails et des téléphones de coéquipiers,
+Babo en club ou en tournoi. Il sert des mails et des téléphones de coéquipiers,
 des gens qui n'ont rien demandé et dont la fuite ne serait pas rattrapable. Il
 expose aussi l'écran de réauthentification myffbad de 015, donc un chemin vers
 un compte fédéral.

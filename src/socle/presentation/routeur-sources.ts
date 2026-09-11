@@ -354,7 +354,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
 function rendreInconnue(reponse: Response, source: string): void {
   reponse.status(404).render("erreur", {
     titre: "Source inconnue",
-    message: `« ${source} » n'est pas une source connue. Bado n'en connaît que deux : myffbad et badnet (spec 015).`,
+    message: `« ${source} » n'est pas une source connue. Babo n'en connaît que deux : myffbad et badnet (spec 015).`,
   });
 }
 

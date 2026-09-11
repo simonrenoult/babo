@@ -39,7 +39,7 @@ le lint d'architecture et les tests.
 
 Le socle est en place — un processus Node, une base SQLite unique et chiffrée,
 quatre modules hexagonaux — et les deux sources sont acquises (spec 015) :
-Bado se connecte seul à myffbad pour le classement et les matchs, et interroge
+Babo se connecte seul à myffbad pour le classement et les matchs, et interroge
 la recherche publique de badnet, anonyme, pour les tournois. `/sources` porte
 les sessions, les déploiements observés et la sonde d'accès.
 

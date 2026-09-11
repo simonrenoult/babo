@@ -9,7 +9,7 @@
 
 ## Contexte
 
-Bado manipule des données de natures très différentes : captures HTML brutes,
+Babo manipule des données de natures très différentes : captures HTML brutes,
 classements, matchs, tournois indexés, critères de veille, identifiants et
 jeton de session myffbad, rapports d'exécution. Chaque spec suppose un
 stockage sans jamais dire lequel.

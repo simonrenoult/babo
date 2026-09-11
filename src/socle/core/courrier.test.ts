@@ -160,7 +160,7 @@ describe("le courrier", () => {
     assert.equal(depot.compterEnAttente(), 0);
     assert.deepEqual(
       transport.recus().map((message) => message.sujet),
-      ["[Bado] Panne de scraping"],
+      ["[Babo] Panne de scraping"],
     );
   });
 
@@ -277,7 +277,7 @@ describe("le courrier", () => {
     await Promise.all([premierDepot, secondDepot]);
 
     assert.equal(depot.compterEnAttente(), 0);
-    assert.deepEqual(recus, ["[Bado] Panne de scraping", "[Bado] Deuxième"]);
+    assert.deepEqual(recus, ["[Babo] Panne de scraping", "[Babo] Deuxième"]);
   });
 
   it("consigne un succès dès qu'un message part, et nomme celui qui n'est pas parti", async () => {

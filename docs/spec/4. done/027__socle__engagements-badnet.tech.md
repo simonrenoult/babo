@@ -49,7 +49,7 @@ de 002 n'est plus qu'un complément pour les inscriptions faites hors badnet.
 
 ~~L'accès est le même rituel qu'en 015~~ — **et c'est faux, 015 l'avait déjà
 signalé sans que personne ne le reporte ici.** myffbad n'a pas de 2FA : sa page
-de connexion ne demande que licence et mot de passe, et Bado s'y connecte seul
+de connexion ne demande que licence et mot de passe, et Babo s'y connecte seul
 depuis 015. C'est badnet qui en a une. Cette spec « tenait l'asymétrie à
 l'envers », dans les mots de 015.
 
@@ -116,7 +116,7 @@ qui marche.
 badnet est en PHP, et PHP pose un `PHPSESSID` dès le premier contact,
 authentifié ou non. Un cookie présent ne prouve rien ; le mur du code, lui, est
 un signal positif. Tester le cookie d'abord ferait prendre une demande de code
-pour une session ouverte, et Bado repartirait avec un jeton qui n'ouvre rien.
+pour une session ouverte, et Babo repartirait avec un jeton qui n'ouvre rien.
 Le défaut a été trouvé par un test, pas par une relecture.
 
 **Si aucun code n'est réclamé, la session est prise telle quelle** — une 2FA qui

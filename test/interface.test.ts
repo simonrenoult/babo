@@ -281,7 +281,7 @@ describe("l'application assemblée", () => {
     // par la même route qu'un navigateur, cookie compris.
     const connexion = authentification.connecter("07194591", MOT_DE_PASSE);
     if (connexion.issue !== "ouverte") throw new Error("connexion refusée à la mise en place");
-    cookie = `bado_session=${connexion.jeton}`;
+    cookie = `babo_session=${connexion.jeton}`;
   });
 
   after(() => {
@@ -683,7 +683,7 @@ describe("l'application assemblée", () => {
 
     const corps = await (await visiter(`/sources`)).text();
 
-    assert.match(corps, /\[Bado\] Panne — acquisition:badnet/);
+    assert.match(corps, /\[Babo\] Panne — acquisition:badnet/);
     assert.match(corps, /Exécutions/, "et l'historique est là");
     assert.match(corps, /extraction vide/, "nommée pour ce qu'elle est, pas « succès »");
     assert.match(corps, /0 tournoi extrait/);
@@ -832,7 +832,7 @@ describe("l'application assemblée", () => {
       assert.equal(reponse.headers.get("location"), "/");
 
       const pose = reponse.headers.get("set-cookie") ?? "";
-      assert.match(pose, /^bado_session=/);
+      assert.match(pose, /^babo_session=/);
       assert.match(pose, /HttpOnly/i);
       assert.match(pose, /SameSite=Strict/i);
 
@@ -862,7 +862,7 @@ describe("l'application assemblée", () => {
 
       assert.equal(reponse.status, 302);
       assert.equal(reponse.headers.get("location"), "/connexion");
-      assert.match(reponse.headers.get("set-cookie") ?? "", /^bado_session=;/);
+      assert.match(reponse.headers.get("set-cookie") ?? "", /^babo_session=;/);
     });
   });
 });

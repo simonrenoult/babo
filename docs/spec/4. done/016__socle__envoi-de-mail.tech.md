@@ -43,7 +43,7 @@ observable autrement que par un mail.
 délivrabilité, pas la simplicité de mise en œuvre.~~ **Le critère s'est
 effondré, et la question avec lui.** Il était bâti quand des mails partaient
 vers des tiers ; or [[008__capitanat__disponibilites-interclubs.feat]] a été
-amendée — Bado n'a pas les mails des coéquipiers et ne relance plus personne —
+amendée — Babo n'a pas les mails des coéquipiers et ne relance plus personne —
 et 013 comme 014 n'écrivent qu'à moi. **Tous les destinataires sont une seule
 adresse : la mienne.** Un mail qu'on s'envoie à soi-même se met en liste blanche
 une fois, et le spam cesse d'être un mode de panne.
@@ -126,7 +126,7 @@ tout seul, l'option qui le faisait ayant disparu avec sa version 2. Le seul
 effet mesurable d'un message HTML seul est un score de spam légèrement moins
 bon, et ce score ne décide de rien quand on s'écrit à soi-même.
 
-Le sujet est **préfixé de `[Bado] `**, pour qu'un filtre s'y pose une fois pour
+Le sujet est **préfixé de `[Babo] `**, pour qu'un filtre s'y pose une fois pour
 toutes. Un préfixe par nature figerait une taxonomie que 013, 014 et 019 n'ont
 pas encore écrite.
 

@@ -756,7 +756,7 @@ const application = creerApplication({
 });
 
 const serveur = application.listen(configuration.port, () => {
-  console.log(`[socle] Bado est disponible à l'adresse http://localhost:${configuration.port}`);
+  console.log(`[socle] Babo est disponible à l'adresse http://localhost:${configuration.port}`);
 });
 
 // Après le serveur, pas avant : le premier réveil du planificateur est le

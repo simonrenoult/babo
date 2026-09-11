@@ -1,4 +1,4 @@
-# Superviseur du processus Bado — répond à la question laissée ouverte par les
+# Superviseur du processus Babo — répond à la question laissée ouverte par les
 # specs 018 et 020 : ce qui garantit le redémarrage ne peut pas vivre dans
 # l'application.
 #
@@ -9,7 +9,7 @@
 # d'environnement lisible du seul compte de service (chmod 600).
 
 [Unit]
-Description=Bado — assistant de badminton
+Description=Babo — assistant de badminton
 After=network-online.target
 Wants=network-online.target
 

@@ -7,11 +7,11 @@ import type { ClientHttp, Requete, Reponse } from "../../core/acquisition.ts";
  * l'URL réellement atteinte est rendue, parce que c'est elle — et non le
  * statut, qui reste 200 — qui trahit un renvoi vers la page de connexion.
  *
- * L'agent s'annonce. Bado est un outil personnel dont le risque de
+ * L'agent s'annonce. Babo est un outil personnel dont le risque de
  * bannissement est assumé (015) : se déguiser en navigateur ne réduirait pas
  * ce risque, cela empêcherait seulement l'hébergeur de savoir à qui écrire.
  */
-const AGENT = "Bado/0.1 (outil personnel de suivi badminton; contact@simonrenoult.fr)";
+const AGENT = "Babo/0.1 (outil personnel de suivi badminton; contact@simonrenoult.fr)";
 
 const DELAI_MAX = 20_000;
 

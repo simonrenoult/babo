@@ -361,7 +361,7 @@ export type ModuleDAcquisition = {
    * temps. badnet en réclame deux — identifiants, puis un code reçu par mail —,
    * et 027 les traverse plutôt que de les contourner. 015 écrivait que « la 2FA
    * ferme la porte définitivement » ; elle ne la ferme qu'à l'automatisation
-   * complète, pas à Bado.
+   * complète, pas à Babo.
    *
    * L'asymétrie est d'ailleurs l'inverse de ce que 015 croyait au départ : c'est
    * badnet qui a une 2FA, pas myffbad.

@@ -97,9 +97,9 @@ l'analyse, `sousPlafond` arrête une passe qui boucle. La session vit dans
 `jeton_source`, une clé par source.
 
 **Les deux sources se connectent, mais pas de la même façon** — 015 et 027.
-myffbad n'a pas de 2FA : Bado s'y connecte seul en rejouant la Server Action de
+myffbad n'a pas de 2FA : Babo s'y connecte seul en rejouant la Server Action de
 connexion, dès que `BABO_MYFFBAD_MOT_DE_PASSE` est renseigné. badnet en a une,
-et 027 la **traverse** plutôt que de la contourner : Bado poste les
+et 027 la **traverse** plutôt que de la contourner : Babo poste les
 identifiants, badnet envoie un code par mail, on le recopie sur `/sources`. C'est
 un second temps facultatif du port `connexion`, que myffbad n'implémente pas.
 
@@ -384,7 +384,7 @@ tient pas contre lui.
 **Un seul destinataire, moi.** 008 a retiré les mails des coéquipiers de
 l'import de 005 ; il n'y a personne d'autre à qui écrire, et le critère de
 délivrabilité sur lequel 016 devait trancher s'est effondré avec. HTML
-obligatoire, texte facultatif, sujet préfixé de `[Bado] ` pour qu'un filtre s'y
+obligatoire, texte facultatif, sujet préfixé de `[Babo] ` pour qu'un filtre s'y
 pose une fois pour toutes. Rien n'est purgé.
 
 Le dialogue SMTP est testé contre un faux serveur local, sur les deux façons

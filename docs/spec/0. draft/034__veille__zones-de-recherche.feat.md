@@ -41,7 +41,7 @@ dire « dans l'une de ses zones ».
   par veille, et une dépendance réseau de plus à surveiller dans un projet qui
   en a déjà deux.
 - **Une isochrone calculée une fois par veille** : le service rend le contour
-  « une heure depuis Paris », Bado teste l'appartenance en local. Un appel par
+  « une heure depuis Paris », Babo teste l'appartenance en local. Un appel par
   veille et par mois, pas par tournoi. Elle survit à une panne du service — un
   contour vieux d'un mois reste juste, un réseau de transport ne bouge pas —,
   et elle rend le critère lisible : la veille porte « 1 h en transports depuis

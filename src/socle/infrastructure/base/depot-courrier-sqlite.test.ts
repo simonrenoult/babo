@@ -31,7 +31,7 @@ describe("la boîte d'envoi", () => {
 
   it("relit un message tel qu'il a été déposé, texte absent compris", () => {
     const depose = persistance.courrier.deposer(
-      { sujet: "[Bado] Tournois", html: "<p>Trois tournois.</p>" },
+      { sujet: "[Babo] Tournois", html: "<p>Trois tournois.</p>" },
       NEUF_HEURES,
     );
 
@@ -46,7 +46,7 @@ describe("la boîte d'envoi", () => {
 
   it("ne rend dû que ce dont l'heure de tentative est passée", () => {
     const plusTard = persistance.courrier.deposer(
-      { sujet: "[Bado] Plus tard", html: "<p>plus tard</p>", texte: "plus tard" },
+      { sujet: "[Babo] Plus tard", html: "<p>plus tard</p>", texte: "plus tard" },
       NEUF_HEURES,
     );
     persistance.courrier.reporter(plusTard.id, 1, NEUF_HEURES_CINQ, "réseau coupé");
@@ -55,7 +55,7 @@ describe("la boîte d'envoi", () => {
 
     assert.deepEqual(
       dus.map((message) => message.sujet),
-      ["[Bado] Tournois"],
+      ["[Babo] Tournois"],
     );
     assert.equal(persistance.courrier.lire(plusTard.id)?.dernierEchec, "réseau coupé");
     assert.equal(persistance.courrier.dus(NEUF_HEURES_CINQ).length, 2);
@@ -63,7 +63,7 @@ describe("la boîte d'envoi", () => {
 
   it("écrit les tentatives consommées jusque dans l'abandon", () => {
     const depose = persistance.courrier.deposer(
-      { sujet: "[Bado] Perdu", html: "<p>perdu</p>" },
+      { sujet: "[Babo] Perdu", html: "<p>perdu</p>" },
       NEUF_HEURES,
     );
 
@@ -84,7 +84,7 @@ describe("la boîte d'envoi", () => {
 
   it("sort un message envoyé de la file sans l'effacer de l'historique", () => {
     const depose = persistance.courrier.deposer(
-      { sujet: "[Bado] Remis", html: "<p>remis</p>" },
+      { sujet: "[Babo] Remis", html: "<p>remis</p>" },
       NEUF_HEURES,
     );
     const enAttenteAvant = persistance.courrier.compterEnAttente();

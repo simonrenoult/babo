@@ -9,7 +9,7 @@
 -- ni le compte dont le bannissement est un risque assumé (015).
 create table message (
     id                      integer primary key,
-    -- Préfixé par « [Bado] » au dépôt : le sujet stocké est celui qui part.
+    -- Préfixé par « [Babo] » au dépôt : le sujet stocké est celui qui part.
     sujet                   text not null,
     html                    text not null,
     -- Facultatif. `nodemailer` ne sait pas le dériver du HTML — l'option qui le

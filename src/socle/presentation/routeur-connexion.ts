@@ -8,7 +8,7 @@ import type { Authentification, VerdictDeSession } from "../core/authentificatio
  * que le superviseur interroge. Tout le reste — les pages, les formulaires de
  * `/sources`, l'écran de session myffbad — passe par le garde.
  */
-export const COOKIE = "bado_session";
+export const COOKIE = "babo_session";
 
 /**
  * `SameSite=Strict` fait aussi office de protection CSRF : aucun formulaire

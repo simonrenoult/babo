@@ -29,7 +29,7 @@ export const TACHE_COURRIER = "courrier";
  * constant, et un filtre s'y pose une fois pour toutes — là où un préfixe par
  * nature figerait une taxonomie que 013, 014 et 019 n'ont pas encore écrite.
  */
-export const PREFIXE_DU_SUJET = "[Bado] ";
+export const PREFIXE_DU_SUJET = "[Babo] ";
 
 /**
  * Trois tentatives, puis abandon.

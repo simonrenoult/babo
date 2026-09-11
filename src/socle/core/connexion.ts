@@ -9,7 +9,7 @@ import type { Source } from "./source.ts";
  *
  * C'est la pièce qui sépare une acquisition autonome d'une acquisition qui
  * attend un humain chaque mois. myffbad ne demande que licence et mot de passe :
- * sa connexion tient en un temps, et Bado la fait seul. badnet en réclame deux —
+ * sa connexion tient en un temps, et Babo la fait seul. badnet en réclame deux —
  * identifiants, puis un code reçu par mail —, et 027 les **traverse** plutôt
  * que de les contourner : le code se recopie depuis la boîte mail, une fois par
  * session.
@@ -157,7 +157,7 @@ export async function demanderUneConnexion(options: {
   // authentifié ou non. Un cookie présent ne prouve donc rien, alors que le mur
   // du code est un signal positif — la page le porte ou ne le porte pas.
   // Tester le cookie en premier ferait prendre une demande de code pour une
-  // session ouverte, et Bado repartirait avec un jeton qui n'ouvre rien.
+  // session ouverte, et Babo repartirait avec un jeton qui n'ouvre rien.
   if (connexion.deuxiemeTemps?.reclameUnCode(reponse) === true) {
     attentes.poser({
       source: module.source,

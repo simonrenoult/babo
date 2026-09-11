@@ -11,7 +11,7 @@
 
 Presque toutes les specs du backlog supposent l'accès à des données
 fédérales : classements, matchs, licences, tournois. Aucune n'est exposée par
-une API publique documentée. Bado est un outil personnel, hébergé sur un
+une API publique documentée. Babo est un outil personnel, hébergé sur un
 serveur privé, qui automatise un travail fait jusqu'ici à la main.
 
 ## Problème à résoudre
@@ -103,7 +103,7 @@ détection des pannes, rapports, ancienneté affichée — relève de
 
 ## Notes
 
-**Sonde du 1er septembre 2026, session obtenue par Bado lui-même.**
+**Sonde du 1er septembre 2026, session obtenue par Babo lui-même.**
 
 | Source  | Requête                        | Verdict  | Extraits |
 |---------|--------------------------------|----------|----------|
@@ -121,7 +121,7 @@ l'en distingue. La sonde le consigne donc comme volume, ce que
 plus rien là où la précédente rendait quelque chose (spec 019).
 
 **Les trois critères de sortie sont atteints.** Chaque donnée a sa source
-(tableau ci-dessus, corrigé). L'accès est prouvé de bout en bout : Bado se
+(tableau ci-dessus, corrigé). L'accès est prouvé de bout en bout : Babo se
 connecte seul à myffbad, appelle ses fonctions serveur et en tire 14 résultats
 réels — tournois et interclubs — plus le classement complet ; badnet rend 22
 tournois par recherche anonyme. Le parsing de chaque site vit dans son module
@@ -166,7 +166,7 @@ pièce qui manquait à une acquisition autonome — et elle est en place.
 connexion, classement, résultats. Un POST sur la page, un en-tête
 `next-action`, un corps JSON — rien d'autre n'est nécessaire, vérifié en
 retirant tout le reste. La connexion prend `{licence, password, rememberMe}` et
-rend le `jwt` en cookie ; Bado la rejoue seul.
+rend le `jwt` en cookie ; Babo la rejoue seul.
 
 Trois choses acquises en les rejouant :
 
