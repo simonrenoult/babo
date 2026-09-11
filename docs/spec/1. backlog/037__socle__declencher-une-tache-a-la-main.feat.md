@@ -100,7 +100,11 @@ veut préserver.
 - **Verrou partagé avec le réveil.** `executerMaintenant` réutilise le verrou
   `enCours` du réveil : une passe qui dure ne se superpose ni à elle-même ni à
   un réveil automatique simultané (018, plafond de 015). Un déclenchement
-  pendant une passe en cours attend qu'elle finisse.
+  pendant une passe en cours attend qu'elle finisse, silencieusement, puis rend
+  le rapport de sa propre passe — cohérent avec « on attend la passe et on rend
+  son verdict ». Pendant la mise au point l'application est fraîche, un réveil
+  automatique simultané est rare ; le risque proxy est assumé comme pour les
+  boutons actuels.
 - **Coup unique, sans réessai.** Une passe manuelle qui finit en `echec` ne
   planifie pas les réessais à une et quatre heures du réveil automatique : elle
   clôt l'échéance et inscrit la suivante. Le réessai est propre au réveil ; au
@@ -127,10 +131,10 @@ veut préserver.
   bouton par tâche active à cadence — règle uniforme, une seule exception : le
   battement. Les cadences ponctuelles (rappels de 014) n'en portent pas, car ce
   ne sont pas des passes.
-- **Rendu du rapport.** Un emplacement générique rend le rapport du
+- **Rendu du rapport.** Un bloc « Dernier déclenchement » rend le rapport du
   déclenchement, remplaçant les emplacements dédiés `passe`/`engagements`/
-  `tournois` de la vue `sources`. Son emplacement exact reste à trancher
-  (voir ci-dessous).
+  `tournois` de la vue `sources`. Placé juste sous le tableau d'ordonnancement :
+  c'est là qu'on a cliqué, et c'est l'information qu'on cherche immédiatement après.
 - **Pas de changement de schéma.** Échéances et rapports existent déjà (017,
   019) ; aucune table nouvelle ni colonne nouvelle.
 
