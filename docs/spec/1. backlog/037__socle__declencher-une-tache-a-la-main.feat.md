@@ -7,7 +7,7 @@
 | type        | feat   |
 | bloquée par | —      |
 
-## Contexte
+## Problem Statement
 
 [[018__socle__ordonnancement.tech]] a donné à chaque tâche périodique une
 cadence et une fenêtre de grâce, et [[019__socle__robustesse-du-scraping.tech]]
@@ -19,148 +19,176 @@ ne l'est pas, puisqu'elle n'est pas encore déployée — les échéances passen
 sans être servies, et au prochain démarrage elles tombent hors fenêtre et sont
 abandonnées plutôt que rejouées. C'est précisément ce que 018 a voulu pour les
 rappels J-1, et c'est précisément le tort pour une passe périodique qu'on
-voudrait justement pouvoir lancer à la main pendant la mise au point.
+voudrait lancer à la main pendant la mise au point.
 
 `/sources` porte déjà des boutons de dépannage — Sonder, Relever le classement,
 Relever les engagements, Relever les tournois. Mais chacun appelle sa propre
-méthode de `AccesAuxSources`, qui exécute la passe sans prévenir le
-planificateur : l'échéance reste en attente, le rapport se consigne en double
-sous la tâche, et la prochaine occurrence prévue ne bouge pas. La passe de
-veille, elle, n'a pas de bouton du tout.
+méthode, qui exécute la passe **sans prévenir le planificateur** : l'échéance
+reste en attente, le rapport se consigne en double sous la tâche, et la
+prochaine occurrence prévue ne bouge pas. La passe de veilles, elle, n'a pas de
+bouton du tout.
 
-## Problème à résoudre
-
-En l'état, l'écran d'exploitation ne permet pas de déclencher une tâche
+En l'état, l'écran d'exploitation ne permet donc pas de déclencher une tâche
 ordonnancée **comme si le planificateur l'avait réveillée** : il faut choisir
 entre exécuter la passe sans toucher à l'échéance (les boutons actuels) et
 attendre que la grâce soit dépassée pour qu'elle s'exécute enfin — trop tard,
-puisque dépassée veut alors dire abandonnée.
+puisque « dépassée » veut alors dire « abandonnée ».
 
-Résolu quand chaque tâche ordonnancée porte un bouton qui l'exécute, consigne
-son rapport sous le même identifiant, clôt son échéance et en inscrit la
-suivante ; quand l'exécution manuelle d'une tâche la laisse dans le même état
-qu'un réveil automatique ; et quand `npm run verifier` passe sans changement de
-comportement pour les réveils automatiques.
+## Solution
 
-## Solutions envisagées
+Un seul geste, sur le tableau d'ordonnancement de `/sources` : un bouton
+« Lancer » par tâche, qui déclenche la passe **comme le planificateur l'aurait
+faite** — grâce court-circuitée, échéance clôturée, suivante inscrite, rapport
+consigné sous le même identifiant. Le rapport s'affiche aussitôt sur l'écran.
 
-- **Un bouton par tâche, qui délègue au planificateur.** Retenue : une seule
-  méthode `executerMaintenant(tache)` sur l'ordonnanceur, qui rejoue le
-  passage — `estDansLaFenetre` court-circuité, l'échéance clôturée à `faite`,
-  la suivante inscrite, le rapport consigné comme pour un réveil. Une route
-  `POST /sources/ordonnancement/:tache/executer` la branche ; le tableau
-  d'ordonnancement gagne une colonne d'action. La grâce n'a plus à être
-  enfreinte à la main : la passe part quand on clique, point.
-- **Étendre les boutons actuels pour qu'ils touchent aussi l'échéance.** Refusé
-  : chaque bouton dupliquerait la logique de clôture et de replanification, et
-  la passe de veilles devrait en plus recevoir le sien. Un mécanisme unique
-  remplace cinq dédoublements. C'est la même raison qui fait **disparaître**
-  les trois boutons de passe au profit de la colonne d'action, plutôt que de
-  les faire coexister : garder des boutons qui exécutent sans prévenir le
-  planificateur perpétuerait exactement le défaut que cette spec retire.
-- **Ne rien faire, et s'appuyer sur le démarrage.** Au démarrage, le
-  rattrapage rejoue ce qui est dû tant que la grâce tient. Mais la grâce, par
-  construction, est dépassée après quelques jours d'arrêt — c'est le cas
-  décrit ici, et précisément celui que 018 abandonne.
+Ce geste unique remplace les trois boutons de passe actuels (classement,
+engagements, tournois), qui disparaissent : garder des boutons qui exécutent
+sans prévenir le planificateur perpétuerait le défaut que cette spec retire.
+`sonder` reste, car ce n'est pas une tâche ordonnancée. La passe enchaînée par
+l'import d'équipe (028) passe, elle aussi, par ce même geste.
 
-Contraintes :
+Règle uniforme : toute tâche active à cadence porte un bouton, à une exception
+près — le battement, dont le silence est précisément l'information que 019
+veut préserver.
 
-- **Un bouton par tâche, pas un formulaire global.** Les tâches sont
-  ordonnancées séparément (018) ; un déclenchement en série ne se justifie
-  que pour le battement, qui n'a pas à être déclenché.
-- **Le battement n'a pas de bouton.** Sa raison d'être est que son absence se
-  remarque (019) : le déclencher à la main attesterait d'une santé qu'il n'a
-  pas constatée à l'heure dite, exactement le mensonge que sa grâce nulle
-  évite.
-- **Toute tâche active à cadence a un bouton — règle uniforme, une exception
-  (le battement).** Toutes les tâches périodiques de `main.ts` — classement,
-  engagements, tournois, veilles, courrier — en portent un, y compris le
-  courrier dont le déclenchement est inoffensif. Une règle unique et lisible
-  vaut mieux qu'une liste d'exceptions. Les rappels ponctuels de 014 ne sont
-  pas concernés : une échéance ponctuelle n'est pas une passe, et la contrainte
-  du paragraphe suivant tient.
-- **Les rappels ponctuels de 014 ne sont pas concernés.** Une échéance
-  ponctuelle n'est pas une passe : un rappel J-1 envoyé à la main après
-  l'échéance est le pire cas que 018 cite pour justifier la grâce courte. Les
-  boutons ne portent que sur les tâches à cadence.
-- **Une exécution à la fois.** Le verrou `enCours` du réveil vaut pour le
-  déclenchement manuel : une passe qui dure ne se superpose ni à elle-même ni
-  à un réveil simultané (018, plafond de 015). Le bouton le partage — un clic
+## User Stories
+
+1. En tant qu'opérateur, je veux déclencher à la main une tâche périodique,
+   pour la constater pendant la mise au point sans attendre son échéance.
+2. En tant qu'opérateur, je veux que le déclenchement clôture l'échéance et
+   inscrive la suivante, pour que la tâche se retrouve dans le même état qu'après
+   un réveil automatique.
+3. En tant qu'opérateur, je veux que le rapport de la passe s'affiche
+   immédiatement après le clic, pour lire son verdict sans aller le chercher
+   ailleurs.
+4. En tant qu'opérateur, je veux un bouton pour la passe des veilles, pour que
+   celle-ci soit enfin déclenchable comme les autres.
+5. En tant qu'opérateur, je veux qu'un échec manuel ne planifie pas de réessai
+   silencieux à une heure puis quatre heures, pour ne pas être surpris par une
+   passe qui repart toute seule pendant la mise au point.
+6. En tant qu'opérateur, je veux qu'un clic pendant une passe en cours ne
+   double pas l'exécution, pour ne pas marteler un compte dont le bannissement
+   est un risque assumé (015).
+7. En tant qu'opérateur, je veux que tous les déclenchements se fassent au même
+   endroit — le tableau d'ordonnancement — plutôt que dispersés sur la page,
+   pour qu'une seule lecture me dise ce qui est lancé et ce qui ne l'est pas.
+8. En tant qu'opérateur, je veux que les anciens boutons de passe disparaissent,
+   pour qu'aucune passe ne puisse s'exécuter en dehors du planificateur.
+9. En tant qu'opérateur, je veux que l'import d'équipe enchaîne sa passe par le
+   même geste que le bouton, pour que la règle « toute passe passe par le
+   planificateur » tienne sans exception.
+10. En tant qu'opérateur, je veux que le battement n'ait pas de bouton, pour que
+    son absence constatée le lundi matin reste une information et non un mensonge
+    sur l'heure à laquelle il a tourné.
+11. En tant qu'opérateur, je veux que le courrier ait un bouton comme les
+    autres, pour pouvoir vider la boîte d'envoi à la main si besoin.
+12. En tant qu'opérateur, je veux que `sonder` reste accessible, parce que ce
+    n'est pas une tâche ordonnancée et qu'elle n'a pas sa place dans le tableau.
+13. En tant qu'opérateur, je veux qu'une tâche inconnue ou non branchée soit
+    refusée clairement, pour ne pas croire qu'une passe a tourné quand elle
+    n'existait pas.
+
+## Implementation Decisions
+
+- **Une seule méthode sur le planificateur.** L'ordonnanceur gagne
+  `executerMaintenant(tache): Promise<Passage>`, qui rejoue le passage existant
+  (`passer`/`executer`) avec `estDansLaFenetre` court-circuité : l'échéance est
+  clôturée à `faite`, la suivante inscrite, le rapport consigné sous
+  l'identifiant de la tâche par le même chemin qu'un réveil. C'est le seul
+  module qui possède à la fois l'échéance et le rapport, donc le seul endroit
+  où ce geste puisse tenir.
+- **Verrou partagé avec le réveil.** `executerMaintenant` réutilise le verrou
+  `enCours` du réveil : une passe qui dure ne se superpose ni à elle-même ni à
+  un réveil automatique simultané (018, plafond de 015). Un déclenchement
   pendant une passe en cours attend qu'elle finisse.
-- **Les trois boutons de passe disparaissent.** `classement`, `engagements` et
-  `tournois` cèdent la place à la colonne d'action du tableau d'ordonnancement,
-  et leurs routes comme leurs méthodes de `AccesAuxSources` sont retirées
-  (`relever`, `releverLesEngagements`, `releverLesTournois`). `sonder` reste :
-  ce n'est pas une tâche ordonnancée et n'a pas de bouton dans le tableau.
-- **L'import d'équipe passe par la même geste.** La passe que `importerLEquipe`
-  enchaîne après un import réussi (028) appelle désormais
-  `executerMaintenant` sur la tâche de classement, pour qu'aucune passe ne
-  s'exécute en dehors du planificateur. L'import reste sur `/sources` et son
-  écran ne change pas de sens — il dit seulement « importé, et la passe a
-  tourné ».
-- **Une exécution manuelle est un coup unique, sans réessai.** Une passe
-  déclenchée à la main qui finit en `echec` ne planifie pas les réessais à une
-  et quatre heures du réveil automatique : elle clôt son échéance et inscrit la
-  suivante. Pendant la mise au point on relance à la main, et un réessai
-  silencieux une heure plus tard serait une surprise. Le rapport rendu montre
-  l'échec tout de suite.
-- **Le bouton attend la passe et rend son rapport.** Comme les boutons actuels,
-  il tient la requête ouverte le temps de la passe — qui peut durer, le proxy
-  coupant à 30 s étant assumé comme aujourd'hui — et réaffiche l'écran avec
-  `rapport-de-passe`. C'est au déclenchement manuel qu'on veut le résultat
-  maintenant, pas à la prochaine occurrence.
+- **Coup unique, sans réessai.** Une passe manuelle qui finit en `echec` ne
+  planifie pas les réessais à une et quatre heures du réveil automatique : elle
+  clôt l'échéance et inscrit la suivante. Le réessai est propre au réveil ; au
+  déclenchement manuel, le rapport montre l'échec tout de suite et on relance à
+  la main.
+- **Route.** `POST /sources/ordonnancement/:tache/executer` branche la méthode.
+  Elle attend la fin de la passe (le proxy coupant à 30 s est assumé, comme pour
+  les boutons actuels) et réaffiche `/sources` avec le rapport rendu par la vue
+  `rapport-de-passe`. L'identifiant de tâche (`acquisition:myffbad`, etc.) passe
+  dans le segment du chemin.
+- **Cible invalide.** Une tâche inconnue répond 404. Le battement, une tâche
+  inactive et une cadence ponctuelle ne sont pas rendus comme boutons ; appelés
+  directement à la route, ils sont refusés (400) plutôt qu'exécutés.
+- **Port `AccesAuxSources`.** Il gagne
+  `executerMaintenant(tache): Promise<RapportArchive>` et perd `relever`,
+  `releverLesEngagements` et `releverLesTournois`. Les routes `/sources/classement`,
+  `/sources/engagements` et `/sources/tournois` sont retirées. `sonder` reste.
+- **L'import d'équipe délègue.** La passe que `importerLEquipe` enchaîne après
+  un import réussi (028) appelle désormais `executerMaintenant` sur la tâche de
+  classement, au lieu d'appeler la passe directement. L'import reste sur
+  `/sources` et son écran ne change pas de sens : il dit « importé, et la passe
+  a tourné ».
+- **Tableau d'ordonnancement.** Il gagne une colonne d'action « Lancer », un
+  bouton par tâche active à cadence — règle uniforme, une seule exception : le
+  battement. Les cadences ponctuelles (rappels de 014) n'en portent pas, car ce
+  ne sont pas des passes.
+- **Rendu du rapport.** Un emplacement générique rend le rapport du
+  déclenchement, remplaçant les emplacements dédiés `passe`/`engagements`/
+  `tournois` de la vue `sources`. Son emplacement exact reste à trancher
+  (voir ci-dessous).
+- **Pas de changement de schéma.** Échéances et rapports existent déjà (017,
+  019) ; aucune table nouvelle ni colonne nouvelle.
 
-## Questions
+## Testing Decisions
 
-- ~~La route attend-elle la fin de la passe pour répondre, ou dépose-t-elle
-  l'échéance et rend la main ?~~ Elle attend, et rend le rapport — le modèle
-  des boutons actuels, et le moment où on veut le verdict.
-- ~~L'échéance en cours d'exécution par le planificateur au moment du clic —
-  `enCours` la protège déjà, mais le bouton le dit-il, ou échoue-t-il
-  silencieusement ?~~ Le bouton partage le verrou et attend que la passe en
-  cours finisse ; il ne se superpose jamais et ne joue pas en double.
-- ~~Les boutons de passe actuels (Sonder, classement, engagements, tournois)
-  disparaissent-ils au profit de celui-ci, ou coexistent-ils ?~~ Sonder reste ;
-  les trois autres disparaissent, routes et méthodes comprises. Coexister
-  perpétuerait le demi-câblage que la spec retire. La passe enchaînée par
-  l'import suit la même décision.
-- ~~L'écran affiche-t-il le rapport rendu par le déclenchement, comme le font
-  les boutons actuels, ou seulement la nouvelle prochaine échéance ?~~ Il
-  affiche le rapport, parce que c'est exactement ce qu'on veut voir d'un
-  déclenchement manuel.
-- ~~Une passe manuelle qui échoue entre-t-elle dans le cycle de réessai à une
-  et quatre heures ?~~ Non : un coup unique, sans réessai automatique. Le
-  rapport montre l'échec, et on relance à la main.
+- **Ce qui fait un bon test.** On ne teste que le comportement externe : un
+  déclenchement manuel laisse la tâche dans le même état qu'un réveil —
+  échéance clôturée, suivante inscrite, rapport consigné sous l'identifiant —
+  sans inspecter les entrailles de l'ordonnanceur.
+- **Modules testés.**
+  - `Ordonnanceur.executerMaintenant`, sur le joint existant
+    `ordonnancement.test.ts` (doublure en mémoire + `tacheTemoin`).
+  - La route, sur le joint existant `routeur-sources.test.ts` (doublure
+    `AccesAuxSources`).
+- **Prior art.** `ordonnancement.test.ts` teste déjà `reveiller`, `regler` et le
+  rattrapage après arrêt sur le même joint ; `routeur-sources.test.ts` teste
+  déjà `/sources/classement` et `/sources/engagements` sur la même doublure —
+  ce sont exactement les coutures à réutiliser, aucune nouvelle à créer.
+- **Cas couverts.**
+  - Un déclenchement hors fenêtre de grâce clôt l'échéance et inscrit la
+    suivante (la grâce est court-circuitée).
+  - Le rapport est consigné sous l'identifiant de la tâche, pas en double.
+  - Un échec manuel est un coup unique : pas de `reportee` à une heure.
+  - Une tâche inconnue est refusée/consignée `inconnue`, pas exécutée.
+  - Deux déclenchements simultanés partagent le verrou : une seule exécution.
+  - La route lie la tâche du chemin et réaffiche l'écran avec le rapport.
+  - L'import enchaîne par le même geste (la passe tourne via
+    `executerMaintenant`, pas en direct).
+  - Le battement n'a pas de bouton dans le tableau.
 
-## Notes
+## Out of Scope
+
+- **Le battement.** Pas de bouton — son silence est l'information que 019
+  préserve ; le déclencher à la main mentirait sur l'heure à laquelle il a
+  constaté ce qu'il annonce.
+- **Les rappels ponctuels de 014.** Une échéance ponctuelle n'est pas une
+  passe : un rappel J-1 envoyé à la main après l'échéance est le pire cas que
+  018 cite pour justifier la grâce courte.
+- **Un formulaire « tout lancer » en série.** Les tâches sont ordonnancées
+  séparément (018) ; un déclenchement en série ne se justifierait que pour le
+  battement, qui est exclu.
+- **Un mode asynchrone.** Déposer l'échéance et rendre la main immédiatement :
+  écarté — on attend la passe et on rend son rapport, parce que c'est au
+  déclenchement manuel qu'on veut le verdict maintenant.
+- **Le cycle de réessai sur déclenchement manuel.** Coup unique, par décision.
+- **Le remplacement de `sonder`.** Ce n'est pas une tâche ordonnancée ; elle
+  reste là, séparément.
+- **Le redémarrage automatique de l'application.** C'est 020 ; hors sujet ici.
+
+## Further Notes
 
 Prolonge [[018__socle__ordonnancement.tech]] (le planificateur) et
 [[019__socle__robustesse-du-scraping.tech]] (le rapport d'exécution), et range
-sous un même geste ce que les boutons de `/sources` font aujourd'hui chacun à
-sa manière.
-
-**Un seul joint de test, au niveau du planificateur.** `executerMaintenant` vit
-dans `creerOrdonnanceur`, la seule instance qui possède `passer`/`executer`,
-l'échéance et le rapport : c'est le joint le plus haut et le seul nouveau.
-`AccesAuxSources` n'expose qu'un appel, et la route ne fait que le brancher.
-Les tests portent là :
-
-- `ordonnancement.test.ts` — sur le joint existant, avec la même doublure en
-  mémoire et `tacheTemoin` : une exécution manuelle clôt l'échéance et inscrit
-  la suivante même hors fenêtre de grâce ; elle consigne sous l'identifiant de
-  la tâche ; un échec manuel est un coup unique sans réessai ; une tâche non
-  branchée est refusée/consignée `inconnue` ; deux déclenchements simultanés
-  partagent le verrou d'une seule exécution.
-- `routeur-sources.test.ts` — sur le joint existant de la doublure
-  `AccesAuxSources` : la route lie la tâche du chemin et réaffiche l'écran
-  avec le rapport rendu ; et l'import enchaîne désormais par la même geste.
-
-Le tableau d'ordonnancement est l'endroit naturel : c'est déjà là qu'on lit
-cadence, grâce et dernière issue, donc là que se lit aussi « je peux la
-lancer ». La colonne d'action ne porte un bouton que pour les tâches actives à
-cadence (toute tâche du tableau sauf le battement, et sauf une cadence
-ponctuelle — aucune n'est en base aujourd'hui).
+sous un même geste ce que les boutons de `/sources` faisaient aujourd'hui chacun
+à sa manière. Le tableau d'ordonnancement est l'endroit naturel : c'est déjà là
+qu'on lit cadence, grâce et dernière issue, donc là que se lit aussi « je peux
+la lancer ».
 
 Sans dépendance bloquante : le planificateur existe, le port `AccesAuxSources`
-expose déjà `ordonnancement` et `reglerLaTache`, il s'agit d'ajouter un geste
-de la même famille.
+expose déjà `ordonnancement` et `reglerLaTache`, il s'agit d'ajouter un geste de
+la même famille.
