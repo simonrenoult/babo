@@ -104,7 +104,7 @@ describe("l'interface du socle", () => {
 
   it("propose dans sa navigation les modules qu'on lui a montés", async () => {
     const reponse = await interroger("/");
-    assert.match(reponse.corps, /href="\/temoin">\s*Module témoin/);
+    assert.match(reponse.corps, /href="\/temoin"[^>]*>\s*Module témoin/);
   });
 
   it("monte le routeur d'un module sur son chemin", async () => {

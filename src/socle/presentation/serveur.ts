@@ -1,6 +1,6 @@
 import express, { type Express, type Router } from "express";
 import type { Configuration } from "../core/configuration.ts";
-import { routeurSources, type AccesAuxSources } from "./routeur-sources.ts";
+import { CHEMIN_DES_PARAMETRES, routeurSources, type AccesAuxSources } from "./routeur-sources.ts";
 import { garde, routeurConnexion } from "./routeur-connexion.ts";
 import type { Authentification } from "../core/authentification.ts";
 
@@ -55,8 +55,11 @@ export function creerApplication(options: {
 
   // Usage strictement personnel : le `noindex` ne ferme rien par lui-même
   // (c'est le rôle de 021), mais il évite l'indexation (spec 015).
-  application.use((_requete, reponse, suite) => {
+  application.use((requete, reponse, suite) => {
     reponse.setHeader("X-Robots-Tag", "noindex, nofollow");
+    // Le menu marque l'entrée où l'on se trouve : il lit le chemin ici plutôt
+    // que chaque routeur ne le lui passe.
+    reponse.locals["chemin"] = requete.path;
     suite();
   });
 
@@ -80,10 +83,13 @@ export function creerApplication(options: {
     reponse.render("accueil", { titre: "Accueil", socle: etatDuSocle() });
   });
 
-  // L'écran des sources est du socle, pas d'une feature : c'est la même
+  // L'écran des paramètres est du socle, pas d'une feature : c'est la même
   // session qui sert le classement de `mon-profil` et les tournois de `veille`
   // (spec 015). Il est monté avant les modules, qui n'ont rien à en savoir.
-  application.use("/sources", routeurSources(sources));
+  application.use(CHEMIN_DES_PARAMETRES, routeurSources(sources));
+  // L'ancienne adresse, que citent les mails d'alerte déjà partis et les
+  // specs closes : elle mène toujours quelque part.
+  application.get("/sources", (_requete, reponse) => reponse.redirect(CHEMIN_DES_PARAMETRES));
 
   for (const module of modules) {
     application.use(module.chemin, module.routeur);

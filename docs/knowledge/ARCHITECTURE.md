@@ -649,7 +649,7 @@ devenu aveugle ne se voit pas.
 | le battement hebdomadaire | `socle/core/battement.ts` |
 | la péremption vue des pages métier | `socle/core/fraicheur.ts` |
 | la mention à l'écran | `socle/presentation/vues/peremption.ejs` |
-| l'historique et la section « Exécutions » | `presentation/vues/sources.ejs` |
+| l'historique et la section « Exécutions » | `presentation/vues/parametres/logs.ejs` |
 | le rejeu d'une capture | `src/capture.ts`, `npm run capture` |
 
 **L'alerte est un décorateur, pas un appel.** `enAlertant` enveloppe

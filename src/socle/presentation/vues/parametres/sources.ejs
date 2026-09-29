@@ -1,0 +1,26 @@
+<h2>Sources</h2>
+<p>
+  Babo tire ses données de deux sites, chacun avec sa propre session : myffbad
+  pour le classement et les matchs, badnet pour les tournois (spec 015). Une
+  session tombée arrête le scraper de sa source, et elle seule.
+</p>
+
+<table>
+  <tr>
+    <th>Source</th><th>Session</th><th>Expire</th>
+    <th>Dernière acquisition</th><th>Issue</th>
+  </tr>
+  <% for (const etat of etats) { %>
+    <tr>
+      <td><%= etat.source %></td>
+      <td><%= { absente: "absente", expiree: "expirée", valide: "valide" }[etat.session] %></td>
+      <td><%= etat.expireLe ? etat.expireLe.toLocaleDateString("fr-FR") : "—" %></td>
+      <td>
+        <%= etat.derniereAcquisition
+              ? etat.derniereAcquisition.toLocaleString("fr-FR")
+              : "jamais" %>
+      </td>
+      <td><%= etat.derniereIssue ?? "—" %></td>
+    </tr>
+  <% } %>
+</table>

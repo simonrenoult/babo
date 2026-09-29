@@ -1,0 +1,80 @@
+<h2>Importer l'équipe</h2>
+<p>
+  La liste des membres de l'équipe, telle que <a href="/capitanat">Capitanat</a>
+  l'affiche (spec 005). Trois colonnes,
+  <code>licence;sexe;telephone</code>, l'en-tête est obligatoire, le séparateur
+  est le point-virgule seul et le fichier doit être en <strong>UTF-8</strong> —
+  « CSV UTF-8 » dans le tableur. Le sexe est <code>F</code> ou <code>M</code> ;
+  le téléphone est gardé tel qu'il est écrit. Ma propre licence y figure comme
+  les autres.
+</p>
+<p>
+  <strong>L'import remplace la liste entière</strong> : un coéquipier absent du
+  fichier est supprimé, avec ses relevés de classement. Et c'est tout ou rien —
+  une seule ligne fautive et rien n'est écrit, chaque anomalie étant rendue avec
+  son numéro de ligne. Le fichier n'est pas déposé sur le serveur : seul son
+  contenu est envoyé.
+</p>
+<p>
+  Un import réussi enchaîne aussitôt une passe : on dépose huit lignes, on lit
+  huit noms. C'est ce qui rend visible une licence bien formée mais erronée —
+  elle rapporte le nom de quelqu'un d'autre, et seul le nom affiché le dit.
+</p>
+
+<form id="import-equipe">
+  <p>
+    <label for="fichier-equipe">Fichier CSV</label><br>
+    <input id="fichier-equipe" type="file" accept=".csv,text/csv" required>
+  </p>
+  <button type="submit">Importer l'équipe</button>
+</form>
+
+<script>
+  // Dix lignes de JS plutôt que `multer` : Express ne lit pas le multipart, et
+  // le lire ici évite qu'un fichier de coordonnées atterrisse sur le disque.
+  // `file.text()` décode en UTF-8 sans deviner : un fichier Latin-1 arrive
+  // avec ses caractères de remplacement, que le serveur refuse en le disant.
+  document.getElementById("import-equipe").addEventListener("submit", async (evenement) => {
+    evenement.preventDefault();
+    const fichier = document.getElementById("fichier-equipe").files[0];
+    if (fichier === undefined) return;
+    const reponse = await fetch("/parametres/equipe", {
+      method: "POST",
+      headers: { "content-type": "text/csv; charset=utf-8" },
+      body: await fichier.text(),
+    });
+    document.open();
+    document.write(await reponse.text());
+    document.close();
+  });
+</script>
+
+<% if (equipe) { %>
+  <% if (equipe.issue === "importee") { %>
+    <p class="etat">
+      Équipe remplacée : <strong><%= equipe.membres %></strong>
+      membre<%= equipe.membres > 1 ? "s" : "" %> importé<%= equipe.membres > 1 ? "s" : "" %>.
+      La liste est sur <a href="/capitanat">Capitanat</a>.
+    </p>
+
+    <%# La passe suit l'import (028) : c'est ce qui rend une licence bien %>
+    <%# formée mais erronée visible tout de suite, par le nom affiché. %>
+    <% if (equipe.releve) { %>
+      <%- include("../rapport-de-passe", { passe: equipe.releve }) %>
+    <% } %>
+  <% } else { %>
+    <p class="etat">
+      <strong>Import refusé, rien n'a été écrit.</strong> L'équipe en base est
+      inchangée.
+    </p>
+    <table>
+      <tr><th>Ligne</th><th>Raison</th></tr>
+      <% for (const motif of equipe.motifs) { %>
+        <tr>
+          <td><%= motif.ligne ?? "—" %></td>
+          <td><%= motif.raison %></td>
+        </tr>
+      <% } %>
+    </table>
+  <% } %>
+<% } %>

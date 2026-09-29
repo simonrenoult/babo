@@ -1,0 +1,95 @@
+<h2>Enregistrer une session</h2>
+<p>
+  Babo ne renouvelle aucune session : il garde celle que tu lui donnes. Se
+  connecter dans un navigateur, y copier le cookie de session, le coller ici.
+  Pour badnet c'est incontournable — une 2FA garde la porte ; pour myffbad,
+  qui n'en a pas, c'est provisoire (spec 015). Babo ne demande jamais le mot de passe fédéral, et le jeton
+  est écrit dans la base chiffrée, jamais dans un journal — c'est pourquoi le
+  champ reste vide même quand une session existe : Babo ne réaffiche jamais un
+  jeton qu'on lui a confié. Ce qu'il en dit se lit juste au-dessus du champ.
+  L'échéance affichée est celle que porte le jeton, quand il la porte.
+</p>
+
+<% if (connexion) { %>
+  <p class="etat">
+    <% if (connexion.issue === "ouverte") { %>
+      <strong>Session <%= connexion.source %> ouverte.</strong> Aucun code n'a
+      été demandé — la double authentification ne s'est pas déclenchée. Son
+      échéance se lit ci-dessous, sous le nom de la source ;
+      faute d'une date portée par le jeton, elle est devinée à un mois, et
+      c'est la date d'obtention qui dira la vraie durée.
+    <% } else { %>
+      Un code de vérification a été demandé à
+      <strong><%= connexion.source %></strong>. Il arrive par mail : le
+      recopier dans le champ ci-dessous.
+    <% } %>
+  </p>
+<% } %>
+
+<% for (const etat of etats) { %>
+  <h3><%= etat.source %></h3>
+
+  <p class="etat">
+    <% if (etat.session === "absente") { %>
+      Aucune session enregistrée pour cette source.
+    <% } else if (etat.session === "expiree") { %>
+      Session enregistrée le <%= etat.enregistreeLe.toLocaleString("fr-FR") %>,
+      <strong>expirée</strong> depuis le <%= etat.expireLe.toLocaleString("fr-FR") %>.
+      En enregistrer une nouvelle.
+    <% } else { %>
+      Session enregistrée le <%= etat.enregistreeLe.toLocaleString("fr-FR") %>,
+      valide jusqu'au <%= etat.expireLe.toLocaleString("fr-FR") %>
+      (<%= etat.joursRestants %> jour<%= etat.joursRestants > 1 ? "s" : "" %>).
+    <% } %>
+  </p>
+
+  <%
+    // Un code attendu pour cette source : l'écran bascule sur le second temps.
+    // C'est cette bascule qui distingue « le code n'est pas encore parti » de
+    // « le code est faux » (spec 027).
+    const attendu = codesAttendus.find((attente) => attente.source === etat.source);
+  %>
+
+  <% if (attendu) { %>
+    <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/code">
+      <p class="etat">
+        <strong>Code demandé</strong> le
+        <%= attendu.demandeeLe.toLocaleTimeString("fr-FR") %>. badnet l'envoie
+        par mail. L'attente tombe au bout de dix minutes : passé ce délai, il
+        faut en redemander un plutôt que de saisir un code périmé.
+      </p>
+      <p>
+        <label for="code-<%= etat.source %>">Code reçu par mail</label>
+        <input id="code-<%= etat.source %>" name="code" size="12" autocomplete="one-time-code" required>
+        <button type="submit">Valider le code</button>
+      </p>
+    </form>
+  <% } else if (etat.autonome) { %>
+    <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/connexion">
+      <p>
+        Cette source sait aller chercher sa session : son mot de passe est
+        configuré. myffbad aboutit d'un coup ; badnet a une double
+        authentification et demandera un code reçu par mail (specs 015 et 027).
+      </p>
+      <button type="submit">Se connecter maintenant</button>
+    </form>
+  <% } %>
+
+  <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/jeton">
+    <p>
+      <label for="valeur-<%= etat.source %>">
+        <%= etat.autonome ? "Ou coller un cookie à la main" :
+            etat.session === "absente" ? "Cookie de session" : "Remplacer par" %>
+      </label><br>
+      <input id="valeur-<%= etat.source %>" name="valeur" size="60"
+             placeholder="nom=valeur; autre=valeur" required>
+    </p>
+    <button type="submit">Enregistrer la session</button>
+  </form>
+
+  <% if (etat.session !== "absente") { %>
+    <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/oubli">
+      <button type="submit">Oublier cette session</button>
+    </form>
+  <% } %>
+<% } %>

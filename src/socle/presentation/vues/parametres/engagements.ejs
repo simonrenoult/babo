@@ -1,0 +1,25 @@
+<h2>Mes engagements</h2>
+<p>
+  Mes inscriptions de tournoi, relevées sur badnet sous session (spec 027) :
+  tournoi, date, tableaux engagés et partenaire. Le planificateur lance cette
+  passe chaque matin à 5 h ; la relancer se fait sur le tableau
+  d'<a href="/parametres/scrapping/ordonnancement">ordonnancement</a>, colonne
+  <strong>Lancer</strong> (spec 037).
+</p>
+<p>
+  <strong>Elle coûte cher en requêtes</strong>, et c'est assumé : badnet sert
+  toutes ses pages en coquille, donc deux requêtes pour la liste et trois par
+  fiche, aucun identifiant d'action n'étant écrit en dur. C'est ce qui évite
+  qu'un redéploiement de badnet fasse tomber la passe sans prévenir.
+</p>
+<p class="etat">
+  <% if (engagementsEnBase === 0) { %>
+    Aucun engagement en base. En intersaison c'est normal : la passe le consigne
+    comme un succès à zéro plutôt que comme une extraction vide, parce qu'on ne
+    s'engage pas toute l'année (spec 019).
+  <% } else { %>
+    <strong><%= engagementsEnBase %></strong> engagement<%= engagementsEnBase > 1 ? "s" : "" %>
+    en base. La liste se lit sur <a href="/mon-profil">mon profil</a> : cet
+    écran porte l'exploitation, la feature porte la donnée (spec 002).
+  <% } %>
+</p>

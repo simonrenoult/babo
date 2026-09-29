@@ -1,0 +1,48 @@
+<h2>Exécutions</h2>
+<p>
+  Toute exécution automatique laisse une trace, <strong>succès compris</strong>
+  (spec 019). C'est la seule façon de distinguer une semaine sans incident d'un
+  planificateur arrêté — un mail ne part qu'à l'entrée en panne, donc le silence
+  du courrier ne prouve rien à lui seul.
+</p>
+<p>
+  L'issue <code>vide</code> n'est pas un demi-succès : c'est une panne, celle
+  que 019 vise en premier. La page a répondu, le parseur s'est exécuté sans rien
+  lever, et il n'a rien extrait — une classe CSS a changé. Une exception se
+  voit ; un parseur devenu aveugle ne se voit pas.
+</p>
+
+<% if (rapports.length === 0) { %>
+  <p class="etat">Aucune exécution consignée.</p>
+<% } else { %>
+  <table>
+    <tr>
+      <th>Démarrée</th><th>Tâche</th><th>Issue</th><th>Extraits</th>
+      <th>Durée</th><th>Détail</th>
+    </tr>
+    <% for (const rapport of rapports) { %>
+      <tr>
+        <td><%= rapport.demarreLe.toLocaleString("fr-FR") %></td>
+        <td><%= rapport.tache %></td>
+        <td>
+          <% if (rapport.issue === "succes") { %>
+            succès
+          <% } else { %>
+            <strong><%= rapport.issue === "vide" ? "extraction vide" : "échec" %></strong>
+          <% } %>
+        </td>
+        <td><%= rapport.volumeExtrait ?? "—" %></td>
+        <td>
+          <%= Math.round((rapport.termineLe.getTime() - rapport.demarreLe.getTime()) / 1000) %> s
+        </td>
+        <td><%= rapport.detail ?? "" %></td>
+      </tr>
+    <% } %>
+  </table>
+  <p class="etat">
+    Les cinquante dernières. Rien n'est purgé : une ligne de rapport pèse
+    quelques dizaines d'octets, et le battement hebdomadaire annonce la taille
+    de la base — si la croissance devient un problème, la mesure le dira avant
+    que l'estimation ne le devine.
+  </p>
+<% } %>

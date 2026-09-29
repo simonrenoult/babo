@@ -411,7 +411,7 @@ describe("l'application assemblée", () => {
     // La frontière de 030 : `/sources` porte l'exploitation, la feature porte
     // la donnée. Deux écrans qui affichent la même table en affichent deux
     // versions le jour où l'une bouge.
-    const corps = await (await visiter(`/sources`)).text();
+    const corps = await (await visiter(`/parametres/engagements`)).text();
 
     assert.match(corps, /3<\/strong>\s*engagements/);
     assert.doesNotMatch(corps, /VILLENEUVE/);
@@ -503,7 +503,7 @@ describe("l'application assemblée", () => {
 
   it("importe un CSV déposé depuis les sources, et l'affiche sur le capitanat", async () => {
     // La chaîne entière : téléversement en `text/csv`, parseur, base, page.
-    const reponse = await visiter(`/sources/equipe`, {
+    const reponse = await visiter(`/parametres/equipe`, {
       method: "POST",
       headers: { "content-type": "text/csv; charset=utf-8" },
       body: "licence;sexe;telephone\n07194591;M;06 12 34 56 78\n02345678;F;0612345679\n",
@@ -687,12 +687,13 @@ describe("l'application assemblée", () => {
     });
     await new Promise((resoudre) => setImmediate(resoudre));
 
-    const corps = await (await visiter(`/sources`)).text();
+    const courrierVu = await (await visiter(`/parametres/scrapping/emails`)).text();
+    assert.match(courrierVu, /\[Babo\] Panne — acquisition:badnet/);
 
-    assert.match(corps, /\[Babo\] Panne — acquisition:badnet/);
-    assert.match(corps, /Exécutions/, "et l'historique est là");
-    assert.match(corps, /extraction vide/, "nommée pour ce qu'elle est, pas « succès »");
-    assert.match(corps, /0 tournoi extrait/);
+    const historique = await (await visiter(`/parametres/scrapping/logs`)).text();
+    assert.match(historique, /Exécutions/, "et l'historique est là");
+    assert.match(historique, /extraction vide/, "nommée pour ce qu'elle est, pas « succès »");
+    assert.match(historique, /0 tournoi extrait/);
   });
 
   it("n'alerte pas une deuxième fois pour la même panne qui dure", async () => {
@@ -729,7 +730,7 @@ describe("l'application assemblée", () => {
   });
 
   it("refuse l'import entier sur une ligne fautive, sans toucher à l'équipe en base", async () => {
-    const reponse = await visiter(`/sources/equipe`, {
+    const reponse = await visiter(`/parametres/equipe`, {
       method: "POST",
       headers: { "content-type": "text/csv; charset=utf-8" },
       body: "licence;sexe;telephone\n07194591;M;0612345678\n0719;M;0612345679\n",
@@ -772,7 +773,7 @@ describe("l'application assemblée", () => {
       // ajouté cinq d'un coup, celle-ci les représente.
       "/capitanat/tableau/SH",
       "/veille",
-      "/sources",
+      "/parametres/scrapping/sessions",
     ]) {
       it(`refuse ${chemin} sans session`, async () => {
         const reponse = await sansCookie(chemin);
@@ -785,7 +786,7 @@ describe("l'application assemblée", () => {
     it("refuse un formulaire posté sans session, sans le rejouer après connexion", async () => {
       // Un 302 renverrait vers la connexion et perdrait le corps en route.
       // Mieux vaut le dire : 401, et c'est le rechargement qui redemandera.
-      const reponse = await sansCookie("/sources/equipe", {
+      const reponse = await sansCookie("/parametres/equipe", {
         method: "POST",
         headers: { "content-type": "text/csv; charset=utf-8" },
         body: "licence;sexe;telephone\n",
@@ -856,7 +857,7 @@ describe("l'application assemblée", () => {
           body: new URLSearchParams({ licence: "07194591", motDePasse: MOT_DE_PASSE, suite }),
         });
 
-      assert.equal((await entrer("/sources")).headers.get("location"), "/sources");
+      assert.equal((await entrer("/parametres")).headers.get("location"), "/parametres");
       // `//ailleurs.test` est une URL absolue pour un navigateur : la suivre
       // ferait de la page de connexion un tremplin vers n'importe quel site.
       assert.equal((await entrer("//ailleurs.test")).headers.get("location"), "/");

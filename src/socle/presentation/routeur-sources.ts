@@ -127,6 +127,68 @@ export type MotifDeRefus = {
   readonly raison: string;
 };
 
+/** Où l'écran des paramètres est monté — `serveur.ts` le lit ici. */
+export const CHEMIN_DES_PARAMETRES = "/parametres";
+
+/**
+ * Les onglets de l'écran des paramètres, en deux niveaux, chacun à son chemin.
+ *
+ * Chaque geste est posté sous le chemin de son onglet : les sessions ont leur
+ * préfixe, donc `/:source/jeton` et consorts ne capturent plus un segment libre
+ * au premier niveau (033).
+ */
+const GROUPES = [
+  {
+    id: "scrapping",
+    intitule: "Scrapping",
+    onglets: [
+      { id: "sessions", intitule: "Sessions de connexion", chemin: "/scrapping/sessions" },
+      { id: "sondes", intitule: "Sondes", chemin: "/scrapping/sondes" },
+      { id: "emails", intitule: "Emails", chemin: "/scrapping/emails" },
+      { id: "logs", intitule: "Logs d'exécution", chemin: "/scrapping/logs" },
+      { id: "deploiement", intitule: "Déploiement", chemin: "/scrapping/deploiement" },
+      { id: "ordonnancement", intitule: "Ordonnancement", chemin: "/scrapping/ordonnancement" },
+      { id: "sources", intitule: "Sources", chemin: "/scrapping/sources" },
+    ],
+  },
+  {
+    id: "equipe",
+    intitule: "Import équipe",
+    onglets: [{ id: "equipe", intitule: "Import équipe", chemin: "/equipe" }],
+  },
+  {
+    id: "engagements",
+    intitule: "Engagements",
+    onglets: [{ id: "engagements", intitule: "Engagements", chemin: "/engagements" }],
+  },
+] as const;
+
+type Onglet = (typeof GROUPES)[number]["onglets"][number]["id"];
+
+const ONGLETS: readonly { readonly id: Onglet; readonly intitule: string; readonly chemin: string }[] =
+  GROUPES.flatMap((groupe): readonly { id: Onglet; intitule: string; chemin: string }[] => groupe.onglets);
+
+/** Le chemin absolu d'un onglet, pour les liens de la vue et les redirections. */
+function cheminDe(onglet: Onglet): string {
+  const trouve = ONGLETS.find((sous) => sous.id === onglet);
+  return `${CHEMIN_DES_PARAMETRES}${trouve?.chemin ?? ""}`;
+}
+
+/** Les groupes tels que la vue les lit : chemins absolus. */
+const GROUPES_AFFICHES = GROUPES.map((groupe) => ({
+  ...groupe,
+  onglets: groupe.onglets.map((sous) => ({ ...sous, chemin: cheminDe(sous.id) })),
+}));
+
+/** Le résultat d'un geste, rendu sur l'onglet qui l'a déclenché. */
+type ResultatsDeGeste = {
+  readonly sonde?: readonly ResultatDeSonde[];
+  readonly declenchement?: RapportArchive | null;
+  readonly equipe?: ResultatDImport;
+  readonly mailDeTest?: MessageDepose;
+  readonly connexion?: { readonly source: Source; readonly issue: string };
+};
+
 /**
  * L'écran de réauthentification — spec 015.
  *
@@ -142,44 +204,55 @@ export type MotifDeRefus = {
 export function routeurSources(acces: AccesAuxSources): Router {
   const routeur = Router();
 
-  const ecran = (
-    reponse: Response,
-    vue: {
-      sonde?: readonly ResultatDeSonde[] | null;
-      declenchement?: RapportArchive | null;
-      equipe?: ResultatDImport | null;
-      mailDeTest?: MessageDepose | null;
-      connexion?: { readonly source: Source; readonly issue: string } | null;
-    },
-  ): void => {
-    reponse.render("sources", {
-      titre: "Sources",
+  /**
+   * Chaque onglet ne lit que ce qu'il affiche (033) : un réglage de cadence
+   * n'a pas à interroger le courrier, ni une sonde les déploiements.
+   */
+  const lectures: Record<Onglet, (vue: ResultatsDeGeste) => Record<string, unknown>> = {
+    sessions: (vue) => ({
       etats: acces.etats(),
-      deploiements: acces.deploiements(),
+      codesAttendus: acces.codesAttendus(),
+      connexion: vue.connexion ?? null,
+    }),
+    sondes: (vue) => ({ sonde: vue.sonde ?? null }),
+    // Relu après le geste, jamais avant : un mail de test déposé doit
+    // apparaître dans la file du même écran que le bouton qui l'a déposé.
+    emails: (vue) => ({ courrier: acces.courrier(), mailDeTest: vue.mailDeTest ?? null }),
+    logs: () => ({ rapports: acces.rapports() }),
+    deploiement: () => ({ deploiements: acces.deploiements() }),
+    ordonnancement: (vue) => ({
       taches: acces.ordonnancement(),
-      rapports: acces.rapports(),
       // Le battement ne porte pas de bouton : passé au tableau pour que la
       // vue ne reçoive pas la règle en dur (spec 037).
       battement: TACHE_BATTEMENT,
-      // Relu après le geste, jamais avant : un mail de test déposé doit
-      // apparaître dans la file du même écran que le bouton qui l'a déposé.
-      courrier: acces.courrier(),
-      sonde: vue.sonde ?? null,
       declenchement: vue.declenchement ?? null,
-      equipe: vue.equipe ?? null,
-      mailDeTest: vue.mailDeTest ?? null,
-      engagementsEnBase: acces.engagements(),
-      connexion: vue.connexion ?? null,
-      codesAttendus: acces.codesAttendus(),
+    }),
+    sources: () => ({ etats: acces.etats() }),
+    equipe: (vue) => ({ equipe: vue.equipe ?? null }),
+    engagements: () => ({ engagementsEnBase: acces.engagements() }),
+  };
+
+  const ecran = (reponse: Response, onglet: Onglet, vue: ResultatsDeGeste = {}): void => {
+    reponse.render("parametres", {
+      titre: "Paramètres",
+      groupes: GROUPES_AFFICHES,
+      groupeCourant: GROUPES_AFFICHES.find((groupe) => groupe.onglets.some((sous) => sous.id === onglet)),
+      onglet,
+      ...lectures[onglet](vue),
     });
   };
 
-  routeur.get("/", (_requete, reponse) => ecran(reponse, {}));
+  // La racine et le groupe ouvrent sur leur premier onglet ; un chemin qui
+  // n'est pas un onglet tombe sur la 404 commune.
+  routeur.get(["/", "/scrapping"], (_requete, reponse) => reponse.redirect(cheminDe("sessions")));
+  for (const sous of ONGLETS) {
+    routeur.get(sous.chemin, (_requete, reponse) => ecran(reponse, sous.id));
+  }
 
-  routeur.post("/sonde", (_requete, reponse, suite) => {
+  routeur.post("/scrapping/sondes", (_requete, reponse, suite) => {
     acces
       .sonder()
-      .then((sonde) => ecran(reponse, { sonde }))
+      .then((sonde) => ecran(reponse, "sondes", { sonde }))
       .catch(suite);
   });
 
@@ -190,14 +263,14 @@ export function routeurSources(acces: AccesAuxSources): Router {
    * le SMTP est configuré. L'écran rend le message tel qu'il est ressorti de la
    * file, donc son état dit ce qui s'est réellement produit.
    */
-  routeur.post("/courrier", (_requete, reponse, suite) => {
+  routeur.post("/scrapping/emails", (_requete, reponse, suite) => {
     acces
       .envoyerUnMailDeTest()
-      .then((mailDeTest) => ecran(reponse, { mailDeTest }))
+      .then((mailDeTest) => ecran(reponse, "emails", { mailDeTest }))
       .catch(suite);
   });
 
-  routeur.post("/ordonnancement/:tache/executer", (_requete, reponse, suite) => {
+  routeur.post("/scrapping/ordonnancement/:tache/executer", (_requete, reponse, suite) => {
     const tache = _requete.params.tache;
 
     // La cible se juge sur le tableau d'ordonnancement, la seule vue que le
@@ -228,7 +301,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
 
     acces
       .executerMaintenant(tache)
-      .then((declenchement) => ecran(reponse, { declenchement }))
+      .then((declenchement) => ecran(reponse, "ordonnancement", { declenchement }))
       .catch(suite);
   });
 
@@ -250,7 +323,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
       .then((resultat) => {
         // 400 sur un refus : l'écran le dit, et le journal du proxy aussi.
         reponse.status(resultat.issue === "refusee" ? 400 : 200);
-        ecran(reponse, { equipe: resultat });
+        ecran(reponse, "equipe", { equipe: resultat });
       })
       .catch(suite);
   });
@@ -262,7 +335,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
    * moitiés d'une même décision, « quand » et « jusqu'à quand ça vaut encore la
    * peine ». Les changer replanifie ce qui n'a pas encore tourné.
    */
-  routeur.post("/ordonnancement", (requete, reponse) => {
+  routeur.post("/scrapping/ordonnancement", (requete, reponse) => {
     const reglage = lireLeReglage(requete.body);
     if (reglage === null) {
       return reponse.status(400).render("erreur", {
@@ -273,10 +346,10 @@ export function routeurSources(acces: AccesAuxSources): Router {
     }
 
     acces.reglerLaTache(reglage);
-    reponse.redirect("/sources");
+    reponse.redirect(cheminDe("ordonnancement"));
   });
 
-  routeur.post("/:source/jeton", (requete, reponse) => {
+  routeur.post("/scrapping/sessions/:source/jeton", (requete, reponse) => {
     const source = requete.params.source;
     if (!estUneSource(source)) return rendreInconnue(reponse, source);
 
@@ -289,7 +362,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
     }
 
     acces.enregistrer(source, valeur);
-    reponse.redirect("/sources");
+    reponse.redirect(cheminDe("sessions"));
   });
 
   /**
@@ -301,18 +374,18 @@ export function routeurSources(acces: AccesAuxSources): Router {
    * 4 septembre 2026, quand badnet a ouvert la session sans réclamer de code.
    * L'écran dit désormais laquelle des deux voies a été prise.
    */
-  routeur.post("/:source/connexion", (requete, reponse, suite) => {
+  routeur.post("/scrapping/sessions/:source/connexion", (requete, reponse, suite) => {
     const source = requete.params.source;
     if (!estUneSource(source)) return rendreInconnue(reponse, source);
 
     acces
       .connecter(source)
-      .then((issue) => ecran(reponse, { connexion: { source, issue } }))
+      .then((issue) => ecran(reponse, "sessions", { connexion: { source, issue } }))
       .catch(suite);
   });
 
   /** Le second temps : le code reçu par mail — spec 027. */
-  routeur.post("/:source/code", (requete, reponse, suite) => {
+  routeur.post("/scrapping/sessions/:source/code", (requete, reponse, suite) => {
     const source = requete.params.source;
     if (!estUneSource(source)) return rendreInconnue(reponse, source);
 
@@ -326,16 +399,16 @@ export function routeurSources(acces: AccesAuxSources): Router {
 
     acces
       .confirmerLeCode(source, code)
-      .then(() => reponse.redirect("/sources"))
+      .then(() => reponse.redirect(cheminDe("sessions")))
       .catch(suite);
   });
 
-  routeur.post("/:source/oubli", (requete, reponse) => {
+  routeur.post("/scrapping/sessions/:source/oubli", (requete, reponse) => {
     const source = requete.params.source;
     if (!estUneSource(source)) return rendreInconnue(reponse, source);
 
     acces.oublier(source);
-    reponse.redirect("/sources");
+    reponse.redirect(cheminDe("sessions"));
   });
 
   return routeur;

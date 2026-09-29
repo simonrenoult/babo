@@ -1,0 +1,28 @@
+<h2>Déploiements</h2>
+<p>
+  myffbad se lit par des fonctions serveur désignées par un identifiant calculé
+  à sa construction : un redéploiement peut les périmer. Chaque réponse annonce
+  son build ; les compter dit à quelle fréquence il faudra les relever
+  (spec 015).
+</p>
+
+<table>
+  <tr><th>Source</th><th>Build courant</th><th>Vu depuis</th><th>Builds observés</th></tr>
+  <% for (const deploiement of deploiements) { %>
+    <tr>
+      <td><%= deploiement.source %></td>
+      <td><%= deploiement.build ?? "—" %></td>
+      <td><%= deploiement.depuis ? deploiement.depuis.toLocaleString("fr-FR") : "—" %></td>
+      <td><%= deploiement.builds %></td>
+    </tr>
+  <% } %>
+</table>
+
+<% for (const deploiement of deploiements.filter((d) => d.actionsPeutEtrePerimees)) { %>
+  <p class="etat">
+    <strong><%= deploiement.source %> a redéployé</strong> depuis le relevé des
+    identifiants d'action. Ils peuvent avoir péri — seul le redéploiement de
+    l'action elle-même les invalide, donc rien n'est sûr. La panne, si elle
+    vient, sera franche : « action introuvable », jamais une liste vide.
+  </p>
+<% } %>

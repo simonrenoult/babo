@@ -1,0 +1,121 @@
+<h2>Ordonnancement</h2>
+<p>
+  Les tâches qui se déclenchent seules, et quand (spec 018). Le planificateur
+  vit dans le processus : tant qu'il est arrêté, rien ne s'exécute et rien ne
+  prévient — c'est le risque que 018 accepte, contre un service supervisé qui
+  relance l'application.
+</p>
+<p>
+  La <strong>grâce</strong> est le retard au-delà duquel une échéance dépassée
+  n'est plus rejouée mais abandonnée : large pour une passe dont la donnée est
+  de toute façon périmée, courte pour un rappel qui n'a de sens qu'avant
+  l'événement. Un échec est réessayé deux fois, à une heure puis à quatre ;
+  au-delà, la tâche attend son occurrence suivante.
+</p>
+<p>
+  La colonne <strong>Lancer</strong> déclenche une tâche à la main, comme si le
+  planificateur s'était réveillé : grâce court-circuitée, échéance clôturée,
+  suivante inscrite, rapport consigné — et affiché aussitôt sous le tableau
+  (spec 037). Coup unique, sans réessai : un échec se lit là, et on relance à la
+  main. Le battement n'en a pas, car son absence est précisément ce qu'il
+  annonce.
+</p>
+
+<%
+  const JOURS = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi",
+                  5: "vendredi", 6: "samedi", 7: "dimanche" };
+  const cadenceLisible = (cadence) => {
+    const heure = `${String(cadence.heure).padStart(2, "0")} h ${String(cadence.minute).padStart(2, "0")}`;
+    if (cadence.nature === "ponctuelle") return "au fil de l'eau";
+    if (cadence.nature === "quotidienne") return `chaque jour à ${heure}`;
+    return `chaque ${JOURS[cadence.jour]} à ${heure}`;
+  };
+%>
+
+<table>
+  <tr>
+    <th>Tâche</th><th>Cadence</th><th>Grâce</th>
+    <th>Prochaine échéance</th><th>Tentatives</th><th>Dernière issue</th>
+    <th>Action</th>
+  </tr>
+  <% for (const tache of taches) { %>
+    <tr>
+      <td><%= tache.intitule %></td>
+      <td>
+        <%= cadenceLisible(tache.reglage.cadence) %><%= tache.reglage.active ? "" : " (suspendue)" %>
+      </td>
+      <td><%= tache.reglage.graceMinutes %> min</td>
+      <td>
+        <%= tache.prochaine ? tache.prochaine.prevueLe.toLocaleString("fr-FR") : "aucune" %>
+      </td>
+      <td><%= tache.prochaine ? tache.prochaine.tentatives : "—" %></td>
+      <td>
+        <% if (tache.dernierRapport) { %>
+          <%= tache.dernierRapport.issue %>,
+          le <%= tache.dernierRapport.demarreLe.toLocaleString("fr-FR") %>
+        <% } else { %>
+          jamais exécutée
+        <% } %>
+      </td>
+      <td>
+        <%# Règle uniforme, une exception : toute tâche active à cadence porte %>
+        <%# un bouton Lancer, sauf le battement dont le silence est exactement %>
+        <%# l'information qu'il préserve (037, 019). Les ponctuelles ne sont %>
+        <%# pas des passes (014). %>
+        <% if (tache.reglage.active && tache.reglage.cadence.nature !== "ponctuelle" && tache.tache !== battement) { %>
+          <form method="post" action="/parametres/scrapping/ordonnancement/<%= tache.tache %>/executer">
+            <button type="submit">Lancer</button>
+          </form>
+        <% } else { %>
+          —
+        <% } %>
+      </td>
+    </tr>
+  <% } %>
+</table>
+
+<%# Le rapport du dernier déclenchement, juste sous le tableau : c'est là %>
+<%# qu'on a cliqué, et c'est le verdict qu'on cherche immédiatement (037). %>
+<% if (declenchement) { %>
+  <h3>Dernier déclenchement</h3>
+  <%- include("../rapport-de-passe", { passe: declenchement }) %>
+<% } %>
+
+<% for (const tache of taches) { %>
+  <form method="post" action="/parametres/scrapping/ordonnancement">
+    <input type="hidden" name="tache" value="<%= tache.tache %>">
+    <p>
+      <strong><%= tache.intitule %></strong><br>
+      <label for="nature-<%= tache.tache %>">Cadence</label>
+      <select id="nature-<%= tache.tache %>" name="nature">
+        <% for (const nature of ["quotidienne", "hebdomadaire", "ponctuelle"]) { %>
+          <option value="<%= nature %>"
+                  <%= tache.reglage.cadence.nature === nature ? "selected" : "" %>>
+            <%= nature %>
+          </option>
+        <% } %>
+      </select>
+      <label for="jour-<%= tache.tache %>">jour</label>
+      <select id="jour-<%= tache.tache %>" name="jour">
+        <% for (const numero of [1, 2, 3, 4, 5, 6, 7]) { %>
+          <option value="<%= numero %>"
+                  <%= tache.reglage.cadence.jour === numero ? "selected" : "" %>>
+            <%= JOURS[numero] %>
+          </option>
+        <% } %>
+      </select>
+      <label for="heure-<%= tache.tache %>">à</label>
+      <input id="heure-<%= tache.tache %>" name="heure" type="number" min="0" max="23" size="2"
+             value="<%= tache.reglage.cadence.heure ?? 0 %>"> h
+      <input name="minute" type="number" min="0" max="59" size="2"
+             aria-label="minute" value="<%= tache.reglage.cadence.minute ?? 0 %>">
+      <label for="grace-<%= tache.tache %>">grâce</label>
+      <input id="grace-<%= tache.tache %>" name="grace" type="number" min="0" size="4"
+             value="<%= tache.reglage.graceMinutes %>"> min
+      <label for="active-<%= tache.tache %>">active</label>
+      <input id="active-<%= tache.tache %>" name="active" type="checkbox"
+             <%= tache.reglage.active ? "checked" : "" %>>
+      <button type="submit">Régler</button>
+    </p>
+  </form>
+<% } %>

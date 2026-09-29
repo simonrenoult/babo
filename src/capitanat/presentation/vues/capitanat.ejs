@@ -5,7 +5,7 @@
   <h3>Mon équipe</h3>
   <p class="etat">
     Aucune équipe importée. Le fichier se dépose depuis
-    <a href="/sources">l'écran des sources</a> : une ligne par joueur,
+    <a href="/parametres/equipe">l'écran des paramètres</a> : une ligne par joueur,
     <code>licence;sexe;telephone</code>, en-tête comprise, en UTF-8.
   </p>
 <% } else { %>
@@ -94,13 +94,13 @@
   <% if (releves === 0) { %>
     <p class="etat">
       Noms et classements non encore relevés. La passe se lance depuis
-      <a href="/sources">l'écran des sources</a>.
+      <a href="/parametres/scrapping/ordonnancement">l'écran des paramètres</a>.
     </p>
   <% } else if (releves < equipe.length) { %>
     <p class="etat">
       <%= equipe.length - releves %> membre<%= equipe.length - releves > 1 ? "s" : "" %>
       sans relevé : la dernière passe ne les a pas trouvés sur myffbad. Le
-      rapport en donne la raison sur <a href="/sources">l'écran des sources</a>.
+      rapport en donne la raison sur <a href="/parametres/scrapping/logs">l'écran des paramètres</a>.
     </p>
   <% } %>
 

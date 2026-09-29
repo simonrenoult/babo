@@ -1,0 +1,28 @@
+<h2>Sonder l'accès</h2>
+<p>
+  La sonde joue les requêtes qui portent les données, les archive telles
+  quelles, et compte ce qu'elle en tire. C'est le décompte qui vaut, pas la
+  taille : une session morte rend un statut 200 et une liste vide, et seule la
+  colonne « extraits » l'en distingue (specs 015 et 019).
+</p>
+<form method="post" action="/parametres/scrapping/sondes"><button type="submit">Sonder</button></form>
+
+<% if (sonde) { %>
+  <table>
+    <tr>
+      <th>Source</th><th>Page</th><th>Verdict</th><th>Statut</th>
+      <th>Extraits</th><th>Taille</th><th>Détail</th>
+    </tr>
+    <% for (const resultat of sonde) { %>
+      <tr>
+        <td><%= resultat.source %></td>
+        <td><%= resultat.page.intitule %></td>
+        <td><%= resultat.verdict %></td>
+        <td><%= resultat.statutHttp ?? "—" %></td>
+        <td><%= resultat.extraits ?? "—" %></td>
+        <td><%= resultat.octets === null ? "—" : Math.round(resultat.octets / 1024) + " Ko" %></td>
+        <td><%= resultat.detail ?? "" %></td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>

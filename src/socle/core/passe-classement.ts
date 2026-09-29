@@ -62,7 +62,7 @@ export async function releverLesClassements(options: {
     // Ni un succès ni une panne de la source : il n'y a personne à relever.
     // Le dire plutôt que de consigner un succès à zéro, qui ferait croire à
     // `issueDuVolume` que la source s'est tue.
-    return consigner("echec", 0, "aucune licence suivie : importer l'équipe depuis /sources (005).");
+    return consigner("echec", 0, "aucune licence suivie : importer l'équipe depuis /parametres/equipe (005).");
   }
 
   const muets: string[] = [];

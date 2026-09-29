@@ -303,9 +303,44 @@ async function interroger(
 }
 
 describe("l'écran des sources", () => {
-  it("affiche l'état de chaque source, ancienneté comprise", async () => {
+  it("ouvre la racine et le groupe sur les sessions", async () => {
+    const { acces } = ecran();
+
+    for (const chemin of ["/parametres", "/parametres/scrapping"]) {
+      const reponse = await interroger(acces, chemin);
+      assert.equal(reponse.statut, 302, chemin);
+      assert.equal(reponse.redirection, "/parametres/scrapping/sessions", chemin);
+    }
+  });
+
+  it("garde l'ancienne adresse /sources, redirigée", async () => {
     const { acces } = ecran();
     const reponse = await interroger(acces, "/sources");
+
+    assert.equal(reponse.statut, 302);
+    assert.equal(reponse.redirection, "/parametres");
+  });
+
+  it("ne rend que l'onglet demandé, et refuse un onglet inconnu", async () => {
+    const { acces } = ecran();
+
+    const sessions = await interroger(acces, "/parametres/scrapping/sessions");
+    assert.match(sessions.corps, /<title>Paramètres/);
+    assert.match(sessions.corps, /Enregistrer une session/);
+    assert.match(sessions.corps, /href="\/parametres\/scrapping\/emails"/, "les onglets sont des liens");
+    assert.doesNotMatch(sessions.corps, /<h2>Courrier/, "le courrier a son propre onglet");
+
+    const courrier = await interroger(acces, "/parametres/scrapping/emails");
+    assert.match(courrier.corps, /<h2>Courrier/);
+    assert.doesNotMatch(courrier.corps, /Enregistrer une session/);
+
+    const inconnu = await interroger(acces, "/parametres/scrapping/pouet");
+    assert.equal(inconnu.statut, 404);
+  });
+
+  it("affiche l'état de chaque source, ancienneté comprise", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/scrapping/sources");
 
     assert.equal(reponse.statut, 200);
     assert.match(reponse.corps, /myffbad/);
@@ -316,7 +351,7 @@ describe("l'écran des sources", () => {
 
   it("dit à côté du champ si une session existe déjà, et jusqu'à quand", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
 
     assert.match(reponse.corps, /Aucune session enregistrée/, "badnet n'en a pas");
     assert.match(reponse.corps, /Session enregistrée le 16\/07\/2026/, "myffbad en a une");
@@ -325,7 +360,7 @@ describe("l'écran des sources", () => {
 
   it("ne réaffiche jamais le jeton qu'on lui a confié", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
 
     // Le champ reste vide par construction : un jeton rendu dans le HTML
     // repartirait dans le cache et l'historique du navigateur.
@@ -334,7 +369,7 @@ describe("l'écran des sources", () => {
 
   it("ne demande jamais le mot de passe fédéral, seulement le cookie déjà obtenu", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
 
     assert.doesNotMatch(reponse.corps, /type="password"/);
     assert.match(reponse.corps, /Cookie de session/);
@@ -344,12 +379,12 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/myffbad/jeton",
+      "/parametres/scrapping/sessions/myffbad/jeton",
       new URLSearchParams({ valeur: "  session=abc  " }),
     );
 
     assert.equal(reponse.statut, 302);
-    assert.equal(reponse.redirection, "/sources");
+    assert.equal(reponse.redirection, "/parametres/scrapping/sessions");
     assert.deepEqual(trace.enregistres, [["myffbad", "session=abc"]]);
   });
 
@@ -357,7 +392,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/myffbad/jeton",
+      "/parametres/scrapping/sessions/myffbad/jeton",
       new URLSearchParams({ valeur: "   " }),
     );
 
@@ -367,7 +402,7 @@ describe("l'écran des sources", () => {
 
   it("oublie un jeton sur demande", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/badnet/oubli", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions/badnet/oubli", new URLSearchParams());
 
     assert.equal(reponse.statut, 302);
     assert.deepEqual(trace.oublies, ["badnet"]);
@@ -377,7 +412,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/poona/jeton",
+      "/parametres/scrapping/sessions/poona/jeton",
       new URLSearchParams({ valeur: "session=abc" }),
     );
 
@@ -391,7 +426,7 @@ describe("l'écran des sources", () => {
    */
   it("dépose un mail de test et rend son état", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/courrier", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/emails", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
     assert.equal(trace.mailsDeTest, 1);
@@ -400,7 +435,7 @@ describe("l'écran des sources", () => {
 
   it("annonce un courrier non configuré plutôt que de laisser croire qu'il alerte", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/emails");
 
     assert.match(reponse.corps, /Courrier non configuré/);
     assert.match(reponse.corps, /BABO_SMTP_MOT_DE_PASSE/);
@@ -415,7 +450,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     trace.attendus.push({ source: "badnet", demandeeLe: new Date("2026-09-05T09:00:00Z") });
 
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
 
     assert.match(reponse.corps, /Code demandé/);
     assert.match(reponse.corps, /name="code"/);
@@ -426,7 +461,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/badnet/code",
+      "/parametres/scrapping/sessions/badnet/code",
       new URLSearchParams({ code: " 123456 " }),
     );
 
@@ -436,7 +471,7 @@ describe("l'écran des sources", () => {
 
   it("refuse un code vide plutôt que de le poster", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/badnet/code", new URLSearchParams({ code: "  " }));
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions/badnet/code", new URLSearchParams({ code: "  " }));
 
     assert.equal(reponse.statut, 400);
     assert.deepEqual(trace.codes, []);
@@ -449,7 +484,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     trace.engagements = 3;
 
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/engagements");
 
     assert.match(reponse.corps, /3<\/strong>\s*engagements/);
     assert.match(reponse.corps, /\/mon-profil/);
@@ -457,7 +492,7 @@ describe("l'écran des sources", () => {
 
   it("rend le résultat de la sonde dans la page", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/sonde", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/sondes", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
     assert.equal(trace.sondes, 1);
@@ -472,7 +507,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/ordonnancement/acquisition:myffbad/executer",
+      "/parametres/scrapping/ordonnancement/acquisition:myffbad/executer",
       new URLSearchParams(),
     );
 
@@ -487,7 +522,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/ordonnancement/inconnue:pouet/executer",
+      "/parametres/scrapping/ordonnancement/inconnue:pouet/executer",
       new URLSearchParams(),
     );
 
@@ -500,7 +535,7 @@ describe("l'écran des sources", () => {
       const { acces, trace } = ecran();
       const reponse = await interroger(
         acces,
-        `/sources/ordonnancement/${cible}/executer`,
+        `/parametres/scrapping/ordonnancement/${cible}/executer`,
         new URLSearchParams(),
       );
 
@@ -513,10 +548,10 @@ describe("l'écran des sources", () => {
 describe("le tableau d'ordonnancement", () => {
   it("porte un bouton Lancer par tâche active à cadence, sauf le battement", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/ordonnancement");
 
     // La tâche de classement relève d'une cadence : elle porte le bouton.
-    const classe = /action="\/sources\/ordonnancement\/acquisition:myffbad\/executer"/.exec(
+    const classe = /action="\/parametres\/scrapping\/ordonnancement\/acquisition:myffbad\/executer"/.exec(
       reponse.corps,
     );
     assert.ok(classe, "la tâche à cadence porte un bouton Lancer");
@@ -531,7 +566,7 @@ describe("le tableau d'ordonnancement", () => {
 describe("l'ordonnancement", () => {
   it("affiche la cadence, la grâce et la prochaine échéance", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/ordonnancement");
 
     assert.equal(reponse.statut, 200);
     assert.match(reponse.corps, /chaque vendredi à 01 h 00/);
@@ -543,7 +578,7 @@ describe("l'ordonnancement", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/ordonnancement",
+      "/parametres/scrapping/ordonnancement",
       new URLSearchParams({
         tache: "acquisition:myffbad",
         nature: "hebdomadaire",
@@ -555,7 +590,7 @@ describe("l'ordonnancement", () => {
       }),
     );
 
-    assert.equal(reponse.redirection, "/sources");
+    assert.equal(reponse.redirection, "/parametres/scrapping/ordonnancement");
     assert.deepEqual(trace.reglages, [
       {
         tache: "acquisition:myffbad",
@@ -570,7 +605,7 @@ describe("l'ordonnancement", () => {
     const { acces, trace } = ecran();
     await interroger(
       acces,
-      "/sources/ordonnancement",
+      "/parametres/scrapping/ordonnancement",
       new URLSearchParams({
         tache: "acquisition:myffbad",
         nature: "quotidienne",
@@ -588,7 +623,7 @@ describe("l'ordonnancement", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/sources/ordonnancement",
+      "/parametres/scrapping/ordonnancement",
       new URLSearchParams({
         tache: "acquisition:myffbad",
         nature: "hebdomadaire",
@@ -609,7 +644,7 @@ describe("l'import de l'équipe", () => {
     // Le fichier n'atterrit jamais sur le serveur : c'est son contenu qui est
     // posté en `text/csv`, sans multipart et sans `multer` (spec 005).
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/equipe", "licence;sexe;telephone\n");
+    const reponse = await interroger(acces, "/parametres/equipe", "licence;sexe;telephone\n");
 
     assert.equal(reponse.statut, 200);
     assert.deepEqual(trace.importes, ["licence;sexe;telephone\n"]);
@@ -618,7 +653,7 @@ describe("l'import de l'équipe", () => {
 
   it("rend chaque anomalie avec sa ligne, et refuse en 400", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources/equipe", "n'importe quoi\n");
+    const reponse = await interroger(acces, "/parametres/equipe", "n'importe quoi\n");
 
     assert.equal(reponse.statut, 400);
     assert.match(reponse.corps, /rien n'a été écrit/);
@@ -629,7 +664,7 @@ describe("l'import de l'équipe", () => {
     // La suppression du partant, relevés compris, est la contrepartie assumée
     // de 005 : elle doit être écrite là où on clique, pas seulement en spec.
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/equipe");
 
     assert.match(reponse.corps, /remplace la liste entière/);
   });
@@ -638,10 +673,10 @@ describe("l'import de l'équipe", () => {
 describe("la connexion autonome", () => {
   it("propose le bouton à la source qui sait se connecter, et à elle seule", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/sources");
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
 
-    assert.match(reponse.corps, /action="\/sources\/myffbad\/connexion"/);
-    assert.doesNotMatch(reponse.corps, /action="\/sources\/badnet\/connexion"/);
+    assert.match(reponse.corps, /action="\/parametres\/scrapping\/sessions\/myffbad\/connexion"/);
+    assert.doesNotMatch(reponse.corps, /action="\/parametres\/scrapping\/sessions\/badnet\/connexion"/);
   });
 
   /**
@@ -651,7 +686,7 @@ describe("la connexion autonome", () => {
    */
   it("dit que la session s'est ouverte sans code", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/sources/myffbad/connexion", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/sessions/myffbad/connexion", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
     assert.match(reponse.corps, /Session myffbad ouverte/);
@@ -662,7 +697,7 @@ describe("la connexion autonome", () => {
   it("laisse remonter l'échec au lieu de prétendre que tout va bien", async () => {
     const { acces } = ecran();
     const cassee = { ...acces, connecter: () => Promise.reject(new Error("identifiants refusés")) };
-    const reponse = await interroger(cassee, "/sources/myffbad/connexion", new URLSearchParams());
+    const reponse = await interroger(cassee, "/parametres/scrapping/sessions/myffbad/connexion", new URLSearchParams());
 
     assert.equal(reponse.statut, 500);
   });
