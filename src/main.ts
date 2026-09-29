@@ -50,6 +50,9 @@ import type { CalendrierDInterclub } from "./capitanat/core/calendrier.ts";
 import { CalendrierRefuse, calendrierDeLEquipe } from "./capitanat/core/calendrier.ts";
 import { lireLaPageDeGroupe, verifierLURLDuGroupe } from "./capitanat/infrastructure/calendrier-icbad.ts";
 import { depotCalendrierSqlite } from "./capitanat/infrastructure/depot-calendrier-sqlite.ts";
+import { DisponibilitesRefusees, verifierContreLeCalendrier } from "./capitanat/core/disponibilite.ts";
+import { lireLeCsvDesDisponibilites } from "./capitanat/infrastructure/csv-disponibilites.ts";
+import { depotDisponibilitesSqlite } from "./capitanat/infrastructure/depot-disponibilites-sqlite.ts";
 import { creerModuleVeille } from "./veille/presentation/module-web.ts";
 import { depotVeillesSqlite } from "./veille/infrastructure/depot-veilles-sqlite.ts";
 import { disciplinesDe } from "./veille/core/veille.ts";
@@ -90,6 +93,9 @@ const preferencesDuCapitaine = depotPreferencesSqlite(persistance.base);
 
 /** Le calendrier d'interclub de mon équipe : même base, même raison. */
 const calendrierDInterclub = depotCalendrierSqlite(persistance.base);
+
+/** Les disponibilités tirées des sondages — spec 008. Même base, même raison. */
+const disponibilites = depotDisponibilitesSqlite(persistance.base);
 
 /**
  * Les veilles — spec 012.
@@ -679,6 +685,7 @@ const application = creerApplication({
       classements: persistance.classements,
       preferences: preferencesDuCapitaine,
       calendrier: calendrierDInterclub,
+      disponibilites,
       fraicheur: fraicheurDuClassement,
       horloge: horlogeSysteme,
     }),
@@ -771,6 +778,29 @@ const application = creerApplication({
     },
 
     importerLeCalendrier,
+
+    // Le sondage de disponibilités — spec 008. Lu, contrôlé contre le
+    // calendrier par la date de chaque journée, puis écrit : tout ou rien.
+    importerLesDisponibilites: async (csv) => {
+      try {
+        const sondage = lireLeCsvDesDisponibilites(csv);
+        const motifs = verifierContreLeCalendrier(sondage, calendrierDInterclub.lire());
+        if (motifs.length > 0) throw new DisponibilitesRefusees(motifs);
+
+        disponibilites.enregistrer(sondage);
+        const noms = new Set(sondage.repondants.map(({ nom }) => nom));
+        return {
+          issue: "importees" as const,
+          repondants: sondage.repondants.length,
+          journees: sondage.journees.map(({ journee }) => journee),
+          aRattacher: disponibilites.repondants().filter(({ nom, licence }) => noms.has(nom) && licence === null)
+            .length,
+        };
+      } catch (erreur) {
+        if (erreur instanceof DisponibilitesRefusees) return { issue: "refusees" as const, motifs: erreur.motifs };
+        throw erreur;
+      }
+    },
 
     connecter: async (source) => {
       const module = moduleDe(source);

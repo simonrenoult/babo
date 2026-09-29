@@ -1,0 +1,155 @@
+<%- include("entete", { titre }) %>
+<h2><%= titre %></h2>
+<%- include("capitanat-onglets") %>
+
+<style>
+  .grille td.reponse, .grille th.rencontre { text-align: center; padding-right: .5rem; padding-left: .5rem; }
+  .grille th.rencontre { font-weight: normal; font-size: .85rem; white-space: nowrap; }
+  .grille td.oui { background: color-mix(in srgb, #2e9e4f 22%, transparent); }
+  .grille td.si-besoin { background: color-mix(in srgb, #d9a400 22%, transparent); }
+  .grille td.non { opacity: .5; }
+  .grille tr.decompte td { border-top: 1px solid currentColor; font-size: .9rem; text-align: center; }
+  .grille .remarque { display: block; font-size: .8rem; opacity: .7; }
+</style>
+
+<p>
+  Qui est disponible pour chaque rencontre, tel que le sondage le dit (spec
+  008). Le sondage s'importe depuis
+  <a href="/parametres/disponibilites">l'écran des paramètres</a> ; un nouveau
+  sondage remplace les journées qu'il couvre, et elles seules.
+</p>
+
+<% if (calendrier === null) { %>
+  <p class="etat">
+    Aucun calendrier importé : les disponibilités se lisent rencontre par
+    rencontre. Il s'importe depuis <a href="/parametres/calendrier">l'écran des paramètres</a>.
+  </p>
+<% } else if (repondants.length === 0) { %>
+  <p class="etat">
+    Aucun sondage importé. L'export CSV se dépose depuis
+    <a href="/parametres/disponibilites">l'écran des paramètres</a>.
+  </p>
+<% } else { %>
+  <%
+    const libelles = { oui: "Oui", "si-besoin": "Si besoin", non: "Non" };
+    const aRattacher = grille.lignes.filter((ligne) => ligne.membre === null).length;
+  %>
+
+  <% if (aRattacher > 0) { %>
+    <p class="etat">
+      <strong><%= aRattacher %></strong> nom<%= aRattacher > 1 ? "s" : "" %> du sondage
+      rattaché<%= aRattacher > 1 ? "s" : "" %> à aucun membre : leurs réponses
+      sont comptées à part, faute de savoir si ce sont des femmes ou des hommes.
+      Les rattacher <a href="#rattachements">sous la grille</a>.
+    </p>
+  <% } %>
+
+  <div style="overflow-x: auto">
+    <table class="grille">
+      <tr>
+        <th></th>
+        <% for (const colonne of grille.colonnes) { %>
+          <% const { rencontre } = colonne; %>
+          <th class="rencontre">
+            <strong>J<%= String(rencontre.journee).padStart(2, "0") %></strong><br>
+            <%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" }) %><br>
+            <%= recoitOn(rencontre, calendrier.equipe) ? "reçoit" : "à" %>
+            <%= adversaireDe(rencontre, calendrier.equipe).code.replace(/^\d+-/, "") %>
+          </th>
+        <% } %>
+      </tr>
+
+      <% for (const ligne of grille.lignes) { %>
+        <tr>
+          <td>
+            <%= ligne.membre?.nom ?? ligne.nom %>
+            <% if (ligne.membre === null) { %>
+              <span class="etat">non rattaché</span>
+            <% } else if (ligne.membre.nom !== ligne.nom) { %>
+              <span class="remarque">« <%= ligne.nom %> » au sondage</span>
+            <% } %>
+            <% if (ligne.remarque) { %>
+              <span class="remarque"><%= ligne.remarque %></span>
+            <% } %>
+          </td>
+          <% for (const colonne of grille.colonnes) { %>
+            <% const reponse = ligne.reponses.get(colonne.rencontre.journee); %>
+            <td class="reponse <%= reponse ?? "" %>"><%= reponse ? libelles[reponse] : "" %></td>
+          <% } %>
+        </tr>
+      <% } %>
+
+      <tr class="decompte">
+        <td style="text-align: left">Disponibles <span class="remarque">femmes · hommes</span></td>
+        <% for (const colonne of grille.colonnes) { %>
+          <td><%= colonne.sondee ? `${colonne.disponibles.F} · ${colonne.disponibles.M}` : "—" %></td>
+        <% } %>
+      </tr>
+      <tr class="decompte">
+        <td style="text-align: left">Si besoin <span class="remarque">femmes · hommes</span></td>
+        <% for (const colonne of grille.colonnes) { %>
+          <td><%= colonne.sondee ? `${colonne.siBesoin.F} · ${colonne.siBesoin.M}` : "—" %></td>
+        <% } %>
+      </tr>
+      <% if (grille.colonnes.some((colonne) => colonne.nonRattaches > 0)) { %>
+        <tr class="decompte">
+          <td style="text-align: left">Oui ou si besoin, non rattachés</td>
+          <% for (const colonne of grille.colonnes) { %>
+            <td><%= colonne.sondee ? colonne.nonRattaches : "—" %></td>
+          <% } %>
+        </tr>
+      <% } %>
+    </table>
+  </div>
+
+  <p>
+    Le décompte ne compte que les noms rattachés : c'est le sexe du membre qui
+    dit s'il remplit un tableau de dames ou d'hommes. Une colonne marquée « — »
+    n'a pas encore été sondée.
+  </p>
+
+  <% if (grille.silencieux.length > 0) { %>
+    <p class="etat">
+      Sans réponse au sondage :
+      <%= grille.silencieux.map((membre) => membre.nom ?? membre.licence).join(", ") %>.
+    </p>
+  <% } %>
+
+  <h3 id="rattachements">Rattacher les noms du sondage</h3>
+  <p>
+    Le sondage parle en prénoms et en surnoms. Chaque nom se rattache une fois à
+    un membre de l'équipe, et le rattachement vaut pour les sondages suivants.
+    Quand un prénom ne désigne qu'un membre, il est proposé — <strong>à
+    confirmer en enregistrant</strong> : rien n'est rattaché sans vous.
+  </p>
+
+  <form method="post" action="/capitanat/disponibilites/rattachements">
+    <table>
+      <tr><th>Au sondage</th><th>Membre de l'équipe</th></tr>
+      <% for (const repondant of repondants) { %>
+        <% const choisi = preselection(repondant.nom, repondant.licence); %>
+        <tr>
+          <td>
+            <%= repondant.nom %>
+            <input type="hidden" name="nom" value="<%= repondant.nom %>">
+          </td>
+          <td>
+            <select name="licence" aria-label="Membre pour <%= repondant.nom %>">
+              <option value="">— non rattaché —</option>
+              <% for (const membre of membres) { %>
+                <option value="<%= membre.licence %>" <%= membre.licence === choisi ? "selected" : "" %>>
+                  <%= membre.nom ?? membre.licence %>
+                </option>
+              <% } %>
+            </select>
+            <% if (repondant.licence === null && choisi !== null) { %>
+              <span class="etat">proposé</span>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </table>
+    <p><button type="submit">Enregistrer les rattachements</button></p>
+  </form>
+<% } %>
+<%- include("pied") %>

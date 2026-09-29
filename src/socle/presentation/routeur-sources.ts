@@ -72,6 +72,14 @@ export type AccesAuxSources = {
    */
   calendrier(): EtatDuCalendrier | null;
   /**
+   * Importe l'export CSV d'un sondage de disponibilités — spec 008.
+   *
+   * Comme l'import d'équipe : le socle passe du texte et reçoit un décompte ou
+   * des motifs, et `main.ts` branche `capitanat` derrière. La grille, et le
+   * rattachement des noms du sondage aux membres, vivent sur le capitanat.
+   */
+  importerLesDisponibilites(csv: string): Promise<ResultatDImportDesDisponibilites>;
+  /**
    * Importe le calendrier d'interclub de mon équipe depuis la page de son
    * groupe sur icbad.
    *
@@ -157,6 +165,17 @@ export type ResultatDImportDuCalendrier =
   | { readonly issue: "importe"; readonly calendrier: EtatDuCalendrier }
   | { readonly issue: "refuse"; readonly raison: string; readonly demande: DemandeDeCalendrier };
 
+/** Tout ou rien, comme l'import d'équipe. */
+export type ResultatDImportDesDisponibilites =
+  | {
+      readonly issue: "importees";
+      readonly repondants: number;
+      readonly journees: readonly number[];
+      /** Les noms du sondage qu'aucun membre ne porte encore. */
+      readonly aRattacher: number;
+    }
+  | { readonly issue: "refusees"; readonly motifs: readonly MotifDeRefus[] };
+
 export type MotifDeRefus = {
   /** Ligne du fichier, en-tête comprise. `null` quand c'est le fichier entier. */
   readonly ligne: number | null;
@@ -198,6 +217,11 @@ const GROUPES = [
     onglets: [{ id: "calendrier", intitule: "Import calendrier", chemin: "/calendrier" }],
   },
   {
+    id: "disponibilites",
+    intitule: "Import disponibilités",
+    onglets: [{ id: "disponibilites", intitule: "Import disponibilités", chemin: "/disponibilites" }],
+  },
+  {
     id: "engagements",
     intitule: "Engagements",
     onglets: [{ id: "engagements", intitule: "Engagements", chemin: "/engagements" }],
@@ -237,6 +261,7 @@ type ResultatsDeGeste = {
   readonly declenchement?: RapportArchive | null;
   readonly equipe?: ResultatDImport;
   readonly calendrier?: ResultatDImportDuCalendrier;
+  readonly disponibilites?: ResultatDImportDesDisponibilites;
   readonly mailDeTest?: MessageDepose;
   readonly connexion?: { readonly source: Source; readonly issue: string };
 };
@@ -288,6 +313,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
       importCalendrier: vue.calendrier ?? null,
       calendrierParDefaut: CALENDRIER_PAR_DEFAUT,
     }),
+    disponibilites: (vue) => ({ disponibilites: vue.disponibilites ?? null }),
     engagements: () => ({ engagementsEnBase: acces.engagements() }),
   };
 
@@ -383,6 +409,17 @@ export function routeurSources(acces: AccesAuxSources): Router {
         // 400 sur un refus : l'écran le dit, et le journal du proxy aussi.
         reponse.status(resultat.issue === "refusee" ? 400 : 200);
         ecran(reponse, "equipe", { equipe: resultat });
+      })
+      .catch(suite);
+  });
+
+  /** Le sondage de disponibilités — spec 008. Même porte que l'import d'équipe : du `text/csv`, plafonné. */
+  routeur.post("/disponibilites", text({ type: "text/csv", limit: "64kb" }), (requete, reponse, suite) => {
+    acces
+      .importerLesDisponibilites(typeof requete.body === "string" ? requete.body : "")
+      .then((resultat) => {
+        reponse.status(resultat.issue === "refusees" ? 400 : 200);
+        ecran(reponse, "disponibilites", { disponibilites: resultat });
       })
       .catch(suite);
   });

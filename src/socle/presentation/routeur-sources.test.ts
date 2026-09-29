@@ -234,6 +234,12 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
       },
       codesAttendus: () => trace.attendus,
       calendrier: () => null,
+      importerLesDisponibilites: (csv) =>
+        Promise.resolve(
+          csv.startsWith("Nom;")
+            ? { issue: "importees", repondants: 14, journees: [1, 2, 3, 4, 5], aRattacher: 3 }
+            : { issue: "refusees", motifs: [{ ligne: 1, raison: "colonne « x » : ni journée ni date." }] },
+        ),
       importerLeCalendrier: (demande) => {
         trace.calendriers.push(demande);
         return Promise.resolve(
@@ -764,5 +770,34 @@ describe("l'import du calendrier d'interclub", () => {
     assert.match(reponse.corps, /rien n'a été écrit/);
     assert.match(reponse.corps, /Aucune rencontre pour « 75-BAP-4 »/);
     assert.match(reponse.corps, /value="75-BAP-4"/);
+  });
+});
+
+describe("l'import des disponibilités", () => {
+  it("a son onglet, qui renvoie vers la grille du capitanat", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/disponibilites");
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /aria-current="page">Import disponibilités/);
+    assert.match(reponse.corps, /href="\/capitanat\/disponibilites"/);
+  });
+
+  it("dit combien de noms restent à rattacher", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/disponibilites", "Nom;J1 - jeu. 05/11/2026\n");
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /<strong>14<\/strong>\s*répondants sur\s*J1, J2, J3, J4, J5/);
+    assert.match(reponse.corps, /<strong>3<\/strong>\s*noms à rattacher/);
+  });
+
+  it("refuse en nommant la ligne, sans rien écrire", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/disponibilites", "x;y\n");
+
+    assert.equal(reponse.statut, 400);
+    assert.match(reponse.corps, /rien n'a été écrit/);
+    assert.match(reponse.corps, /ni journée ni date/);
   });
 });

@@ -59,6 +59,7 @@ const aucuneSource: AccesAuxSources = {
   sonder: () => Promise.resolve([]),
   importerLEquipe: () => Promise.resolve({ issue: "refusee", motifs: [] }),
   calendrier: () => null,
+  importerLesDisponibilites: () => Promise.resolve({ issue: "refusees", motifs: [] }),
   importerLeCalendrier: () => Promise.reject(new Error("pas de calendrier dans ce test")),
   courrier: () => ({
     configure: false,

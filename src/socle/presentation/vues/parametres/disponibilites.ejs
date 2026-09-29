@@ -1,0 +1,79 @@
+<h2>Importer les disponibilités</h2>
+<p>
+  L'export CSV du sondage de disponibilités aux interclubs (spec 008) : une
+  ligne par personne, une colonne par journée. La première colonne est le nom,
+  suivi s'il le faut d'une remarque entre parenthèses ; chaque autre colonne
+  s'intitule par sa journée et sa date — « J1 - jeu. 05/11/2026 20h-22h30
+  (Ext. BAD18-5) », l'horaire et l'adversaire étant ignorés. Réponses :
+  <code>Oui</code>, <code>Non</code>, <code>Si besoin</code> ; une case vide
+  n'est pas une réponse. Séparateur <code>;</code>, fichier en
+  <strong>UTF-8</strong>.
+</p>
+<p>
+  <strong>La date de chaque journée est comparée au calendrier</strong> : un
+  sondage d'une autre équipe ou d'une autre saison est refusé plutôt que mis en
+  face des mauvaises rencontres. Le calendrier doit donc être importé d'abord.
+  L'import remplace les réponses des journées que le fichier couvre, et elles
+  seules : un sondage J6-J10 s'ajoute au sondage J1-J5. Tout ou rien, chaque
+  anomalie étant rendue avec sa ligne.
+</p>
+<p>
+  Le sondage parle en prénoms et en surnoms : chaque nom se rattache une fois à
+  un membre de l'équipe, sur l'onglet
+  <a href="/capitanat/disponibilites">Disponibilités</a> du capitanat.
+</p>
+
+<form id="import-disponibilites">
+  <p>
+    <label for="fichier-disponibilites">Fichier CSV</label><br>
+    <input id="fichier-disponibilites" type="file" accept=".csv,text/csv" required>
+  </p>
+  <button type="submit">Importer les disponibilités</button>
+</form>
+
+<script>
+  // Le même geste que l'import d'équipe : le contenu part en `text/csv`, le
+  // fichier n'atterrit jamais sur le serveur.
+  document.getElementById("import-disponibilites").addEventListener("submit", async (evenement) => {
+    evenement.preventDefault();
+    const fichier = document.getElementById("fichier-disponibilites").files[0];
+    if (fichier === undefined) return;
+    const reponse = await fetch("/parametres/disponibilites", {
+      method: "POST",
+      headers: { "content-type": "text/csv; charset=utf-8" },
+      body: await fichier.text(),
+    });
+    document.open();
+    document.write(await reponse.text());
+    document.close();
+  });
+</script>
+
+<% if (disponibilites?.issue === "importees") { %>
+  <p class="etat">
+    Disponibilités importées : <strong><%= disponibilites.repondants %></strong>
+    répondant<%= disponibilites.repondants > 1 ? "s" : "" %> sur
+    <%= disponibilites.journees.map((journee) => `J${journee}`).join(", ") %>.
+    <% if (disponibilites.aRattacher > 0) { %>
+      <strong><%= disponibilites.aRattacher %></strong>
+      nom<%= disponibilites.aRattacher > 1 ? "s" : "" %> à rattacher à un membre de l'équipe
+      sur <a href="/capitanat/disponibilites">Disponibilités</a>.
+    <% } else { %>
+      La grille est sur <a href="/capitanat/disponibilites">Disponibilités</a>.
+    <% } %>
+  </p>
+<% } else if (disponibilites?.issue === "refusees") { %>
+  <p class="etat">
+    <strong>Import refusé, rien n'a été écrit.</strong> Les disponibilités en
+    base sont inchangées.
+  </p>
+  <table>
+    <tr><th>Ligne</th><th>Raison</th></tr>
+    <% for (const motif of disponibilites.motifs) { %>
+      <tr>
+        <td><%= motif.ligne ?? "—" %></td>
+        <td><%= motif.raison %></td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>

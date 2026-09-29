@@ -13,6 +13,8 @@ import type { DepotPreferences } from "../core/paires.ts";
 import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } from "../core/paires.ts";
 import type { DepotCalendrier } from "../core/calendrier.ts";
 import { adversaireDe, recoitOn } from "../core/calendrier.ts";
+import type { DepotDisponibilites } from "../core/disponibilite.ts";
+import { grilleDesDisponibilites, suggestionPour } from "../core/disponibilite.ts";
 import { enJoueurs, joueursRequis } from "./mots.ts";
 
 /**
@@ -45,11 +47,14 @@ export function creerModuleCapitanat(options: {
   readonly preferences: DepotPreferences;
   /** Le calendrier d'interclub, importé depuis l'écran des paramètres et lu ici. */
   readonly calendrier: DepotCalendrier;
+  /** Les réponses aux sondages, importées depuis les paramètres, et leurs rattachements — spec 008. */
+  readonly disponibilites: DepotDisponibilites;
   /** L'ancienneté des classements, jugée sur la cadence de leur passe — spec 019. */
   readonly fraicheur: (vuLe: Date | null) => Fraicheur;
   readonly horloge: Horloge;
 }): ModuleWeb {
-  const { coequipiers, identites, classements, preferences, calendrier, fraicheur, horloge } = options;
+  const { coequipiers, identites, classements, preferences, calendrier, disponibilites, fraicheur, horloge } =
+    options;
   const routeur = Router();
 
   const equipe = () => listeDeLEquipe(coequipiers, identites, classements);
@@ -76,6 +81,69 @@ export function creerModuleCapitanat(options: {
       adversaireDe,
       recoitOn,
     });
+  });
+
+  /**
+   * La grille des disponibilités — spec 008 : une colonne par rencontre, une
+   * ligne par nom du sondage, et le décompte par sexe qui dit si l'on compose.
+   */
+  routeur.get("/disponibilites", (_requete, reponse) => {
+    const membres = equipe();
+    const leCalendrier = calendrier.lire();
+    const repondants = disponibilites.repondants();
+    reponse.render("capitanat-disponibilites", {
+      titre: "Capitanat",
+      onglet: "disponibilites",
+      calendrier: leCalendrier,
+      membres,
+      repondants,
+      grille:
+        leCalendrier === null
+          ? null
+          : grilleDesDisponibilites({
+              calendrier: leCalendrier,
+              membres,
+              repondants,
+              reponses: disponibilites.reponses(),
+            }),
+      // Le membre préselectionné : le rattachement en base, sinon la
+      // proposition par le prénom — que le capitaine confirme en enregistrant.
+      preselection: (nom: string, licence: Licence | null) => licence ?? suggestionPour(nom, membres),
+      adversaireDe,
+      recoitOn,
+    });
+  });
+
+  /**
+   * Rattacher les noms du sondage aux membres — spec 008.
+   *
+   * Un seul formulaire pour tous les noms : on rattache le sondage d'un coup,
+   * après l'import. Une licence qui n'est pas dans l'équipe ne se rattache pas.
+   */
+  routeur.post("/disponibilites/rattachements", (requete, reponse) => {
+    const noms = champsAlignes(requete.body, "nom");
+    const licences = champsAlignes(requete.body, "licence");
+    const connus = new Set(disponibilites.repondants().map(({ nom }) => nom));
+    const equipeActuelle = new Set<string>(equipe().map(({ licence }) => licence));
+
+    if (noms.length !== licences.length) {
+      return reponse.status(400).render("erreur", { titre: "Rattachement refusé", message: "Formulaire incomplet." });
+    }
+    for (const [index, nom] of noms.entries()) {
+      const licence = licences[index] ?? "";
+      if (!connus.has(nom) || (licence !== "" && !equipeActuelle.has(licence))) {
+        return reponse.status(400).render("erreur", {
+          titre: "Rattachement refusé",
+          message: `« ${nom} » ne se rattache pas à ce membre : l'un ou l'autre n'existe plus. Rien n'a été enregistré.`,
+        });
+      }
+    }
+
+    for (const [index, nom] of noms.entries()) {
+      const licence = licences[index] ?? "";
+      disponibilites.rattacher(nom, licence === "" ? null : (licence as Licence));
+    }
+    reponse.redirect("/capitanat/disponibilites");
   });
 
   routeur.get("/preferences", (_requete, reponse) => {
@@ -225,6 +293,17 @@ function champsMultiples(corps: unknown, nom: string): readonly string[] {
   const valeur = ((corps ?? {}) as Record<string, unknown>)[nom];
   if (Array.isArray(valeur)) return valeur.map(String).filter((licence) => licence !== "");
   return typeof valeur === "string" && valeur !== "" ? [valeur] : [];
+}
+
+/**
+ * Deux champs répétés, lus côte à côte : contrairement à `champsMultiples`, la
+ * valeur vide est gardée — ici elle veut dire « non rattaché », et l'ôter
+ * décalerait toutes les paires qui suivent.
+ */
+function champsAlignes(corps: unknown, nom: string): readonly string[] {
+  const valeur = ((corps ?? {}) as Record<string, unknown>)[nom];
+  if (Array.isArray(valeur)) return valeur.map(String);
+  return typeof valeur === "string" ? [valeur] : [];
 }
 
 function refuser(reponse: Response, message: string): void {

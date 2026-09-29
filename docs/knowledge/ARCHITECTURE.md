@@ -883,6 +883,34 @@ La page ne donne que le jour et le mois : l'année se déduit de la saison
 sélectionnée (`switchSaison`), l'automne étant l'année de la saison, l'hiver
 la suivante.
 
+## Les disponibilités
+
+Spec 008, par la voie qu'elle retient : un sondage hors de l'outil, dont
+l'export CSV s'importe depuis `/parametres/disponibilites` et se lit en grille
+sur `/capitanat/disponibilites`, une colonne par rencontre du calendrier.
+
+| Pièce | Où |
+|-------|-----|
+| la notion — réponse, répondant, grille — et son port | `capitanat/core/disponibilite.ts` |
+| le parseur de l'export | `capitanat/infrastructure/csv-disponibilites.ts` |
+| la forme de l'export, en fixture (noms inventés) | `capitanat/infrastructure/exemples/sondage-disponibilites.csv` |
+| le dépôt | `capitanat/infrastructure/depot-disponibilites-sqlite.ts` |
+| les tables | `migrations/017__disponibilite.sql` |
+
+**La journée rattache, la date contrôle.** Chaque colonne du sondage porte un
+numéro de journée et une date ; la date doit être celle du calendrier, sans
+quoi l'import est refusé — un sondage d'une autre équipe ou d'une autre saison
+mettrait des réponses en face des mauvaises rencontres. L'adversaire écrit
+dans l'intitulé est ignoré : le sondage l'abrège à sa façon. Un import
+remplace les journées qu'il couvre, et elles seules.
+
+**Le sondage parle en prénoms et en surnoms.** Chaque nom est un *répondant*,
+que le capitaine rattache une fois à un membre ; le rattachement tient au nom
+et vaut pour les sondages suivants. Le prénom relevé sert à *proposer* un
+membre, jamais à rattacher en silence — pour la raison que `parNom` donne
+déjà. Le décompte par sexe, qui dit si l'on compose, ne compte que les
+répondants rattachés.
+
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs, que 015 laisse volontairement à dessiner sur les pages

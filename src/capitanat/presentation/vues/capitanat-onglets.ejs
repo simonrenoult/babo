@@ -4,6 +4,7 @@
   <% for (const [id, chemin, intitule] of [
        ["effectifs", "/capitanat", "Effectifs"],
        ["calendrier", "/capitanat/calendrier", "Calendrier"],
+       ["disponibilites", "/capitanat/disponibilites", "Disponibilités"],
        ["preferences", "/capitanat/preferences", "Préférences"],
      ]) { %>
     <a href="<%= chemin %>" <%- id === onglet ? 'aria-current="page"' : "" %>><%= intitule %></a>

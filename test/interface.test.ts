@@ -11,6 +11,9 @@ import { creerModuleCapitanat } from "../src/capitanat/presentation/module-web.t
 import { depotCoequipiersSqlite } from "../src/capitanat/infrastructure/depot-coequipiers-sqlite.ts";
 import { depotPreferencesSqlite } from "../src/capitanat/infrastructure/depot-preferences-sqlite.ts";
 import { depotCalendrierSqlite } from "../src/capitanat/infrastructure/depot-calendrier-sqlite.ts";
+import { depotDisponibilitesSqlite } from "../src/capitanat/infrastructure/depot-disponibilites-sqlite.ts";
+import { lireLeCsvDesDisponibilites } from "../src/capitanat/infrastructure/csv-disponibilites.ts";
+import { DisponibilitesRefusees, verifierContreLeCalendrier } from "../src/capitanat/core/disponibilite.ts";
 import { depotVeillesSqlite } from "../src/veille/infrastructure/depot-veilles-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "../src/capitanat/infrastructure/csv-equipe.ts";
 import { ImportRefuse } from "../src/capitanat/core/coequipier.ts";
@@ -96,6 +99,7 @@ describe("l'application assemblée", () => {
   let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
   let preferences: ReturnType<typeof depotPreferencesSqlite>;
   let calendrierDInterclub: ReturnType<typeof depotCalendrierSqlite>;
+  let disponibilites: ReturnType<typeof depotDisponibilitesSqlite>;
   let veilles: ReturnType<typeof depotVeillesSqlite>;
   /** Le dépôt décoré de 019 : celui que `main.ts` donne aux passes. */
   let rapports: ReturnType<typeof enAlertant>;
@@ -123,6 +127,7 @@ describe("l'application assemblée", () => {
     coequipiers = depotCoequipiersSqlite(persistance.base);
     preferences = depotPreferencesSqlite(persistance.base);
     calendrierDInterclub = depotCalendrierSqlite(persistance.base);
+    disponibilites = depotDisponibilitesSqlite(persistance.base);
     veilles = depotVeillesSqlite(persistance.base);
     reseau = reseauRejoue();
 
@@ -206,6 +211,7 @@ describe("l'application assemblée", () => {
           classements: persistance.classements,
           preferences,
           calendrier: calendrierDInterclub,
+          disponibilites,
           fraicheur: fraicheurDeTest,
           horloge: horlogeSysteme,
         }),
@@ -245,6 +251,27 @@ describe("l'application assemblée", () => {
         // la page, le parseur se teste sur la page réelle capturée.
         calendrier: () => null,
         importerLeCalendrier: () => Promise.reject(new Error("icbad n'est pas joignable dans ce test")),
+        // Le sondage, lui, ne touche à rien d'extérieur : la chaîne est celle de
+        // `main.ts`, parseur, contrôle contre le calendrier et dépôt compris.
+        importerLesDisponibilites: (csv) => {
+          try {
+            const sondage = lireLeCsvDesDisponibilites(csv);
+            const motifs = verifierContreLeCalendrier(sondage, calendrierDInterclub.lire());
+            if (motifs.length > 0) throw new DisponibilitesRefusees(motifs);
+            disponibilites.enregistrer(sondage);
+            return Promise.resolve({
+              issue: "importees" as const,
+              repondants: sondage.repondants.length,
+              journees: sondage.journees.map(({ journee }) => journee),
+              aRattacher: disponibilites.repondants().filter(({ licence }) => licence === null).length,
+            });
+          } catch (erreur) {
+            if (erreur instanceof DisponibilitesRefusees) {
+              return Promise.resolve({ issue: "refusees" as const, motifs: erreur.motifs });
+            }
+            throw erreur;
+          }
+        },
         // La connexion touche au réseau : l'assemblage vérifie le montage.
         connecter: () => Promise.resolve("ouverte" as const),
         confirmerLeCode: () => Promise.resolve(),
@@ -791,6 +818,71 @@ describe("l'application assemblée", () => {
       corps,
       /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Gymnase%20Julie%20Vlasto%2C%2075010%20Paris"/,
     );
+  });
+
+  it("importe un sondage, propose de rattacher Simon, puis compte ses disponibilités", async () => {
+    const cps = { nom: "CPS Xtrem Bad 5", code: "75-CPS10-5" };
+    const adversaire = { nom: "Badminton Paris 18eme 5", code: "75-BAD18-5" };
+    calendrierDInterclub.remplacer({
+      url: "https://icbad.ffbad.org/competition/2601367/tableau/19107",
+      equipe: cps,
+      competition: "ICD75 D3 Mixte",
+      groupe: "Groupe B",
+      importeLe: new Date(),
+      rencontres: ["2026-11-05", "2026-11-14", "2026-11-16", "2026-11-28", "2026-12-01"].map((jour, index) => ({
+        id: 796900 + index,
+        journee: index + 1,
+        debut: new Date(`${jour}T20:00:00`),
+        lieu: "Gymnase",
+        domicile: adversaire,
+        exterieur: cps,
+      })),
+    });
+    const csv = readFileSync(
+      new URL("../src/capitanat/infrastructure/exemples/sondage-disponibilites.csv", import.meta.url),
+      "utf8",
+    );
+
+    const importe = await visiter("/parametres/disponibilites", {
+      method: "POST",
+      headers: { "content-type": "text/csv; charset=utf-8" },
+      body: csv,
+    });
+    assert.equal(importe.status, 200);
+    assert.match(await importe.text(), /<strong>5<\/strong>\s*répondants/);
+
+    const avant = await (await visiter("/capitanat/disponibilites")).text();
+    assert.match(avant, /qui est blessée/, "la remarque du sondage est gardée");
+    assert.match(avant, /<option value="07194591" selected>/, "Simon est proposé par son prénom");
+    assert.match(avant, /proposé/);
+
+    const rattache = await visiter("/capitanat/disponibilites/rattachements", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams([
+        ["nom", "Simon"],
+        ["licence", "07194591"],
+        ["nom", "Anne"],
+        ["licence", ""],
+      ]),
+    });
+    assert.equal(rattache.status, 302);
+
+    const apres = await (await visiter("/capitanat/disponibilites")).text();
+    assert.match(apres, /Simon RENOULT/, "le nom fédéral remplace le prénom du sondage");
+    assert.match(apres, /« Simon » au sondage/);
+    assert.match(apres, /0 · 1/, "Simon, homme, disponible");
+  });
+
+  it("refuse un sondage dont les dates ne sont pas celles du calendrier", async () => {
+    const reponse = await visiter("/parametres/disponibilites", {
+      method: "POST",
+      headers: { "content-type": "text/csv; charset=utf-8" },
+      body: "Nom;J1 - mar. 03/11/2026 20h\nSimon;Oui\n",
+    });
+
+    assert.equal(reponse.status, 400);
+    assert.match(await reponse.text(), /J1 est datée du 03\/11\/2026 dans le sondage, du 05\/11\/2026 au calendrier/);
   });
 
   /**
