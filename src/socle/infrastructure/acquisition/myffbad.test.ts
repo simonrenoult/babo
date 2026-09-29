@@ -110,7 +110,7 @@ describe("l'appel d'une Server Action myffbad", () => {
       requete?.corps,
       '[{"licence":"07194591","password":"un-secret","rememberMe":true}]',
     );
-    assert.equal(requete?.entetes?.["next-action"], "40960127f718c9144ddd4ae4c5212b5b5581a3951e");
+    assert.equal(requete?.entetes?.["next-action"], "404027a3acdeccf7af10522b3c0ef83c50db1a555d");
     assert.equal(requete?.entetes?.["content-type"], "text/plain;charset=UTF-8");
   });
 
@@ -227,7 +227,7 @@ describe("la requête de classement du module", () => {
     assert.equal(requete?.url, "https://www.myffbad.fr/joueur/02345678");
     assert.equal(requete?.corps, "[999]");
     assert.equal(requete?.jeton, null, "la chaîne de 028 est anonyme de bout en bout");
-    assert.equal(requete?.entetes?.["next-action"], "407802f1dd81b811b755a938c6142d52f0622e3c0a");
+    assert.equal(requete?.entetes?.["next-action"], "402130d79e01a1af99d4a0a294276979e5077b0fb0");
   });
 
   it("demande la fiche publique elle aussi sans cookie", () => {

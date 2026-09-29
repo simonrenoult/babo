@@ -168,17 +168,17 @@ function expirationDuJwt(valeur: string): Date | null {
  * construction. Ces identifiants sont donc **datés** : ils changent quand
  * myffbad redéploie le code de l'action.
  *
- * Ils vivent ici, relevés le 1er septembre 2026, et nulle part ailleurs. Quand
+ * Ils vivent ici, relevés le 29 septembre 2026, et nulle part ailleurs. Quand
  * l'un d'eux périme, le serveur répond `404 Server action not found` — panne
  * franche, jamais une liste vide, donc détectable (voir `ActionIntrouvable`).
  * Le `buildId` que porte chaque réponse permet même de le voir venir.
  */
-export const BUILD_DES_ACTIONS = "DQCg8nwBq71o32okRTijN";
+export const BUILD_DES_ACTIONS = "9H-mdx8rUCm0Yx7RbXwqb";
 
 export const ACTIONS = {
-  connexion: "40960127f718c9144ddd4ae4c5212b5b5581a3951e",
-  classement: "407802f1dd81b811b755a938c6142d52f0622e3c0a",
-  resultats: "40a81539084c800c578dc3ab71c5203e560f9f3f35",
+  connexion: "404027a3acdeccf7af10522b3c0ef83c50db1a555d",
+  classement: "402130d79e01a1af99d4a0a294276979e5077b0fb0",
+  resultats: "4012eab2b427a67e7920e51a6eedae9b34735ded64",
 } as const;
 
 export type Action = keyof typeof ACTIONS;
