@@ -5,7 +5,7 @@
 | id          | 009                                                                                                 |
 | module      | capitanat                                                                                           |
 | type        | feat                                                                                                |
-| bloquée par | [[011__capitanat__composition-de-journee.feat]] |
+| bloquée par | —      |
 
 ## Contexte
 
@@ -33,10 +33,21 @@ Retenue : calcul automatique.
 
 ## Questions
 
-- Un joueur remplaçant présent mais non aligné compte-t-il comme sollicité ?
-- Le taux doit-il être un simple ratio, ou pondéré par le nombre de places ?
+- ~~Un joueur remplaçant présent mais non aligné compte-t-il comme sollicité ?~~
+  **Non** : n'est sollicité que celui qui figure dans la composition.
+- ~~Le taux doit-il être un simple ratio, ou pondéré par le nombre de places ?~~
+  **Un ratio de journées**, un ou deux tableaux la même journée comptant pour
+  une ; mais le dénominateur est pondéré par la réponse : un « si besoin » y
+  vaut une demi-journée.
 
 ## Notes
 
 Dépend de [[008__capitanat__disponibilites-interclubs.feat]] et
 [[011__capitanat__composition-de-journee.feat]].
+
+**Livrée le 30 septembre 2026.** Par joueur : journées retenu sur journées
+déjà composées où il était disponible — une journée pas encore composée ne
+compte pas, sans quoi tout le monde paraîtrait sous-utilisé. Affiché en
+colonne des effectifs pour la saison, et sur chaque page de planification pour
+les autres journées, dans les listes de sélection et dans un tableau qui met
+les moins retenus en tête.

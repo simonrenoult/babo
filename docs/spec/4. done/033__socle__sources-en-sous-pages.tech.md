@@ -7,9 +7,6 @@
 | type        | tech   |
 | bloquée par | —      |
 
-> Ébauche : le problème est mesuré, la découpe est esquissée, l'axe n'est pas
-> tranché.
-
 ## Contexte
 
 [[015__socle__source-de-donnees.tech]] a ouvert `/sources` pour une seule
@@ -127,3 +124,17 @@ connaître les sous-pages du socle.
 
 Le `SameSite=Strict` de 021 protège les formulaires quel que soit leur chemin :
 la découpe ne touche pas à la question CSRF.
+
+**Livrée le 30 septembre 2026, par un autre axe que ceux envisagés** : ni par
+geste ni par source, mais par rubrique, sous le nom **Paramètres**
+(`/parametres`, `/sources` redirigeant). Onglets servis côté serveur, chacun à
+son chemin : *Scrapping* (tâches, sessions de connexion, sondes, emails, logs
+d'exécution, déploiement, sources), *Import équipe*, *Import calendrier*,
+*Import disponibilités*, *Engagements*.
+
+Les critères de résolution tiennent : une vue par onglet, aucune au-delà de
+200 lignes ; chaque onglet ne lit du port que ce qu'il affiche ; le résultat
+d'un `POST` revient sur l'onglet qui l'a déclenché. Le point dur de l'adresse
+est levé par le préfixe : les sessions vivent sous
+`/parametres/scrapping/sessions/:source/…`. Le port `AccesAuxSources` est resté
+unique — le découper suivra si un onglet grossit.
