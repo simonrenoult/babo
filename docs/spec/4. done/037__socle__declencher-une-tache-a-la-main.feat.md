@@ -37,9 +37,10 @@ puisque « dépassée » veut alors dire « abandonnée ».
 ## Solution
 
 Un seul geste, sur le tableau d'ordonnancement de `/sources` : un bouton
-« Lancer » par tâche, qui déclenche la passe **comme le planificateur l'aurait
-faite** — grâce court-circuitée, échéance clôturée, suivante inscrite, rapport
-consigné sous le même identifiant. Le rapport s'affiche aussitôt sur l'écran.
+« Lancer » par tâche, qui joue la passe **tout de suite, en coup unique** —
+grâce ignorée, rapport consigné sous le même identifiant — **sans toucher à la
+planification** : l'échéance prévue reste en attente, telle quelle. Le rapport
+s'affiche aussitôt sur l'écran.
 
 Ce geste unique remplace les trois boutons de passe actuels (classement,
 engagements, tournois), qui disparaissent : garder des boutons qui exécutent
@@ -55,9 +56,9 @@ veut préserver.
 
 1. En tant qu'opérateur, je veux déclencher à la main une tâche périodique,
    pour la constater pendant la mise au point sans attendre son échéance.
-2. En tant qu'opérateur, je veux que le déclenchement clôture l'échéance et
-   inscrive la suivante, pour que la tâche se retrouve dans le même état qu'après
-   un réveil automatique.
+2. En tant qu'opérateur, je veux que le déclenchement laisse la planification
+   intacte, pour que la passe prévue tourne quand même à son heure : un
+   déclenchement est une demande ponctuelle, pas un réveil avancé.
 3. En tant qu'opérateur, je veux que le rapport de la passe s'affiche
    immédiatement après le clic, pour lire son verdict sans aller le chercher
    ailleurs.
@@ -91,12 +92,14 @@ veut préserver.
 ## Implementation Decisions
 
 - **Une seule méthode sur le planificateur.** L'ordonnanceur gagne
-  `executerMaintenant(tache): Promise<Passage>`, qui rejoue le passage existant
-  (`passer`/`executer`) avec `estDansLaFenetre` court-circuité : l'échéance est
-  clôturée à `faite`, la suivante inscrite, le rapport consigné sous
-  l'identifiant de la tâche par le même chemin qu'un réveil. C'est le seul
-  module qui possède à la fois l'échéance et le rapport, donc le seul endroit
-  où ce geste puisse tenir.
+  `executerMaintenant(tache): Promise<Passage>`, qui joue la tâche aussitôt et
+  consigne son rapport sous l'identifiant de la tâche par le même chemin qu'un
+  réveil (`jouer`). Elle ne lit ni n'écrit aucune échéance : l'échéance en
+  attente n'est ni clôturée, ni décalée, et une tâche sans échéance se
+  déclenche aussi bien. (Une première version clôturait l'échéance et
+  inscrivait « la suivante » après maintenant — la même occurrence, ignorée par
+  l'index unique : la tâche restait sans échéance, et le clic suivant ne jouait
+  plus rien.)
 - **Verrou partagé avec le réveil.** `executerMaintenant` réutilise le verrou
   `enCours` du réveil : une passe qui dure ne se superpose ni à elle-même ni à
   un réveil automatique simultané (018, plafond de 015). Un déclenchement
@@ -106,8 +109,8 @@ veut préserver.
   automatique simultané est rare ; le risque proxy est assumé comme pour les
   boutons actuels.
 - **Coup unique, sans réessai.** Une passe manuelle qui finit en `echec` ne
-  planifie pas les réessais à une et quatre heures du réveil automatique : elle
-  clôt l'échéance et inscrit la suivante. Le réessai est propre au réveil ; au
+  planifie pas les réessais à une et quatre heures du réveil automatique, et ne
+  consomme aucune tentative de l'échéance prévue. Le réessai est propre au réveil ; au
   déclenchement manuel, le rapport montre l'échec tout de suite et on relance à
   la main.
 - **Route.** `POST /sources/ordonnancement/:tache/executer` branche la méthode.
@@ -141,9 +144,9 @@ veut préserver.
 ## Testing Decisions
 
 - **Ce qui fait un bon test.** On ne teste que le comportement externe : un
-  déclenchement manuel laisse la tâche dans le même état qu'un réveil —
-  échéance clôturée, suivante inscrite, rapport consigné sous l'identifiant —
-  sans inspecter les entrailles de l'ordonnanceur.
+  déclenchement manuel joue la passe, consigne son rapport sous l'identifiant
+  et laisse les échéances intactes — sans inspecter les entrailles de
+  l'ordonnanceur.
 - **Modules testés.**
   - `Ordonnanceur.executerMaintenant`, sur le joint existant
     `ordonnancement.test.ts` (doublure en mémoire + `tacheTemoin`).
@@ -154,8 +157,9 @@ veut préserver.
   déjà `/sources/classement` et `/sources/engagements` sur la même doublure —
   ce sont exactement les coutures à réutiliser, aucune nouvelle à créer.
 - **Cas couverts.**
-  - Un déclenchement hors fenêtre de grâce clôt l'échéance et inscrit la
-    suivante (la grâce est court-circuitée).
+  - Un déclenchement hors fenêtre de grâce joue la passe et laisse l'échéance
+    prévue intacte ; sans échéance, il joue quand même ; deux clics successifs
+    jouent deux passes.
   - Le rapport est consigné sous l'identifiant de la tâche, pas en double.
   - Un échec manuel est un coup unique : pas de `reportee` à une heure.
   - Une tâche inconnue est refusée/consignée `inconnue`, pas exécutée.

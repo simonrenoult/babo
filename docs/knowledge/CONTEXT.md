@@ -35,9 +35,9 @@ et ses fenêtres de grâce se règlent depuis `/sources`, sans redéploiement. U
 grâce, abandonnée sinon — un rappel J-1 envoyé à J+2 est pire qu'un rappel
 manquant. Un échec est rejoué deux fois, à une heure puis à quatre. Chaque
 tâche active à cadence se déclenche aussi à la main, depuis le tableau (spec
-037) : la passe tourne exactement comme au réveil — grâce court-circuitée,
-échéance clôturée, suivante inscrite, rapport affiché aussitôt — mais en coup
-unique, sans réessai silencieux.
+037) : la passe tourne aussitôt, grâce ignorée, rapport affiché dans la
+foulée — en coup unique, sans réessai, et sans toucher à la planification :
+la passe prévue tourne quand même à son heure.
 
 Voir
 [ARCHITECTURE.md](ARCHITECTURE.md) pour le découpage du code et

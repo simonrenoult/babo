@@ -515,25 +515,49 @@ describe("les tâches entre elles", () => {
 });
 
 describe("le déclenchement à la main", () => {
-  it("exécute hors fenêtre de grâce : l'échéance est clôturée et la suivante inscrite", async () => {
+  it("exécute hors fenêtre de grâce, sans toucher à l'échéance planifiée", async () => {
     // On est bien au-delà des 48 h de grâce : un réveil abandonnerait. Le
     // déclenchement manuel, lui, court-circuite la fenêtre — c'est tout son
-    // sens (spec 037).
+    // sens (spec 037). Coup unique : la planification reste telle quelle.
     const tache = tacheTemoin("acquisition:myffbad", ["succes"], CLASSEMENT);
     const { ordonnanceur, horloge, echeances } = monter([tache], MERCREDI_MIDI);
     ordonnanceur.amorcer();
+    const prevue = echeances.prochaine("acquisition:myffbad");
     horloge.aller(new Date(2026, 8, 8, 12, 0)); // mardi : plus de 48 h de retard
 
     const passage = await ordonnanceur.executerMaintenant("acquisition:myffbad");
 
     assert.equal(tache.appels, 1, "la grâce est court-circuitée, la passe tourne");
     assert.equal(passage.verdict, "executee");
-    assert.equal(echeances.lignes[0]?.etat, "faite", "l'échéance est clôturée");
+    assert.equal(echeances.lignes.length, 1, "aucune échéance inscrite");
     assert.deepEqual(
-      echeances.prochaine("acquisition:myffbad")?.prevueLe,
-      new Date(2026, 8, 11, 1, 0),
-      "et la suivante est inscrite",
+      echeances.prochaine("acquisition:myffbad"),
+      prevue,
+      "l'échéance planifiée reste en attente, intacte",
     );
+  });
+
+  it("exécute aussitôt, même sans échéance en attente", async () => {
+    const tache = tacheTemoin("acquisition:myffbad", ["succes"], CLASSEMENT);
+    const { ordonnanceur, echeances } = monter([tache], MERCREDI_MIDI);
+
+    const passage = await ordonnanceur.executerMaintenant("acquisition:myffbad");
+
+    assert.equal(tache.appels, 1, "la passe tourne sans attendre d'échéance");
+    assert.equal(passage.verdict, "executee");
+    assert.equal(echeances.lignes.length, 0, "et la planification n'en est pas touchée");
+  });
+
+  it("deux déclenchements successifs jouent deux passes", async () => {
+    const tache = tacheTemoin("acquisition:myffbad", ["succes", "succes"], CLASSEMENT);
+    const { ordonnanceur, horloge } = monter([tache], MERCREDI_MIDI);
+    ordonnanceur.amorcer();
+    horloge.aller(VENDREDI_1H);
+
+    await ordonnanceur.executerMaintenant("acquisition:myffbad");
+    await ordonnanceur.executerMaintenant("acquisition:myffbad");
+
+    assert.equal(tache.appels, 2);
   });
 
   it("consigne le rapport sous l'identifiant de la tâche, pas en double", async () => {
@@ -562,13 +586,11 @@ describe("le déclenchement à la main", () => {
     assert.equal(passage.verdict, "executee", "le déclenchement ne se dit pas reporté");
     assert.equal(passage.rapport?.issue, "echec", "mais le rapport montre l'échec");
     assert.equal(tache.appels, 1);
-    // L'échéance est clôturée et la suivante inscrite : aucun réessai à une
-    // heure — c'est ce qu'une passe échouée au réveil aurait inscrit (018).
-    assert.equal(echeances.lignes[0]?.etat, "faite");
-    assert.deepEqual(
-      echeances.prochaine("acquisition:myffbad")?.prevueLe,
-      new Date(2026, 8, 11, 1, 0),
-    );
+    // Aucun réessai inscrit : l'échéance planifiée reste intacte, sans
+    // tentative consommée (018 ne vaut que pour le réveil).
+    assert.equal(echeances.lignes.length, 1);
+    assert.equal(echeances.lignes[0]?.etat, "en-attente");
+    assert.equal(echeances.lignes[0]?.tentatives, 0);
   });
 
   it("refuse une tâche inconnue, la consigne en `inconnue`, sans rien exécuter", async () => {

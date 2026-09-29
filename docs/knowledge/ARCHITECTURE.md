@@ -333,10 +333,10 @@ recouvrent jamais un réglage modifié depuis.
 
 **Chaque tâche se déclenche aussi à la main — spec 037.** Une colonne
 **Lancer** sur le tableau d'ordonnancement appelle `executerMaintenant`, qui
-joue la passe comme un réveil l'aurait faite : grâce court-circuitée, échéance
-clôturée à `faite`, suivante inscrite, rapport consigné sous l'identifiant de
-la tâche par le même chemin — le seul module qui possède à la fois l'échéance
-et le rapport. Coup unique, sans réessai : un échec se lit dans le rapport
+joue la passe aussitôt, grâce ignorée, et consigne son rapport sous
+l'identifiant de la tâche par le même chemin qu'un réveil. Elle ne touche à
+aucune échéance : la passe prévue reste planifiée, telle quelle. Coup unique,
+sans réessai : un échec se lit dans le rapport
 aussitôt, et on relance à la main. Le verrou `enCours` du réveil est partagé :
 un déclenchement pendant une passe attend qu'elle finisse puis joue la sienne,
 sans jamais se superposer à elle ni aux requêtes du compte (015). L'import de

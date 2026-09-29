@@ -238,9 +238,9 @@ export type Ordonnanceur = {
   /**
    * Déclenche une tâche à la main — spec 037.
    *
-   * Joue la passe comme un réveil l'aurait faite, grâce court-circuitée :
-   * l'échéance est clôturée à `faite`, la suivante inscrite et le rapport
-   * consigné sous l'identifiant de la tâche. Coup unique, sans réessai.
+   * Joue la passe tout de suite et consigne son rapport sous l'identifiant de
+   * la tâche. Coup unique, sans réessai, qui ne touche pas à la planification :
+   * l'échéance en attente reste telle quelle.
    *
    * Refuse (en levant) une tâche inconnue, suspendue ou ponctuelle.
    */
@@ -447,27 +447,14 @@ export function creerOrdonnanceur(options: {
         throw new Error(`Échéance ponctuelle, non déclenchable à la main : ${nom}`);
       }
 
-      // On repart de l'échéance en attente, comme un réveil — la fenêtre de
-      // grâce est court-circuitée : on l'exécute même hors fenêtre. Faute
-      // d'échéance (cas défensif d'une tâche active à cadence, qui en a
-      // normalement toujours une), on en inscrit une et on rend la main.
-      const echeance = echeances.prochaine(nom);
-      if (echeance === null) {
-        planifier(tache, horloge.maintenant());
-        return { tache: nom, prevueLe: horloge.maintenant(), verdict: "executee", rapport: null };
-      }
-
+      // Coup unique, à côté de la planification : la passe joue tout de suite,
+      // grâce ignorée, et l'échéance en attente reste telle quelle — ni
+      // clôturée, ni décalée, ni réessayée. Le rapport montre un échec aussitôt
+      // et on relance à la main (spec 037).
       const demarreLe = horloge.maintenant();
       const rapport = await jouer(tache, demarreLe);
 
-      // Coup unique : l'échéance est clôturée à `faite` et la suivante
-      // inscrite, même en cas d'échec — le réessai à une et quatre heures est
-      // propre au réveil. Sur un déclenchement manuel, le rapport montre
-      // l'échec tout de suite et on relance à la main (spec 037).
-      echeances.clore(echeance.id, "faite", horloge.maintenant());
-      planifier(tache, horloge.maintenant());
-
-      return { tache: nom, prevueLe: echeance.prevueLe, verdict: "executee", rapport };
+      return { tache: nom, prevueLe: demarreLe, verdict: "executee", rapport };
     } finally {
       finirLaPasse();
     }
