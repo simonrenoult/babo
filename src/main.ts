@@ -46,6 +46,10 @@ import { ImportRefuse } from "./capitanat/core/coequipier.ts";
 import { depotCoequipiersSqlite } from "./capitanat/infrastructure/depot-coequipiers-sqlite.ts";
 import { depotPreferencesSqlite } from "./capitanat/infrastructure/depot-preferences-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "./capitanat/infrastructure/csv-equipe.ts";
+import type { CalendrierDInterclub } from "./capitanat/core/calendrier.ts";
+import { CalendrierRefuse, calendrierDeLEquipe } from "./capitanat/core/calendrier.ts";
+import { lireLaPageDeGroupe, verifierLURLDuGroupe } from "./capitanat/infrastructure/calendrier-icbad.ts";
+import { depotCalendrierSqlite } from "./capitanat/infrastructure/depot-calendrier-sqlite.ts";
 import { creerModuleVeille } from "./veille/presentation/module-web.ts";
 import { depotVeillesSqlite } from "./veille/infrastructure/depot-veilles-sqlite.ts";
 import { disciplinesDe } from "./veille/core/veille.ts";
@@ -83,6 +87,9 @@ const coequipiers = depotCoequipiersSqlite(persistance.base);
  * capitaine, donc une notion de feature, et le socle n'en connaît aucune (022).
  */
 const preferencesDuCapitaine = depotPreferencesSqlite(persistance.base);
+
+/** Le calendrier d'interclub de mon équipe : même base, même raison. */
+const calendrierDInterclub = depotCalendrierSqlite(persistance.base);
 
 /**
  * Les veilles — spec 012.
@@ -570,6 +577,89 @@ const moduleDe = (source: (typeof modulesDAcquisition)[number]["source"]) => {
 const motDePasseDe = (source: string): string | null =>
   source === "badnet" ? configuration.motDePasseBadnet : configuration.motDePasseMyffbad;
 
+/**
+ * L'import du calendrier d'interclub, depuis la page publique d'un groupe icbad.
+ *
+ * **Un geste, pas une tâche.** Le calendrier se fixe en début de saison ; une
+ * passe ordonnancée relirait chaque nuit une page figée. On l'importe à la
+ * main, et de nouveau si le comité déplace une rencontre.
+ *
+ * Il laisse pourtant un rapport, comme une passe (019) : c'est ce qui dit, dans
+ * les logs, quand le calendrier a été lu et ce qu'on en a tiré. Consigné sans
+ * passer par l'alerte : l'échec d'un geste se lit sur l'écran qui l'a lancé,
+ * un mail n'apprendrait rien de plus.
+ *
+ * Une requête, plafonnée à une : il n'y a rien à paginer.
+ */
+const TACHE_DU_CALENDRIER = "acquisition:icbad:calendrier";
+
+const etatDuCalendrier = (calendrier: CalendrierDInterclub) => ({
+  url: calendrier.url,
+  equipe: calendrier.equipe.code,
+  nomEquipe: calendrier.equipe.nom,
+  competition: calendrier.competition,
+  groupe: calendrier.groupe,
+  rencontres: calendrier.rencontres.length,
+  importeLe: calendrier.importeLe,
+});
+
+const importerLeCalendrier = async (demande: { readonly url: string; readonly equipe: string }) => {
+  // Vérifiées avant toute requête, et sans rapport : rien n'a été lu. C'est
+  // aussi ce qui fait que le serveur ne va chercher que la page d'un groupe
+  // icbad, jamais une adresse qu'on lui tendrait.
+  let url: string;
+  try {
+    url = verifierLURLDuGroupe(demande.url);
+  } catch (erreur) {
+    if (erreur instanceof CalendrierRefuse) return { issue: "refuse" as const, raison: erreur.message, demande };
+    throw erreur;
+  }
+  if (demande.equipe === "") {
+    return { issue: "refuse" as const, raison: "Le code de l'équipe est vide : « 75-BAP-5 », par exemple.", demande };
+  }
+
+  const demarreLe = horlogeSysteme.maintenant();
+  const consigner = (issue: "succes" | "echec", volumeExtrait: number, detail: string) =>
+    persistance.rapports.consigner({
+      tache: TACHE_DU_CALENDRIER,
+      demarreLe,
+      termineLe: horlogeSysteme.maintenant(),
+      issue,
+      volumeExtrait,
+      detail,
+    });
+
+  try {
+    const client = sousPlafond(
+      enArchivant(reseau, { source: "icbad", captures: persistance.captures, horloge: horlogeSysteme }),
+      1,
+    );
+    const reponse = await client.recuperer({ url, jeton: null });
+    if (reponse.statutHttp !== 200) {
+      throw new Error(`icbad a répondu ${reponse.statutHttp} pour ${url}.`);
+    }
+
+    const calendrier = calendrierDeLEquipe(lireLaPageDeGroupe(reponse.contenu), {
+      url,
+      code: demande.equipe,
+      importeLe: demarreLe,
+    });
+    calendrierDInterclub.remplacer(calendrier);
+    consigner(
+      "succes",
+      calendrier.rencontres.length,
+      `${calendrier.rencontres.length} rencontres de ${calendrier.equipe.nom} (${calendrier.equipe.code}), ${calendrier.competition}, ${calendrier.groupe}.`,
+    );
+    return { issue: "importe" as const, calendrier: etatDuCalendrier(calendrier) };
+  } catch (erreur) {
+    // Tout refus se dit sur l'écran, réseau compris : rien n'a été écrit, et
+    // l'ancien calendrier reste en place.
+    const raison = erreur instanceof Error ? erreur.message : String(erreur);
+    consigner("echec", 0, raison);
+    return { issue: "refuse" as const, raison, demande };
+  }
+};
+
 const application = creerApplication({
   authentification,
   configuration,
@@ -588,6 +678,7 @@ const application = creerApplication({
       identites: persistance.identites,
       classements: persistance.classements,
       preferences: preferencesDuCapitaine,
+      calendrier: calendrierDInterclub,
       fraicheur: fraicheurDuClassement,
       horloge: horlogeSysteme,
     }),
@@ -673,6 +764,13 @@ const application = creerApplication({
         releve: (await ordonnanceur.executerMaintenant(tacheDAcquisition("myffbad"))).rapport,
       };
     },
+
+    calendrier: () => {
+      const calendrier = calendrierDInterclub.lire();
+      return calendrier === null ? null : etatDuCalendrier(calendrier);
+    },
+
+    importerLeCalendrier,
 
     connecter: async (source) => {
       const module = moduleDe(source);

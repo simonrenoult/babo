@@ -1,5 +1,6 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
+<%- include("capitanat-onglets") %>
 
 <% if (equipe.length === 0) { %>
   <h3>Mon équipe</h3>
@@ -10,70 +11,6 @@
   </p>
 <% } else { %>
   <%- include("peremption", { fraicheur }) %>
-
-  <h3>Les cinq tableaux</h3>
-
-  <p>
-    Une rencontre se joue en <strong>six matchs répartis sur cinq tableaux</strong> :
-    deux simples hommes, un simple dames, un double hommes, un double dames, un
-    mixte. Chaque tableau a sa page, qui range les joueurs éligibles du plus fort
-    au plus faible (spec 029), porte les paires du double et du mixte, et fait
-    remonter en tête ce que je privilégie (spec 030).
-  </p>
-
-  <p class="etat">
-    <% if (paires === 0) { %>
-      Aucune paire saisie. Elles se saisissent sur la page du double hommes, du
-      double dames ou du mixte : une paire n'a pas de classement fédéral, et son
-      ordre est la moyenne des deux cotes.
-    <% } else { %>
-      <%= paires %> paire<%= paires > 1 ? "s" : "" %> saisie<%= paires > 1 ? "s" : "" %>,
-      réparties sur les pages du double hommes, du double dames et du mixte.
-    <% } %>
-  </p>
-
-  <%
-    // Nommer les tableaux en manque, pas les compter : c'est la question que se
-    // pose un capitaine avant une journée, et la seule que cet index tranche.
-    const infaisables = forces.filter((force) => force.manques.length > 0);
-  %>
-
-  <% if (infaisables.length === 0) { %>
-    <p class="etat">L'effectif permet de remplir les cinq tableaux.</p>
-  <% } else { %>
-    <p class="etat">
-      <%= infaisables.length %> tableau<%= infaisables.length > 1 ? "x" : "" %>
-      que l'effectif ne permet pas de remplir :
-      <%= infaisables
-            .map((force) => `${force.intitule} (il manque ${joueursRequis(force.manques, force.discipline)})`)
-            .join(", ") %>.
-    </p>
-  <% } %>
-
-  <table>
-    <tr>
-      <th>Tableau</th><th>Matchs</th><th>Il faut</th><th>Alignables</th><th>Manque</th>
-    </tr>
-    <% for (const force of forces) { %>
-      <tr>
-        <td>
-          <a href="/capitanat/tableau/<%= force.tableau %>"><%= force.intitule %></a>
-          <span class="etat"><%= force.tableau %></span>
-        </td>
-        <td><%= force.matchs %></td>
-        <td><%= joueursRequis(force.places, force.discipline) %></td>
-        <td><%= force.alignables.length %></td>
-        <td><%= force.manques.length === 0 ? "—" : enJoueurs(force.manques) %></td>
-      </tr>
-    <% } %>
-  </table>
-
-  <p>
-    <strong>Les cinq listes ne se cumulent pas.</strong> Un joueur figure dans
-    tous les tableaux où il est éligible, et ne fera pourtant pas les six matchs :
-    les additionner surestimerait la profondeur de l'effectif. Le plafond de
-    matchs par joueur viendra avec la composition de journée (spec 011).
-  </p>
 
   <h3>Mon équipe</h3>
 
@@ -140,6 +77,7 @@
     <% } %>
   </table>
 <% } %>
+
 
 <h3>Ce qui viendra ici</h3>
 <ul>

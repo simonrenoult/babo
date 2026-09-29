@@ -58,6 +58,8 @@ const aucuneSource: AccesAuxSources = {
     Promise.reject(new Error("déclenchement non branché dans ce test")),
   sonder: () => Promise.resolve([]),
   importerLEquipe: () => Promise.resolve({ issue: "refusee", motifs: [] }),
+  calendrier: () => null,
+  importerLeCalendrier: () => Promise.reject(new Error("pas de calendrier dans ce test")),
   courrier: () => ({
     configure: false,
     destinataire: null,

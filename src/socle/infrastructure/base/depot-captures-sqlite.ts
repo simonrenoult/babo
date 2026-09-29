@@ -1,5 +1,5 @@
 import type { Capture, CaptureArchivee, DepotCaptures } from "../../core/capture.ts";
-import type { Source } from "../../core/source.ts";
+import type { SiteArchive } from "../../core/source.ts";
 import type { BaseSqlite } from "./connexion.ts";
 
 type Ligne = {
@@ -38,7 +38,7 @@ export function depotCapturesSqlite(base: BaseSqlite): DepotCaptures {
       return { ...capture, id: Number(resultat.lastInsertRowid) };
     },
 
-    dernieres(source: Source, combien: number): readonly CaptureArchivee[] {
+    dernieres(source: SiteArchive, combien: number): readonly CaptureArchivee[] {
       return (parSource.all(source, combien) as Ligne[]).map(versCapture);
     },
 
@@ -56,7 +56,7 @@ export function depotCapturesSqlite(base: BaseSqlite): DepotCaptures {
 function versCapture(ligne: Ligne): CaptureArchivee {
   return {
     id: ligne.id,
-    source: ligne.source as Source,
+    source: ligne.source as SiteArchive,
     url: ligne.url,
     statutHttp: ligne.statut_http,
     contenu: ligne.contenu,

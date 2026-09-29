@@ -1,5 +1,6 @@
 <%- include("entete", { titre }) %>
-<p><a href="/capitanat">← Capitanat</a></p>
+<%- include("capitanat-onglets", { onglet: "preferences" }) %>
+<p><a href="/capitanat/preferences">← Préférences</a></p>
 <h2><%= force.intitule %> <span class="etat"><%= force.tableau %></span></h2>
 
 <p>
@@ -254,7 +255,7 @@
 <p>
   Les cinq listes ne se cumulent pas : un joueur figure dans tous les tableaux où
   il est éligible, et ne fera pourtant pas les six matchs de la rencontre. La
-  <a href="/capitanat">page d'index</a> les montre côte à côte ; c'est la
+  <a href="/capitanat">page des effectifs</a> les montre côte à côte ; c'est la
   composition de journée (spec 011) qui plafonnera les matchs par joueur.
 </p>
 <%- include("pied") %>

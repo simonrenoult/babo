@@ -1,0 +1,47 @@
+<%- include("entete", { titre }) %>
+<h2><%= titre %></h2>
+<%- include("capitanat-onglets") %>
+
+<% if (calendrier === null) { %>
+  <p class="etat">
+    Aucun calendrier importé. Il se lit sur icbad, depuis
+    <a href="/parametres/calendrier">l'écran des paramètres</a> : la page du
+    groupe et le code de l'équipe suffisent.
+  </p>
+<% } else { %>
+  <p>
+    <strong><%= calendrier.equipe.nom %></strong>, <%= calendrier.competition %>,
+    <%= calendrier.groupe %>. Importé le
+    <%= calendrier.importeLe.toLocaleDateString("fr-FR") %> depuis
+    <a href="<%= calendrier.url %>" rel="noreferrer noopener" target="_blank">icbad</a> ;
+    à réimporter depuis <a href="/parametres/calendrier">l'écran des paramètres</a>
+    si le comité déplace une rencontre.
+  </p>
+
+  <table>
+    <tr>
+      <th>Journée</th><th>Date</th><th>Heure</th><th></th><th>Adversaire</th><th>Lieu</th>
+    </tr>
+    <% for (const rencontre of calendrier.rencontres) { %>
+      <%# Une rencontre passée reste listée, estompée : la saison se lit d'un bloc. %>
+      <tr<%- rencontre.debut < maintenant ? ' style="opacity: .55"' : "" %>>
+        <td>
+          <a href="https://icbad.ffbad.org/rencontre/<%= rencontre.id %>"
+             rel="noreferrer noopener" target="_blank">J<%= String(rencontre.journee).padStart(2, "0") %></a>
+        </td>
+        <td><%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) %></td>
+        <td><%= rencontre.debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) %></td>
+        <td><%= recoitOn(rencontre, calendrier.equipe) ? "reçoit" : "se déplace" %></td>
+        <td><%= adversaireDe(rencontre, calendrier.equipe).nom %></td>
+        <td>
+          <%# L'API « search » de Google Maps : une URL stable, sans clé, qui ouvre %>
+          <%# l'application sur téléphone. Le lieu est encodé, jamais recollé tel quel. %>
+          <a href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(rencontre.lieu) %>"
+             rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>
+        </td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>
+
+<%- include("pied") %>

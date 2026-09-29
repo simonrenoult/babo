@@ -67,6 +67,22 @@ export type AccesAuxSources = {
    */
   importerLEquipe(csv: string): Promise<ResultatDImport>;
   /**
+   * Le calendrier d'interclub déjà importé, ou `null` : sa page et son équipe
+   * pré-remplissent le formulaire, pour qu'un réimport ne demande rien.
+   */
+  calendrier(): EtatDuCalendrier | null;
+  /**
+   * Importe le calendrier d'interclub de mon équipe depuis la page de son
+   * groupe sur icbad.
+   *
+   * Un geste, pas une tâche : le calendrier se fixe en début de saison et ne
+   * bouge qu'à la marge. Une passe ordonnancée relirait chaque nuit une page
+   * figée ; on réimporte à la main quand le comité déplace une rencontre. Le
+   * socle ne sait pas ce qu'est une rencontre — `main.ts` branche `capitanat`
+   * derrière, comme pour l'import d'équipe.
+   */
+  importerLeCalendrier(demande: DemandeDeCalendrier): Promise<ResultatDImportDuCalendrier>;
+  /**
    * Ce que le planificateur a à faire, et quand — spec 018.
    *
    * L'écran d'exploitation est l'endroit : c'est déjà lui qui porte
@@ -121,6 +137,26 @@ export type ResultatDImport =
     }
   | { readonly issue: "refusee"; readonly motifs: readonly MotifDeRefus[] };
 
+export type DemandeDeCalendrier = {
+  /** La page du groupe sur icbad. */
+  readonly url: string;
+  /** Le code fédéral de l'équipe, « 75-BAP-5 ». */
+  readonly equipe: string;
+};
+
+export type EtatDuCalendrier = DemandeDeCalendrier & {
+  readonly nomEquipe: string;
+  readonly competition: string;
+  readonly groupe: string;
+  readonly rencontres: number;
+  readonly importeLe: Date;
+};
+
+/** Tout ou rien, comme l'import d'équipe : un calendrier remplacé, ou rien d'écrit et la raison. */
+export type ResultatDImportDuCalendrier =
+  | { readonly issue: "importe"; readonly calendrier: EtatDuCalendrier }
+  | { readonly issue: "refuse"; readonly raison: string; readonly demande: DemandeDeCalendrier };
+
 export type MotifDeRefus = {
   /** Ligne du fichier, en-tête comprise. `null` quand c'est le fichier entier. */
   readonly ligne: number | null;
@@ -142,12 +178,12 @@ const GROUPES = [
     id: "scrapping",
     intitule: "Scrapping",
     onglets: [
+      { id: "ordonnancement", intitule: "Tâches", chemin: "/scrapping/ordonnancement" },
       { id: "sessions", intitule: "Sessions de connexion", chemin: "/scrapping/sessions" },
       { id: "sondes", intitule: "Sondes", chemin: "/scrapping/sondes" },
       { id: "emails", intitule: "Emails", chemin: "/scrapping/emails" },
       { id: "logs", intitule: "Logs d'exécution", chemin: "/scrapping/logs" },
       { id: "deploiement", intitule: "Déploiement", chemin: "/scrapping/deploiement" },
-      { id: "ordonnancement", intitule: "Ordonnancement", chemin: "/scrapping/ordonnancement" },
       { id: "sources", intitule: "Sources", chemin: "/scrapping/sources" },
     ],
   },
@@ -155,6 +191,11 @@ const GROUPES = [
     id: "equipe",
     intitule: "Import équipe",
     onglets: [{ id: "equipe", intitule: "Import équipe", chemin: "/equipe" }],
+  },
+  {
+    id: "calendrier",
+    intitule: "Import calendrier",
+    onglets: [{ id: "calendrier", intitule: "Import calendrier", chemin: "/calendrier" }],
   },
   {
     id: "engagements",
@@ -180,11 +221,22 @@ const GROUPES_AFFICHES = GROUPES.map((groupe) => ({
   onglets: groupe.onglets.map((sous) => ({ ...sous, chemin: cheminDe(sous.id) })),
 }));
 
+/**
+ * Ce que le formulaire du calendrier propose tant qu'aucun n'est importé : le
+ * groupe et l'équipe de la saison en cours. Une fois l'import fait, c'est le
+ * calendrier en base qui pré-remplit.
+ */
+const CALENDRIER_PAR_DEFAUT: DemandeDeCalendrier = {
+  url: "https://icbad.ffbad.org/competition/2601367/tableau/19107",
+  equipe: "75-CPS10-5",
+};
+
 /** Le résultat d'un geste, rendu sur l'onglet qui l'a déclenché. */
 type ResultatsDeGeste = {
   readonly sonde?: readonly ResultatDeSonde[];
   readonly declenchement?: RapportArchive | null;
   readonly equipe?: ResultatDImport;
+  readonly calendrier?: ResultatDImportDuCalendrier;
   readonly mailDeTest?: MessageDepose;
   readonly connexion?: { readonly source: Source; readonly issue: string };
 };
@@ -229,6 +281,13 @@ export function routeurSources(acces: AccesAuxSources): Router {
     }),
     sources: () => ({ etats: acces.etats() }),
     equipe: (vue) => ({ equipe: vue.equipe ?? null }),
+    // Relu après le geste : c'est le calendrier en base que le formulaire
+    // pré-remplit, et un refus garde la saisie pour qu'on la corrige.
+    calendrier: (vue) => ({
+      calendrier: acces.calendrier(),
+      importCalendrier: vue.calendrier ?? null,
+      calendrierParDefaut: CALENDRIER_PAR_DEFAUT,
+    }),
     engagements: () => ({ engagementsEnBase: acces.engagements() }),
   };
 
@@ -244,7 +303,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
 
   // La racine et le groupe ouvrent sur leur premier onglet ; un chemin qui
   // n'est pas un onglet tombe sur la 404 commune.
-  routeur.get(["/", "/scrapping"], (_requete, reponse) => reponse.redirect(cheminDe("sessions")));
+  routeur.get(["/", "/scrapping"], (_requete, reponse) => reponse.redirect(cheminDe("ordonnancement")));
   for (const sous of ONGLETS) {
     routeur.get(sous.chemin, (_requete, reponse) => ecran(reponse, sous.id));
   }
@@ -324,6 +383,20 @@ export function routeurSources(acces: AccesAuxSources): Router {
         // 400 sur un refus : l'écran le dit, et le journal du proxy aussi.
         reponse.status(resultat.issue === "refusee" ? 400 : 200);
         ecran(reponse, "equipe", { equipe: resultat });
+      })
+      .catch(suite);
+  });
+
+  routeur.post("/calendrier", (requete, reponse, suite) => {
+    const champs = (requete.body ?? {}) as Record<string, unknown>;
+    acces
+      .importerLeCalendrier({
+        url: String(champs["url"] ?? "").trim(),
+        equipe: String(champs["equipe"] ?? "").trim(),
+      })
+      .then((resultat) => {
+        reponse.status(resultat.issue === "refuse" ? 400 : 200);
+        ecran(reponse, "calendrier", { calendrier: resultat });
       })
       .catch(suite);
   });

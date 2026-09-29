@@ -1,0 +1,61 @@
+<h2>Importer le calendrier d'interclub</h2>
+<p>
+  Le calendrier de la saison, tel qu'icbad le publie pour le groupe de mon
+  équipe : date, heure, gymnase et adversaire de chaque rencontre. La page est
+  publique, sans session.
+</p>
+<p>
+  <strong>Pas de passe planifiée</strong> : le calendrier se fixe en début de
+  saison et ne bouge qu'à la marge. On l'importe une fois, et de nouveau si le
+  comité déplace une rencontre. <strong>L'import remplace le calendrier
+  entier</strong> ; en cas d'échec, rien n'est écrit et l'ancien reste en place.
+  La page lue est archivée, et l'import laisse sa trace dans les
+  <a href="/parametres/scrapping/logs">logs d'exécution</a>.
+</p>
+
+<%
+  // Un refus rend la saisie telle quelle, pour qu'on la corrige ; sinon le
+  // formulaire reprend le calendrier en base, ou le groupe de la saison.
+  const saisie = importCalendrier?.issue === "refuse"
+    ? importCalendrier.demande
+    : calendrier ?? calendrierParDefaut;
+%>
+
+<% if (importCalendrier?.issue === "importe") { %>
+  <p class="etat">
+    Calendrier importé : <strong><%= importCalendrier.calendrier.rencontres %></strong>
+    rencontre<%= importCalendrier.calendrier.rencontres > 1 ? "s" : "" %> pour
+    <strong><%= importCalendrier.calendrier.nomEquipe %></strong>. La liste est
+    sur <a href="/capitanat">Capitanat</a>.
+  </p>
+<% } else if (importCalendrier?.issue === "refuse") { %>
+  <p class="etat">
+    <strong>Import refusé, rien n'a été écrit.</strong>
+    <%= importCalendrier.raison %>
+  </p>
+<% } else if (calendrier) { %>
+  <p class="etat">
+    <strong><%= calendrier.nomEquipe %></strong> (<%= calendrier.equipe %>),
+    <%= calendrier.competition %>, <%= calendrier.groupe %> :
+    <%= calendrier.rencontres %> rencontre<%= calendrier.rencontres > 1 ? "s" : "" %>,
+    importé<%= calendrier.rencontres > 1 ? "es" : "e" %> le
+    <%= calendrier.importeLe.toLocaleString("fr-FR") %>.
+  </p>
+<% } else { %>
+  <p class="etat">Aucun calendrier importé.</p>
+<% } %>
+
+<form method="post" action="/parametres/calendrier">
+  <p>
+    <label for="url-calendrier">Page du groupe sur icbad</label><br>
+    <input id="url-calendrier" name="url" size="60" required
+           placeholder="https://icbad.ffbad.org/competition/…/tableau/…"
+           value="<%= saisie.url %>">
+  </p>
+  <p>
+    <label for="equipe-calendrier">Code de mon équipe</label><br>
+    <input id="equipe-calendrier" name="equipe" size="16" required
+           placeholder="75-BAP-5" value="<%= saisie.equipe %>">
+  </p>
+  <button type="submit"><%= calendrier ? "Réimporter le calendrier" : "Importer le calendrier" %></button>
+</form>

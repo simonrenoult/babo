@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { creerApplication } from "./serveur.ts";
-import type { AccesAuxSources } from "./routeur-sources.ts";
+import type { AccesAuxSources, DemandeDeCalendrier } from "./routeur-sources.ts";
 import type { Configuration } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
@@ -157,6 +157,7 @@ type Trace = {
   codes: [Source, string][];
   attendus: { readonly source: Source; readonly demandeeLe: Date }[];
   engagements: number;
+  calendriers: DemandeDeCalendrier[];
 };
 
 function ecran(): { acces: AccesAuxSources; trace: Trace } {
@@ -172,6 +173,7 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     codes: [],
     attendus: [],
     engagements: 0,
+    calendriers: [],
   };
   return {
     trace,
@@ -231,6 +233,25 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         return Promise.resolve();
       },
       codesAttendus: () => trace.attendus,
+      calendrier: () => null,
+      importerLeCalendrier: (demande) => {
+        trace.calendriers.push(demande);
+        return Promise.resolve(
+          demande.equipe === "75-BAP-5"
+            ? {
+                issue: "importe",
+                calendrier: {
+                  ...demande,
+                  nomEquipe: "Bad’ à Paname 5",
+                  competition: "ICD75 D3 Mixte",
+                  groupe: "Groupe B",
+                  rencontres: 10,
+                  importeLe: new Date("2026-09-30T10:00:00Z"),
+                },
+              }
+            : { issue: "refuse", raison: "Aucune rencontre pour « 75-BAP-4 » dans ce groupe.", demande },
+        );
+      },
       engagements: () => trace.engagements,
       executerMaintenant: (tache) => {
         trace.declenchements.push(tache);
@@ -303,13 +324,13 @@ async function interroger(
 }
 
 describe("l'écran des sources", () => {
-  it("ouvre la racine et le groupe sur les sessions", async () => {
+  it("ouvre la racine et le groupe sur les tâches", async () => {
     const { acces } = ecran();
 
     for (const chemin of ["/parametres", "/parametres/scrapping"]) {
       const reponse = await interroger(acces, chemin);
       assert.equal(reponse.statut, 302, chemin);
-      assert.equal(reponse.redirection, "/parametres/scrapping/sessions", chemin);
+      assert.equal(reponse.redirection, "/parametres/scrapping/ordonnancement", chemin);
     }
   });
 
@@ -700,5 +721,48 @@ describe("la connexion autonome", () => {
     const reponse = await interroger(cassee, "/parametres/scrapping/sessions/myffbad/connexion", new URLSearchParams());
 
     assert.equal(reponse.statut, 500);
+  });
+});
+
+describe("l'import du calendrier d'interclub", () => {
+  const GROUPE = "https://icbad.ffbad.org/competition/2601367/tableau/19107";
+
+  it("a son onglet, qui dit qu'aucun calendrier n'est importé", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/calendrier");
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /aria-current="page">Import calendrier/);
+    assert.match(reponse.corps, /Aucun calendrier importé/);
+    assert.match(reponse.corps, /action="\/parametres\/calendrier"/);    assert.match(reponse.corps, /value="https:\/\/icbad\.ffbad\.org\/competition\/2601367\/tableau\/19107"/);
+    assert.match(reponse.corps, /value="75-CPS10-5"/, "pré-rempli tant qu'aucun calendrier n'est importé");
+  });
+
+  it("importe et renvoie vers la liste sur le capitanat", async () => {
+    const { acces, trace } = ecran();
+    const reponse = await interroger(
+      acces,
+      "/parametres/calendrier",
+      new URLSearchParams({ url: ` ${GROUPE} `, equipe: " 75-BAP-5 " }),
+    );
+
+    assert.equal(reponse.statut, 200);
+    assert.deepEqual(trace.calendriers, [{ url: GROUPE, equipe: "75-BAP-5" }]);
+    assert.match(reponse.corps, /<strong>10<\/strong>\s*rencontres/);
+    assert.match(reponse.corps, /href="\/capitanat"/);
+  });
+
+  it("dit pourquoi il refuse, et rend la saisie pour la corriger", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(
+      acces,
+      "/parametres/calendrier",
+      new URLSearchParams({ url: GROUPE, equipe: "75-BAP-4" }),
+    );
+
+    assert.equal(reponse.statut, 400);
+    assert.match(reponse.corps, /rien n'a été écrit/);
+    assert.match(reponse.corps, /Aucune rencontre pour « 75-BAP-4 »/);
+    assert.match(reponse.corps, /value="75-BAP-4"/);
   });
 });

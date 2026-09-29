@@ -10,6 +10,7 @@ import { creerModuleMonProfil } from "../src/mon-profil/presentation/module-web.
 import { creerModuleCapitanat } from "../src/capitanat/presentation/module-web.ts";
 import { depotCoequipiersSqlite } from "../src/capitanat/infrastructure/depot-coequipiers-sqlite.ts";
 import { depotPreferencesSqlite } from "../src/capitanat/infrastructure/depot-preferences-sqlite.ts";
+import { depotCalendrierSqlite } from "../src/capitanat/infrastructure/depot-calendrier-sqlite.ts";
 import { depotVeillesSqlite } from "../src/veille/infrastructure/depot-veilles-sqlite.ts";
 import { lireLeCsvDeLEquipe } from "../src/capitanat/infrastructure/csv-equipe.ts";
 import { ImportRefuse } from "../src/capitanat/core/coequipier.ts";
@@ -94,6 +95,7 @@ describe("l'application assemblée", () => {
   let persistance: ReturnType<typeof ouvrirLaPersistance>;
   let coequipiers: ReturnType<typeof depotCoequipiersSqlite>;
   let preferences: ReturnType<typeof depotPreferencesSqlite>;
+  let calendrierDInterclub: ReturnType<typeof depotCalendrierSqlite>;
   let veilles: ReturnType<typeof depotVeillesSqlite>;
   /** Le dépôt décoré de 019 : celui que `main.ts` donne aux passes. */
   let rapports: ReturnType<typeof enAlertant>;
@@ -120,6 +122,7 @@ describe("l'application assemblée", () => {
     persistance = ouvrirLaPersistance({ chemin: join(dossier, "babo.db"), cle: "clé-de-test" });
     coequipiers = depotCoequipiersSqlite(persistance.base);
     preferences = depotPreferencesSqlite(persistance.base);
+    calendrierDInterclub = depotCalendrierSqlite(persistance.base);
     veilles = depotVeillesSqlite(persistance.base);
     reseau = reseauRejoue();
 
@@ -202,6 +205,7 @@ describe("l'application assemblée", () => {
           identites: persistance.identites,
           classements: persistance.classements,
           preferences,
+          calendrier: calendrierDInterclub,
           fraicheur: fraicheurDeTest,
           horloge: horlogeSysteme,
         }),
@@ -237,6 +241,10 @@ describe("l'application assemblée", () => {
           }),
         oublier: (source) => persistance.jetonMyffbad.effacer(source),
         deploiements: () => [],
+        // L'import du calendrier lit icbad : l'assemblage vérifie l'onglet et
+        // la page, le parseur se teste sur la page réelle capturée.
+        calendrier: () => null,
+        importerLeCalendrier: () => Promise.reject(new Error("icbad n'est pas joignable dans ce test")),
         // La connexion touche au réseau : l'assemblage vérifie le montage.
         connecter: () => Promise.resolve("ouverte" as const),
         confirmerLeCode: () => Promise.resolve(),
@@ -548,8 +556,8 @@ describe("l'application assemblée", () => {
    * relevé sur ses trois disciplines, une femme dont la licence reste muette.
    * C'est exactement l'effectif qui rend les manques visibles.
    */
-  it("nomme sur l'index les tableaux que l'effectif ne permet pas de remplir", async () => {
-    const corps = await (await visiter(`/capitanat`)).text();
+  it("nomme sur les préférences les tableaux que l'effectif ne permet pas de remplir", async () => {
+    const corps = await (await visiter(`/capitanat/preferences`)).text();
 
     assert.match(corps, /5 tableaux\s+que l'effectif ne permet pas de remplir/);
     assert.match(corps, /Double dames \(il manque deux femmes classées en double\)/);
@@ -744,6 +752,8 @@ describe("l'application assemblée", () => {
   for (const [chemin, attendu] of [
     ["/mon-profil", /Mon profil/],
     ["/capitanat", /Capitanat/],
+    ["/capitanat/calendrier", /Aucun calendrier importé/],
+    ["/capitanat/preferences", /Joueurs privilégiés/],
     ["/veille", /Veille de tournois/],
   ] as const) {
     it(`sert ${chemin}, monté par le point de composition`, async () => {
@@ -752,6 +762,36 @@ describe("l'application assemblée", () => {
       assert.match(await reponse.text(), attendu);
     });
   }
+
+  it("liste le calendrier importé, chaque lieu ouvrant Google Maps", async () => {
+    const bap = { nom: "Bad’ à Paname 5", code: "75-BAP-5" };
+    calendrierDInterclub.remplacer({
+      url: "https://icbad.ffbad.org/competition/2601367/tableau/19107",
+      equipe: { nom: "CPS Xtrem Bad 5", code: "75-CPS10-5" },
+      competition: "ICD75 D3 Mixte",
+      groupe: "Groupe B",
+      importeLe: new Date(),
+      rencontres: [
+        {
+          id: 796867,
+          journee: 2,
+          debut: new Date("2026-11-14T20:00:00"),
+          lieu: "Gymnase Julie Vlasto, 75010 Paris",
+          domicile: { nom: "CPS Xtrem Bad 5", code: "75-CPS10-5" },
+          exterieur: bap,
+        },
+      ],
+    });
+
+    const corps = await (await visiter("/capitanat/calendrier")).text();
+
+    assert.match(corps, /reçoit/);
+    assert.match(corps, /Bad’ à Paname 5/, "l'adversaire, vu de mon équipe");
+    assert.match(
+      corps,
+      /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Gymnase%20Julie%20Vlasto%2C%2075010%20Paris"/,
+    );
+  });
 
   /**
    * La porte, sur l'assemblage réel — spec 021.

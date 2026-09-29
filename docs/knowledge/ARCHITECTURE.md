@@ -849,6 +849,40 @@ les tableaux souhaités, refusés, et les partenaires privilégiés du joueur
 lui-même. Les deux peuvent se contredire, et ce désaccord est une information :
 il se lit en mettant les deux côte à côte, jamais en les fusionnant.
 
+## Le calendrier d'interclub
+
+Le calendrier de la saison de mon équipe, lu sur icbad — la page publique d'un
+groupe (`/competition/<id>/tableau/<id>`), qui liste toutes les rencontres :
+journée, date et heure, gymnase, équipe qui reçoit, équipe qui se déplace.
+
+| Pièce | Où |
+|-------|-----|
+| la notion — rencontre, équipe, calendrier — et son port | `capitanat/core/calendrier.ts` |
+| le parseur de la page de groupe | `capitanat/infrastructure/calendrier-icbad.ts` |
+| la page réelle, en fixture | `capitanat/infrastructure/exemples/icbad-groupe.html` |
+| le dépôt | `capitanat/infrastructure/depot-calendrier-sqlite.ts` |
+| les tables | `migrations/016__calendrier_interclub.sql` |
+| le geste | `/parametres/calendrier`, branché dans `main.ts` |
+| la liste | `/capitanat` |
+
+**Un geste, pas une tâche.** Le calendrier se fixe en début de saison : une
+passe ordonnancée relirait chaque nuit une page figée. On l'importe à la main,
+et de nouveau si le comité déplace une rencontre. L'import remplace tout, et
+c'est tout ou rien : un code d'équipe absent du groupe refuse l'import en
+nommant les équipes présentes, plutôt que d'écrire un calendrier vide.
+
+icbad n'est pas une source au sens de 015 — ni session, ni module
+d'acquisition, ni ordonnancement : c'est un `SITES_PUBLICS` de
+`socle/core/source.ts`. Sa réponse s'archive pourtant comme les autres (019),
+et l'import laisse un rapport sous `acquisition:icbad:calendrier`, consigné
+sans passer par l'alerte : l'échec d'un geste se lit sur l'écran qui l'a
+lancé. L'URL est vérifiée avant toute requête — le serveur ne lit que la page
+d'un groupe icbad, jamais une adresse qu'on lui tendrait.
+
+La page ne donne que le jour et le mois : l'année se déduit de la saison
+sélectionnée (`switchSaison`), l'automne étant l'année de la saison, l'hiver
+la suivante.
+
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs, que 015 laisse volontairement à dessiner sur les pages

@@ -1,11 +1,5 @@
 <%- include("entete", { titre }) %>
 
-<style>
-  .onglets { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: 1rem 0 0;
-             padding: 0 0 .4rem; border-bottom: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
-  .onglets.sous { margin-top: .5rem; font-size: .92rem; }
-  .onglets a[aria-current] { font-weight: 600; text-decoration: none; }
-</style>
 
 <%# Deux niveaux d'onglets, portés par la page et non par l'entête : chaque %>
 <%# module n'a pas à connaître les sous-pages du socle (033). %>

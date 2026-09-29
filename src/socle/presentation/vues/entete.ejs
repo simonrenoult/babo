@@ -20,11 +20,16 @@
     .menu nav a[aria-current] { font-weight: 600; text-decoration: none;
                                 background: color-mix(in srgb, currentColor 10%, transparent); }
     .menu form { margin-top: auto; }
-    .contenu { padding: 1.5rem; max-width: 52rem; }
+    .contenu { padding: 1.5rem; }
     .contenu > header { border-bottom: 1px solid currentColor; padding-bottom: .75rem; }
     .contenu > header h1 { margin: 0; font-size: 1.25rem; }
     footer { margin-top: 2.5rem; padding-top: .75rem; border-top: 1px solid currentColor;
              font-size: .85rem; opacity: .7; }
+    /* Les onglets que portent les pages elles-mêmes : paramètres, capitanat. */
+    .onglets { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: 1rem 0 0;
+               padding: 0 0 .4rem; border-bottom: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+    .onglets.sous { margin-top: .5rem; font-size: .92rem; }
+    .onglets a[aria-current] { font-weight: 600; text-decoration: none; }
     table { border-collapse: collapse; }
     .etat { padding: .5rem .75rem; border-left: 3px solid currentColor;
             background: color-mix(in srgb, currentColor 6%, transparent); }

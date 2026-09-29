@@ -1,4 +1,4 @@
-import type { Source } from "./source.ts";
+import type { SiteArchive, Source } from "./source.ts";
 import type { Classement } from "./classement.ts";
 import type { Identite } from "./identite.ts";
 import type { Licence } from "./licence.ts";
@@ -125,7 +125,7 @@ export class PlafondAtteint extends Error {
 export function enArchivant(
   client: ClientHttp,
   options: {
-    readonly source: Source;
+    readonly source: SiteArchive;
     readonly captures: DepotCaptures;
     readonly horloge: Horloge;
   },

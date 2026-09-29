@@ -1,0 +1,11 @@
+<%# Les trois onglets du capitanat. Une page de tableau relève des préférences : %>
+<%# c'est là que se saisissent les paires et les marques (030). %>
+<nav class="onglets" aria-label="Capitanat">
+  <% for (const [id, chemin, intitule] of [
+       ["effectifs", "/capitanat", "Effectifs"],
+       ["calendrier", "/capitanat/calendrier", "Calendrier"],
+       ["preferences", "/capitanat/preferences", "Préférences"],
+     ]) { %>
+    <a href="<%= chemin %>" <%- id === onglet ? 'aria-current="page"' : "" %>><%= intitule %></a>
+  <% } %>
+</nav>

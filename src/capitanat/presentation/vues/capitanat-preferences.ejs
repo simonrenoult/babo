@@ -1,0 +1,66 @@
+<%- include("entete", { titre }) %>
+<h2><%= titre %></h2>
+<%- include("capitanat-onglets") %>
+
+<p>
+  Une rencontre se joue en <strong>six matchs répartis sur cinq tableaux</strong> :
+  deux simples hommes, un simple dames, un double hommes, un double dames, un
+  mixte. Chaque tableau a sa page, qui range les joueurs éligibles du plus fort
+  au plus faible (spec 029), et c'est là que se saisit ce que je privilégie
+  (spec 030) : des joueurs marqués, qui remontent en tête, et sur les doubles et
+  le mixte des paires, rangées à la moyenne des deux cotes.
+</p>
+
+<%
+  // Nommer les tableaux en manque, pas les compter : c'est la question que se
+  // pose un capitaine avant une journée, et la seule que cette page tranche.
+  const infaisables = tableaux.map(({ force }) => force).filter((force) => force.manques.length > 0);
+%>
+
+<% if (tableaux.every(({ force }) => force.alignables.length === 0 && force.ecartes.length === 0)) { %>
+  <p class="etat">
+    Aucun joueur alignable. L'équipe s'importe depuis
+    <a href="/parametres/equipe">l'écran des paramètres</a>.
+  </p>
+<% } else if (infaisables.length === 0) { %>
+  <p class="etat">L'effectif permet de remplir les cinq tableaux.</p>
+<% } else { %>
+  <p class="etat">
+    <%= infaisables.length %> tableau<%= infaisables.length > 1 ? "x" : "" %>
+    que l'effectif ne permet pas de remplir :
+    <%= infaisables
+          .map((force) => `${force.intitule} (il manque ${joueursRequis(force.manques, force.discipline)})`)
+          .join(", ") %>.
+  </p>
+<% } %>
+
+<table>
+  <tr>
+    <th>Tableau</th><th>Matchs</th><th>Il faut</th><th>Alignables</th><th>Manque</th>
+    <th>Joueurs privilégiés</th><th>Paires</th><th>Paires privilégiées</th>
+  </tr>
+  <% for (const tableau of tableaux) { %>
+    <% const { force } = tableau; const toutes = [...tableau.paires, ...tableau.pairesHorsOrdre]; %>
+    <tr>
+      <td>
+        <a href="/capitanat/tableau/<%= force.tableau %>"><%= force.intitule %></a>
+        <span class="etat"><%= force.tableau %></span>
+      </td>
+      <td><%= force.matchs %></td>
+      <td><%= joueursRequis(force.places, force.discipline) %></td>
+      <td><%= force.alignables.length %></td>
+      <td><%= force.manques.length === 0 ? "—" : enJoueurs(force.manques) %></td>
+      <td><%= tableau.joueurs.filter((joueur) => joueur.privilegie).length %></td>
+      <td><%= tableau.enPaires ? toutes.length : "—" %></td>
+      <td><%= tableau.enPaires ? toutes.filter((paire) => paire.privilegiee).length : "—" %></td>
+    </tr>
+  <% } %>
+</table>
+
+<p>
+  <strong>Les cinq listes ne se cumulent pas.</strong> Un joueur figure dans
+  tous les tableaux où il est éligible, et ne fera pourtant pas les six matchs :
+  les additionner surestimerait la profondeur de l'effectif. Le plafond de
+  matchs par joueur viendra avec la composition de journée (spec 011).
+</p>
+<%- include("pied") %>

@@ -11,6 +11,8 @@ import { listeDeLEquipe } from "../core/coequipier.ts";
 import { forceDuTableau, forcesParTableau } from "../core/forces-par-tableau.ts";
 import type { DepotPreferences } from "../core/paires.ts";
 import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } from "../core/paires.ts";
+import type { DepotCalendrier } from "../core/calendrier.ts";
+import { adversaireDe, recoitOn } from "../core/calendrier.ts";
 import { enJoueurs, joueursRequis } from "./mots.ts";
 
 /**
@@ -41,23 +43,51 @@ export function creerModuleCapitanat(options: {
   readonly classements: DepotClassements;
   /** Les paires et les marques du capitaine — spec 030. */
   readonly preferences: DepotPreferences;
+  /** Le calendrier d'interclub, importé depuis l'écran des paramètres et lu ici. */
+  readonly calendrier: DepotCalendrier;
   /** L'ancienneté des classements, jugée sur la cadence de leur passe — spec 019. */
   readonly fraicheur: (vuLe: Date | null) => Fraicheur;
   readonly horloge: Horloge;
 }): ModuleWeb {
-  const { coequipiers, identites, classements, preferences, fraicheur, horloge } = options;
+  const { coequipiers, identites, classements, preferences, calendrier, fraicheur, horloge } = options;
   const routeur = Router();
 
   const equipe = () => listeDeLEquipe(coequipiers, identites, classements);
 
+  // Trois onglets : l'effectif et ce qu'il permet d'aligner, le calendrier de
+  // la saison, et ce que je privilégie tableau par tableau. `/capitanat` reste
+  // l'adresse des effectifs, celle que les autres pages citent.
   routeur.get("/", (_requete, reponse) => {
     const membres = equipe();
-    reponse.render("capitanat", {
+    reponse.render("capitanat-effectifs", {
       titre: "Capitanat",
+      onglet: "effectifs",
       equipe: membres,
-      forces: forcesParTableau(membres),
-      paires: preferences.paires().length,
       fraicheur: fraicheur(laPlusRecente(membres)),
+    });
+  });
+
+  routeur.get("/calendrier", (_requete, reponse) => {
+    reponse.render("capitanat-calendrier", {
+      titre: "Capitanat",
+      onglet: "calendrier",
+      calendrier: calendrier.lire(),
+      maintenant: horloge.maintenant(),
+      adversaireDe,
+      recoitOn,
+    });
+  });
+
+  routeur.get("/preferences", (_requete, reponse) => {
+    const membres = equipe();
+    const paires = preferences.paires();
+    const marques = preferences.marquesDeJoueurs();
+    reponse.render("capitanat-preferences", {
+      titre: "Capitanat",
+      onglet: "preferences",
+      tableaux: forcesParTableau(membres).map((force) =>
+        tableauDuCapitaine({ force, equipe: membres, paires, marques }),
+      ),
       enJoueurs,
       joueursRequis,
     });
