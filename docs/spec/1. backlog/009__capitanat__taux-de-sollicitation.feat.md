@@ -5,7 +5,7 @@
 | id          | 009                                                                                                 |
 | module      | capitanat                                                                                           |
 | type        | feat                                                                                                |
-| bloquée par | [[008__capitanat__disponibilites-interclubs.feat]], [[011__capitanat__composition-de-journee.feat]] |
+| bloquée par | [[011__capitanat__composition-de-journee.feat]] |
 
 ## Contexte
 

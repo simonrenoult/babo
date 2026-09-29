@@ -39,11 +39,14 @@ réponses, le capitaine les reporte.
 
 ## Questions
 
-- Faut-il gérer une disponibilité partielle (« oui si je joue en double ») ?
+- ~~Faut-il gérer une disponibilité partielle (« oui si je joue en double ») ?~~
+  **Une seule nuance : « Si besoin »**, celle que le sondage réel propose. Pas
+  de disponibilité par tableau.
 - ~~« Relancer les silencieux » se fait-il par un mail depuis l'outil
   ([[016__socle__envoi-de-mail.tech]]) ?~~ **Non : à la main du capitaine.**
   L'outil n'a pas les mails — voir Notes.
-- Le lien du questionnaire est-il stocké par journée d'interclub ?
+- ~~Le lien du questionnaire est-il stocké par journée d'interclub ?~~ **Non :
+  c'est son export CSV qu'on importe**, pas son lien qu'on stocke.
 
 ## Notes
 
@@ -61,3 +64,18 @@ Alimente [[011__capitanat__composition-de-journee.feat]] et
 relançait lui-même les silencieux, que la question barrée ci-dessus a écartée.
 Sans adresse en base, il n'y a rien à envoyer — la brique de mail reste utile
 ailleurs, pas ici.
+
+**Livrée le 30 septembre 2026.** Le questionnaire externe est un sondage dont
+l'export CSV s'importe depuis `/parametres/disponibilites` ; la grille se lit
+sur `/capitanat/disponibilites`, une colonne par rencontre du calendrier
+d'interclub importé d'icbad. Trois décisions prises en route :
+
+- **La journée rattache, la date contrôle.** Chaque colonne du sondage porte
+  un numéro de journée et une date ; une date qui diffère du calendrier refuse
+  l'import. Un import remplace les journées qu'il couvre, et elles seules.
+- **Le sondage parle en prénoms et en surnoms.** Chaque nom se rattache une
+  fois à un membre ; le prénom relevé ne fait que proposer. Le décompte des
+  disponibles par sexe ne compte que les noms rattachés.
+- **« Relancer les silencieux »** se borne, comme prévu, à les nommer : les
+  membres de l'équipe qu'aucun nom du sondage ne désigne sont listés sous la
+  grille.

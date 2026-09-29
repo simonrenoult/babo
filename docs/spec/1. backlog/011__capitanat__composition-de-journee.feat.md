@@ -5,7 +5,7 @@
 | id          | 011                                                                                            |
 | module      | capitanat                                                                                      |
 | type        | feat                                                                                           |
-| bloquée par | [[008__capitanat__disponibilites-interclubs.feat]], [[010__capitanat__tableaux-preferes.feat]] |
+| bloquée par | [[010__capitanat__tableaux-preferes.feat]] |
 
 ## Contexte
 
