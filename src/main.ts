@@ -31,7 +31,7 @@ import { jetonHmac } from "./socle/infrastructure/authentification/jeton-hmac.ts
 import { motDePasseScrypt } from "./socle/infrastructure/authentification/mot-de-passe-scrypt.ts";
 import type { Licence } from "./socle/core/licence.ts";
 import type { Lettre } from "./socle/core/classement.ts";
-import { clientFetch } from "./socle/infrastructure/acquisition/client-fetch.ts";
+import { clientFetch, telecharger } from "./socle/infrastructure/acquisition/client-fetch.ts";
 import { creerModuleMyffbad } from "./socle/infrastructure/acquisition/myffbad.ts";
 import { moduleBadnet } from "./socle/infrastructure/acquisition/badnet.ts";
 import { accesAuxEngagementsBadnet } from "./socle/infrastructure/acquisition/engagements-badnet.ts";
@@ -53,6 +53,8 @@ import { depotCalendrierSqlite } from "./capitanat/infrastructure/depot-calendri
 import { DisponibilitesRefusees, verifierContreLeCalendrier } from "./capitanat/core/disponibilite.ts";
 import { lireLeCsvDesDisponibilites } from "./capitanat/infrastructure/csv-disponibilites.ts";
 import { depotDisponibilitesSqlite } from "./capitanat/infrastructure/depot-disponibilites-sqlite.ts";
+import { depotCompositionsSqlite } from "./capitanat/infrastructure/depot-compositions-sqlite.ts";
+import { completerLaFeuille } from "./capitanat/infrastructure/feuille-de-rencontre.ts";
 import { creerModuleVeille } from "./veille/presentation/module-web.ts";
 import { depotVeillesSqlite } from "./veille/infrastructure/depot-veilles-sqlite.ts";
 import { disciplinesDe } from "./veille/core/veille.ts";
@@ -96,6 +98,9 @@ const calendrierDInterclub = depotCalendrierSqlite(persistance.base);
 
 /** Les disponibilités tirées des sondages — spec 008. Même base, même raison. */
 const disponibilites = depotDisponibilitesSqlite(persistance.base);
+
+/** Les compositions retenues par journée — spec 011. Même base, même raison. */
+const compositions = depotCompositionsSqlite(persistance.base);
 
 /**
  * Les veilles — spec 012.
@@ -686,6 +691,18 @@ const application = creerApplication({
       preferences: preferencesDuCapitaine,
       calendrier: calendrierDInterclub,
       disponibilites,
+      compositions,
+      // La feuille officielle : un PDF public d'icbad, téléchargé à la demande
+      // — le comité peut la regénérer — puis complété. Seul un identifiant de
+      // rencontre entier compose l'adresse : rien d'autre n'est demandé.
+      feuilleDeRencontre: async ({ rencontre, cote, lignes }) => {
+        if (!Number.isInteger(rencontre)) throw new Error(`rencontre invalide : ${rencontre}.`);
+        const feuille = await telecharger(`https://icbad.ffbad.org/rencontre/${rencontre}/exportPDF`);
+        if (feuille.statutHttp !== 200 || !new URL(feuille.url).hostname.endsWith("icbad.ffbad.org")) {
+          throw new Error(`icbad a répondu ${feuille.statutHttp} (${feuille.url}).`);
+        }
+        return completerLaFeuille(feuille.octets, { cote, lignes });
+      },
       fraicheur: fraicheurDuClassement,
       horloge: horlogeSysteme,
     }),

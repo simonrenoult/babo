@@ -1,0 +1,150 @@
+<%- include("entete", { titre }) %>
+<h2><%= titre %></h2>
+<%- include("capitanat-onglets") %>
+
+<% if (calendrier === null) { %>
+  <p class="etat">
+    Aucun calendrier importé : on compose une rencontre à la fois. Il s'importe
+    depuis <a href="/parametres/calendrier">l'écran des paramètres</a>.
+  </p>
+<% } else { %>
+  <nav class="onglets sous" aria-label="Journées">
+    <% for (const autre of calendrier.rencontres) { %>
+      <a href="/capitanat/planification/<%= autre.journee %>"
+         <%- autre.journee === rencontre.journee ? 'aria-current="page"' : "" %>
+         title="<%= autre.debut.toLocaleDateString("fr-FR") %><%= composees.has(autre.journee) ? " — composée" : "" %>">J<%= String(autre.journee).padStart(2, "0") %><%= composees.has(autre.journee) ? " ✓" : "" %></a>
+    <% } %>
+  </nav>
+
+  <h3>
+    J<%= String(rencontre.journee).padStart(2, "0") %> —
+    <%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) %>
+    à <%= rencontre.debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) %>
+  </h3>
+  <p>
+    <%= recoitOn(rencontre, calendrier.equipe) ? "Reçoit" : "Se déplace chez" %>
+    <strong><%= adversaireDe(rencontre, calendrier.equipe).nom %></strong>,
+    <a href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(rencontre.lieu) %>"
+       rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>.
+  </p>
+
+  <p>
+    Six matchs : deux simples hommes, un simple dames, un double hommes, un
+    double dames, un double mixte. Seuls se sélectionnent les joueurs qui ont
+    répondu <strong>oui</strong> ou <strong>si besoin</strong> au sondage de la
+    journée ; <strong>deux matchs au plus</strong> par joueur ; et le SH1 n'a
+    pas une moyenne de simple inférieure au SH2. Une composition incomplète
+    s'enregistre, une composition fautive non.
+  </p>
+
+  <% if (disponibles === 0) { %>
+    <p class="etat">
+      Personne n'est sélectionnable à cette journée : aucun membre rattaché n'a
+      répondu oui ou si besoin. Les réponses s'importent depuis
+      <a href="/parametres/disponibilites">l'écran des paramètres</a>, et les
+      noms du sondage se rattachent sur
+      <a href="/capitanat/disponibilites">Disponibilités</a>.
+    </p>
+  <% } %>
+
+  <% if (fautes.length > 0) { %>
+    <div class="etat">
+      <strong><%= enregistree ? "La composition enregistrée ne tient plus :" : "Composition non enregistrée :" %></strong>
+      <ul>
+        <% for (const faute of fautes) { %>
+          <li><%= faute %></li>
+        <% } %>
+      </ul>
+    </div>
+  <% } else if (enregistree && vides === 0) { %>
+    <p class="etat">Composition complète et conforme.</p>
+  <% } else if (enregistree && vides < postes.length) { %>
+    <p class="etat">
+      Composition en cours : <%= vides %> place<%= vides > 1 ? "s" : "" %>
+      encore vide<%= vides > 1 ? "s" : "" %>.
+    </p>
+  <% } %>
+
+  <%
+    const nomDe = (licence) => membres.find((membre) => membre.licence === licence)?.nom ?? licence;
+    const cote = (valeur) => (valeur === null ? "non classé" : `${valeur.toLocaleString("fr-FR")} pts`);
+    const retenu = (licence) => {
+      const { selections, occasions } = usage.get(licence) ?? { selections: 0, occasions: 0 };
+      return occasions === 0 ? "" : ` · retenu ${selections}/${occasions.toLocaleString("fr-FR")}`;
+    };
+  %>
+
+  <form method="post" action="/capitanat/planification/<%= rencontre.journee %>">
+    <table>
+      <% for (const { match, intitule } of matchs) { %>
+        <tr>
+          <th><%= intitule %></th>
+          <% for (const { poste, choisi, candidats } of postes.filter((entree) => entree.poste.match === match)) { %>
+            <td>
+              <select name="<%= poste.id %>" aria-label="<%= intitule %> — <%= poste.sexe === "F" ? "dame" : "homme" %>">
+                <option value="">— <%= poste.sexe === "F" ? "une dame" : "un homme" %> —</option>
+                <% for (const { membre, reponse, cote: valeur } of candidats) { %>
+                  <option value="<%= membre.licence %>" <%= membre.licence === choisi ? "selected" : "" %>>
+                    <%= membre.nom ?? membre.licence %> — <%= cote(valeur) %><%= reponse === "si-besoin" ? " (si besoin)" : "" %><%= retenu(membre.licence) %>
+                  </option>
+                <% } %>
+                <%# Un choix que les réponses ne justifient plus reste visible, pour %>
+                <%# que la faute ci-dessus désigne quelque chose. %>
+                <% if (choisi !== null && !candidats.some(({ membre }) => membre.licence === choisi)) { %>
+                  <option value="<%= choisi %>" selected><%= nomDe(choisi) %> — non disponible</option>
+                <% } %>
+              </select>
+            </td>
+          <% } %>
+        </tr>
+      <% } %>
+    </table>
+    <p><button type="submit">Enregistrer la composition</button></p>
+  </form>
+
+  <p>
+    <a href="/capitanat/planification/<%= rencontre.journee %>/feuille" target="_blank" rel="noopener">Imprimer
+      la feuille de rencontre</a> — celle d'icbad, avec la composition
+    <strong>enregistrée</strong> écrite dans la colonne de
+    <%= calendrier.equipe.nom %> : licence, nom, classement et cote de la
+    discipline. La colonne adverse et les scores restent à remplir à la main.
+  </p>
+
+  <% if (sollicites.length > 0) { %>
+    <h3>Sollicitation des disponibles</h3>
+    <p>
+      Pour chaque joueur disponible à cette journée : combien de fois il a été
+      retenu, sur les <strong>autres journées déjà composées</strong> où il
+      avait répondu oui ou si besoin — un ou deux tableaux comptent pour une
+      sélection, et un « si besoin » pour une demi-journée. Les moins retenus
+      d'abord : ce sont ceux qu'on oublie.
+    </p>
+    <table>
+      <tr><th>Joueur</th><th>Au sondage</th><th>Retenu</th><th>Sur</th><th>Taux</th></tr>
+      <% for (const { membre, reponse, selections, occasions } of sollicites) { %>
+        <tr>
+          <td><%= membre.nom ?? membre.licence %></td>
+          <td><%= reponse === "si-besoin" ? "si besoin" : "oui" %></td>
+          <td><%= selections %></td>
+          <td><%= occasions.toLocaleString("fr-FR") %> journée<%= occasions > 1 ? "s" : "" %></td>
+          <td><%= occasions === 0 ? "—" : `${Math.round((100 * selections) / occasions)} %` %></td>
+        </tr>
+      <% } %>
+    </table>
+  <% } %>
+
+  <% if (matchsParJoueur.size > 0) { %>
+    <h3>Joueurs retenus</h3>
+    <table>
+      <tr><th>Joueur</th><th>Matchs</th><th>Au sondage</th></tr>
+      <% for (const [licence, nombre] of [...matchsParJoueur].toSorted(([un], [autre]) => String(nomDe(un)).localeCompare(String(nomDe(autre)), "fr"))) { %>
+        <tr>
+          <td><%= nomDe(licence) %></td>
+          <td><%= nombre %><%= nombre > 2 ? " — trop" : "" %></td>
+          <td><%= { oui: "oui", "si-besoin": "si besoin", non: "non" }[reponses.get(licence)] ?? "sans réponse" %></td>
+        </tr>
+      <% } %>
+    </table>
+  <% } %>
+<% } %>
+<%- include("pied") %>

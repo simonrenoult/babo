@@ -42,6 +42,7 @@ describe("la base unique du socle", () => {
       "015__veille_relevee.sql",
       "016__calendrier_interclub.sql",
       "017__disponibilite.sql",
+      "018__composition.sql",
     ]);
     persistance.fermer();
   });

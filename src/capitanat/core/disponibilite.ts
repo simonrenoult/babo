@@ -195,6 +195,27 @@ export function grilleDesDisponibilites(options: {
   };
 }
 
+/**
+ * Les réponses d'une journée, par membre rattaché — ce que la composition de
+ * 011 consulte. Un nom non rattaché ne désigne personne : il n'y figure pas.
+ * Si deux noms désignent le même membre, la réponse la plus favorable l'emporte.
+ */
+export function reponsesALaJournee(
+  journee: number,
+  repondants: readonly Repondant[],
+  reponses: readonly { readonly nom: string; readonly journee: number; readonly reponse: Reponse }[],
+): ReadonlyMap<Licence, Reponse> {
+  const parLicence = new Map<Licence, Reponse>();
+  for (const { nom, licence } of repondants) {
+    if (licence === null) continue;
+    const reponse = reponses.find((candidate) => candidate.nom === nom && candidate.journee === journee)?.reponse;
+    if (reponse === undefined) continue;
+    const deja = parLicence.get(licence);
+    if (deja === undefined || REPONSES.indexOf(reponse) < REPONSES.indexOf(deja)) parLicence.set(licence, reponse);
+  }
+  return parLicence;
+}
+
 /** Sans casse ni accent : « Mélanie » et « MELANIE » sont le même prénom. */
 export function normaliser(valeur: string): string {
   return valeur.normalize("NFD").replaceAll(/\p{Diacritic}/gu, "").toLowerCase().trim();

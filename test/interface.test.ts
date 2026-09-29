@@ -12,6 +12,7 @@ import { depotCoequipiersSqlite } from "../src/capitanat/infrastructure/depot-co
 import { depotPreferencesSqlite } from "../src/capitanat/infrastructure/depot-preferences-sqlite.ts";
 import { depotCalendrierSqlite } from "../src/capitanat/infrastructure/depot-calendrier-sqlite.ts";
 import { depotDisponibilitesSqlite } from "../src/capitanat/infrastructure/depot-disponibilites-sqlite.ts";
+import { depotCompositionsSqlite } from "../src/capitanat/infrastructure/depot-compositions-sqlite.ts";
 import { lireLeCsvDesDisponibilites } from "../src/capitanat/infrastructure/csv-disponibilites.ts";
 import { DisponibilitesRefusees, verifierContreLeCalendrier } from "../src/capitanat/core/disponibilite.ts";
 import { depotVeillesSqlite } from "../src/veille/infrastructure/depot-veilles-sqlite.ts";
@@ -212,6 +213,15 @@ describe("l'application assemblée", () => {
           preferences,
           calendrier: calendrierDInterclub,
           disponibilites,
+          compositions: depotCompositionsSqlite(persistance.base),
+          // La feuille d'icbad touche au réseau : la doublure rend un « PDF » qui
+          // dit ce qu'on lui a demandé, et l'assemblage vérifie la route.
+          feuilleDeRencontre: ({ rencontre, cote, lignes }) =>
+            rencontre === 796900
+              ? Promise.resolve(
+                  new TextEncoder().encode(`%PDF-1.7 ${rencontre} ${cote} ${JSON.stringify(lignes[0])}`),
+                )
+              : Promise.reject(new Error("icbad n'est pas joignable")),
           fraicheur: fraicheurDeTest,
           horloge: horlogeSysteme,
         }),
@@ -872,6 +882,76 @@ describe("l'application assemblée", () => {
     assert.match(apres, /Simon RENOULT/, "le nom fédéral remplace le prénom du sondage");
     assert.match(apres, /« Simon » au sondage/);
     assert.match(apres, /0 · 1/, "Simon, homme, disponible");
+  });
+
+  it("ouvre la planification sur la prochaine rencontre", async () => {
+    const reponse = await visiter("/capitanat/planification");
+
+    assert.equal(reponse.status, 302);
+    assert.match(reponse.headers.get("location") ?? "", /^\/capitanat\/planification\/\d+$/);
+  });
+
+  it("ne propose que les disponibles, et refuse un troisième match", async () => {
+    const page = await (await visiter("/capitanat/planification/1")).text();
+    assert.match(page, /<option value="07194591"\s*>\s*Simon RENOULT/, "Simon, rattaché et disponible");
+    assert.doesNotMatch(page, /<option value="02345678"/, "le membre sans réponse ne se sélectionne pas");
+
+    const composer = (places: readonly [string, string][]) =>
+      visiter("/capitanat/planification/1", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(places),
+      });
+
+    const troisMatchs = await composer([
+      ["SH1", "07194591"],
+      ["DH-1", "07194591"],
+      ["MX-H", "07194591"],
+    ]);
+    assert.equal(troisMatchs.status, 400);
+    assert.match(await troisMatchs.text(), /joue 3 matchs \(SH1, DH, MX\) : 2 au plus par rencontre/);
+
+    const deuxMatchs = await composer([
+      ["SH1", "07194591"],
+      ["DH-1", "07194591"],
+    ]);
+    assert.equal(deuxMatchs.status, 302);
+
+    const relue = await (await visiter("/capitanat/planification/1")).text();
+    assert.match(relue, /<option value="07194591" selected>/);
+    assert.match(relue, /7 places\s+encore vides/);
+  });
+
+  it("dit, en composant une journée, combien de fois chacun a déjà été retenu", async () => {
+    const page = await (await visiter("/capitanat/planification/2")).text();
+
+    assert.match(page, /Simon RENOULT — [^<]*· retenu 1\/1/, "retenu en J01, où il était disponible");
+    assert.match(page, /Sollicitation des disponibles/);
+    assert.match(page, /<td>1<\/td>\s*<td>1 journée<\/td>\s*<td>100 %<\/td>/);
+  });
+
+  it("donne sur les effectifs le taux de sollicitation de la saison", async () => {
+    const page = await (await visiter("/capitanat")).text();
+
+    assert.match(page, /100 %\s*<span class="etat">1\/1<\/span>/, "Simon, retenu la seule journée composée");
+  });
+
+  it("imprime la feuille de la journée, avec la composition enregistrée dans ma colonne", async () => {
+    const reponse = await visiter("/capitanat/planification/1/feuille");
+
+    assert.equal(reponse.status, 200);
+    assert.equal(reponse.headers.get("content-type"), "application/pdf");
+    assert.match(reponse.headers.get("content-disposition") ?? "", /inline; filename="J01-feuille-de-rencontre\.pdf"/);
+    const corps = await reponse.text();
+    assert.match(corps, /^%PDF-1\.7 796900 exterieur /, "la rencontre de J01, CPS à l'extérieur");
+    assert.match(corps, /07194591 - Simon RENOULT/, "le SH1 enregistré");
+  });
+
+  it("dit pourquoi la feuille manque quand icbad ne répond pas", async () => {
+    const reponse = await visiter("/capitanat/planification/2/feuille");
+
+    assert.equal(reponse.status, 502);
+    assert.match(await reponse.text(), /icbad n&#39;est pas joignable/);
   });
 
   it("refuse un sondage dont les dates ne sont pas celles du calendrier", async () => {

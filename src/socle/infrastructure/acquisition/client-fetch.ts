@@ -49,3 +49,28 @@ export function clientFetch(options: { readonly delaiMax?: number } = {}): Clien
     },
   };
 }
+
+/**
+ * Un fichier binaire, un PDF — spec 011.
+ *
+ * À part du port `ClientHttp`, qui rend du texte parce que tout ce qu'on
+ * scrape en est : décoder un PDF en UTF-8 le détruirait. Même agent, même
+ * délai, redirections suivies — la feuille de rencontre d'icbad passe par un
+ * 302 vers son fichier.
+ */
+export async function telecharger(
+  url: string,
+  options: { readonly delaiMax?: number } = {},
+): Promise<{ readonly url: string; readonly statutHttp: number; readonly type: string; readonly octets: Uint8Array }> {
+  const reponse = await fetch(url, {
+    headers: { "user-agent": AGENT, accept: "application/pdf,*/*" },
+    redirect: "follow",
+    signal: AbortSignal.timeout(options.delaiMax ?? DELAI_MAX),
+  });
+  return {
+    url: reponse.url,
+    statutHttp: reponse.status,
+    type: reponse.headers.get("content-type") ?? "",
+    octets: new Uint8Array(await reponse.arrayBuffer()),
+  };
+}

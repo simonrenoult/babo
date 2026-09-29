@@ -14,7 +14,19 @@ import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } fro
 import type { DepotCalendrier } from "../core/calendrier.ts";
 import { adversaireDe, recoitOn } from "../core/calendrier.ts";
 import type { DepotDisponibilites } from "../core/disponibilite.ts";
-import { grilleDesDisponibilites, suggestionPour } from "../core/disponibilite.ts";
+import { grilleDesDisponibilites, reponsesALaJournee, suggestionPour } from "../core/disponibilite.ts";
+import type { Composition, DepotCompositions, LigneDeFeuille } from "../core/composition.ts";
+import {
+  MATCHS,
+  POSTES,
+  candidatsAuPoste,
+  coteDe,
+  fautesDeLaComposition,
+  lignesDeLaFeuille,
+  matchsParJoueur,
+  placesVides,
+  sollicitations,
+} from "../core/composition.ts";
 import { enJoueurs, joueursRequis } from "./mots.ts";
 
 /**
@@ -49,12 +61,33 @@ export function creerModuleCapitanat(options: {
   readonly calendrier: DepotCalendrier;
   /** Les réponses aux sondages, importées depuis les paramètres, et leurs rattachements — spec 008. */
   readonly disponibilites: DepotDisponibilites;
+  /** Les compositions retenues, journée par journée — spec 011. */
+  readonly compositions: DepotCompositions;
+  /**
+   * La feuille de rencontre officielle d'icbad, complétée de ma composition,
+   * en PDF. Branchée dans `main.ts` : télécharger est l'affaire du socle.
+   */
+  readonly feuilleDeRencontre: (demande: {
+    readonly rencontre: number;
+    readonly cote: "domicile" | "exterieur";
+    readonly lignes: readonly LigneDeFeuille[];
+  }) => Promise<Uint8Array>;
   /** L'ancienneté des classements, jugée sur la cadence de leur passe — spec 019. */
   readonly fraicheur: (vuLe: Date | null) => Fraicheur;
   readonly horloge: Horloge;
 }): ModuleWeb {
-  const { coequipiers, identites, classements, preferences, calendrier, disponibilites, fraicheur, horloge } =
-    options;
+  const {
+    coequipiers,
+    identites,
+    classements,
+    preferences,
+    calendrier,
+    disponibilites,
+    compositions,
+    feuilleDeRencontre,
+    fraicheur,
+    horloge,
+  } = options;
   const routeur = Router();
 
   const equipe = () => listeDeLEquipe(coequipiers, identites, classements);
@@ -64,11 +97,18 @@ export function creerModuleCapitanat(options: {
   // l'adresse des effectifs, celle que les autres pages citent.
   routeur.get("/", (_requete, reponse) => {
     const membres = equipe();
+    const repondants = disponibilites.repondants();
+    const reponses = disponibilites.reponses();
     reponse.render("capitanat-effectifs", {
       titre: "Capitanat",
       onglet: "effectifs",
       equipe: membres,
       fraicheur: fraicheur(laPlusRecente(membres)),
+      // Sur toute la saison composée jusqu'ici — spec 009.
+      usage: sollicitations({
+        compositions: compositions.toutes(),
+        reponsesDe: (journee) => reponsesALaJournee(journee, repondants, reponses),
+      }),
     });
   });
 
@@ -144,6 +184,145 @@ export function creerModuleCapitanat(options: {
       disponibilites.rattacher(nom, licence === "" ? null : (licence as Licence));
     }
     reponse.redirect("/capitanat/disponibilites");
+  });
+
+  /**
+   * La planification — spec 011. Sans journée désignée, on ouvre la prochaine
+   * rencontre : c'est celle qu'on compose.
+   */
+  routeur.get("/planification", (_requete, reponse) => {
+    const leCalendrier = calendrier.lire();
+    if (leCalendrier === null || leCalendrier.rencontres.length === 0) {
+      return reponse.render("capitanat-planification", {
+        titre: "Capitanat",
+        onglet: "planification",
+        calendrier: null,
+      });
+    }
+    const maintenant = horloge.maintenant();
+    const prochaine =
+      leCalendrier.rencontres.find((rencontre) => rencontre.debut >= maintenant) ?? leCalendrier.rencontres.at(-1);
+    reponse.redirect(`/capitanat/planification/${prochaine?.journee ?? 1}`);
+  });
+
+  const planification = (
+    reponse: Response,
+    journee: number,
+    suite: () => void,
+    saisie?: { readonly composition: Composition; readonly fautes: readonly string[] },
+  ): void => {
+    const leCalendrier = calendrier.lire();
+    const rencontre = leCalendrier?.rencontres.find((candidate) => candidate.journee === journee);
+    if (leCalendrier === null || rencontre === undefined) return suite();
+
+    const membres = equipe();
+    const repondants = disponibilites.repondants();
+    const toutesLesReponses = disponibilites.reponses();
+    const reponses = reponsesALaJournee(journee, repondants, toutesLesReponses);
+    const composition = saisie?.composition ?? compositions.lire(journee);
+    const usage = sollicitations({
+      journee,
+      compositions: compositions.toutes(),
+      reponsesDe: (autre) => reponsesALaJournee(autre, repondants, toutesLesReponses),
+    });
+
+    reponse.status(saisie === undefined ? 200 : 400).render("capitanat-planification", {
+      titre: "Capitanat",
+      onglet: "planification",
+      calendrier: leCalendrier,
+      rencontre,
+      composees: compositions.journeesComposees(),
+      matchs: MATCHS,
+      postes: POSTES.map((poste) => ({
+        poste,
+        choisi: composition.get(poste.id) ?? null,
+        candidats: candidatsAuPoste(poste, membres, reponses),
+      })),
+      membres,
+      reponses,
+      // Un choix enregistré que les réponses ne justifient plus (nouveau
+      // sondage, joueur parti) reste affiché, et la faute dit pourquoi.
+      fautes: saisie?.fautes ?? fautesDeLaComposition(composition, membres, reponses),
+      enregistree: saisie === undefined,
+      vides: placesVides(composition),
+      matchsParJoueur: matchsParJoueur(composition),
+      disponibles: [...reponses.values()].filter((valeur) => valeur !== "non").length,
+      usage,
+      // Les disponibles de la journée, les moins retenus d'abord : ceux qu'on
+      // oublie. Sans occasion, on ne peut rien en dire — ils ferment la liste.
+      sollicites: membres
+        .filter((membre) => ["oui", "si-besoin"].includes(reponses.get(membre.licence) ?? ""))
+        .map((membre) => ({ membre, reponse: reponses.get(membre.licence), ...(usage.get(membre.licence) ?? { selections: 0, occasions: 0 }) }))
+        .toSorted(
+          (un, autre) =>
+            Number(un.occasions === 0) - Number(autre.occasions === 0) ||
+            un.selections / Math.max(un.occasions, 1) - autre.selections / Math.max(autre.occasions, 1) ||
+            autre.occasions - un.occasions,
+        ),
+      coteDe,
+      adversaireDe,
+      recoitOn,
+    });
+  };
+
+  routeur.get("/planification/:journee", (requete, reponse, suite) => {
+    planification(reponse, Number(requete.params["journee"]), suite);
+  });
+
+  /**
+   * La feuille de rencontre à imprimer — la feuille d'icbad, avec ma
+   * composition *enregistrée* écrite dans ma colonne. Ce qui n'est pas
+   * enregistré n'est pas imprimé : la feuille dit ce que la page affiche.
+   */
+  routeur.get("/planification/:journee/feuille", (requete, reponse, suite) => {
+    const journee = Number(requete.params["journee"]);
+    const leCalendrier = calendrier.lire();
+    const rencontre = leCalendrier?.rencontres.find((candidate) => candidate.journee === journee);
+    if (leCalendrier === null || rencontre === undefined) return suite();
+
+    feuilleDeRencontre({
+      rencontre: rencontre.id,
+      cote: recoitOn(rencontre, leCalendrier.equipe) ? "domicile" : "exterieur",
+      lignes: lignesDeLaFeuille(compositions.lire(journee), equipe()),
+    })
+      .then((pdf) => {
+        reponse
+          .type("application/pdf")
+          .setHeader(
+            "Content-Disposition",
+            `inline; filename="J${String(journee).padStart(2, "0")}-feuille-de-rencontre.pdf"`,
+          );
+        reponse.send(Buffer.from(pdf));
+      })
+      .catch((erreur: unknown) => {
+        reponse.status(502).render("erreur", {
+          titre: "Feuille indisponible",
+          message: `La feuille de rencontre n'a pas pu être préparée : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+        });
+      });
+  });
+
+  /**
+   * Enregistrer la composition d'une journée — spec 011.
+   *
+   * Une composition fautive n'est pas enregistrée : la page revient avec la
+   * saisie telle quelle et ses fautes, pour qu'on la corrige sans la retaper.
+   */
+  routeur.post("/planification/:journee", (requete, reponse, suite) => {
+    const journee = Number(requete.params["journee"]);
+    const composition: Composition = new Map(
+      POSTES.flatMap(({ id }) => {
+        const licence = champ(requete.body, id);
+        return licence === "" ? [] : [[id, licence as Licence] as const];
+      }),
+    );
+    const reponses = reponsesALaJournee(journee, disponibilites.repondants(), disponibilites.reponses());
+    const fautes = fautesDeLaComposition(composition, equipe(), reponses);
+    if (fautes.length > 0) return planification(reponse, journee, suite, { composition, fautes });
+
+    if (calendrier.lire()?.rencontres.some((rencontre) => rencontre.journee === journee) !== true) return suite();
+    compositions.enregistrer(journee, composition);
+    reponse.redirect(`/capitanat/planification/${journee}`);
   });
 
   routeur.get("/preferences", (_requete, reponse) => {

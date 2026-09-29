@@ -41,11 +41,19 @@
     </p>
   <% } %>
 
+  <p>
+    La <strong>sollicitation</strong> rapporte les journées où un joueur a été
+    retenu à celles où il était disponible — un « si besoin » comptant pour une
+    demie —, sur les journées déjà
+    composées en <a href="/capitanat/planification">Planification</a> (spec 009).
+    « — » : aucune journée composée où il était disponible.
+  </p>
+
   <table>
     <tr>
       <th>Nom</th><th>Licence</th><th>Sexe</th>
       <th>Simple</th><th>Double</th><th>Mixte</th>
-      <th>Relevé le</th><th>Téléphone</th><th>Fiche</th>
+      <th>Relevé le</th><th>Sollicitation</th><th>Téléphone</th><th>Fiche</th>
     </tr>
     <% for (const membre of equipe) { %>
       <%
@@ -69,6 +77,15 @@
           </td>
         <% } %>
         <td><%= membre.vuLe === null ? "—" : membre.vuLe.toLocaleDateString("fr-FR") %></td>
+        <% const { selections, occasions } = usage.get(membre.licence) ?? { selections: 0, occasions: 0 }; %>
+        <td>
+          <% if (occasions === 0) { %>
+            —
+          <% } else { %>
+            <%= Math.round((100 * selections) / occasions) %> %
+            <span class="etat"><%= selections %>/<%= occasions.toLocaleString("fr-FR") %></span>
+          <% } %>
+        </td>
         <td><a href="tel:<%= membre.appel %>"><%= membre.telephone %></a></td>
         <td>
           <a href="<%= membre.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>

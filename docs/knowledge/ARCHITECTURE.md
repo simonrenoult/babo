@@ -911,6 +911,34 @@ membre, jamais à rattacher en silence — pour la raison que `parNom` donne
 déjà. Le décompte par sexe, qui dit si l'on compose, ne compte que les
 répondants rattachés.
 
+## La planification
+
+Spec 011, en assistant : le capitaine compose, l'outil vérifie. Une page par
+journée, `/capitanat/planification/<journée>` ; sans journée, la prochaine
+rencontre. Notion et règles dans `capitanat/core/composition.ts`, dépôt
+`depot-compositions-sqlite.ts`, table `migrations/018__composition.sql`.
+
+Neuf places pour six matchs — SH1, SH2, SD, DH, DD, MX —, chacune réservée à
+un sexe. Trois règles : seul se sélectionne un joueur qui a répondu oui ou si
+besoin au sondage de la journée (les listes ne proposent que ceux-là) ; deux
+matchs au plus par joueur ; le SH1 n'a pas une moyenne de simple inférieure au
+SH2, un non-classé comptant pour zéro. Une composition incomplète
+s'enregistre ; une composition fautive revient avec ses fautes, sans être
+écrite. Une composition enregistrée que les réponses ne justifient plus — un
+nouveau sondage — reste affichée, avec la faute qui le dit.
+
+**La feuille de rencontre.** `/capitanat/planification/<journée>/feuille` rend
+la feuille officielle d'icbad (`/rencontre/<id>/exportPDF`, un PDF public
+regénéré par le comité, donc téléchargé à chaque demande) avec la composition
+*enregistrée* écrite dans la colonne de l'équipe — à gauche quand elle reçoit.
+La feuille n'est pas redessinée : `capitanat/infrastructure/feuille-de-rencontre.ts`
+y ajoute une mise à jour incrémentale — une police standard, un flux de texte,
+une table de renvois —, l'original restant intact octet pour octet. Sans
+bibliothèque : `pdf-lib` en tire quatre autres. Les coordonnées ont été
+relevées sur la feuille du 30 septembre 2026 ; si le comité change sa mise en
+page, c'est là qu'elles se corrigent. Le téléchargement binaire vit à part du
+port `ClientHttp`, qui rend du texte : `telecharger` dans `client-fetch.ts`.
+
 ## Ce qui n'est pas encore là
 
 Le schéma des matchs, que 015 laisse volontairement à dessiner sur les pages
