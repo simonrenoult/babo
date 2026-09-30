@@ -1032,7 +1032,8 @@ describe("l'application assemblée", () => {
     assert.match(page, /<section class="carte vide" aria-label="Simple dames">/);
     assert.match(page, /href="\/capitanat\/planification\/1" class="en-cours"/);
     assert.match(page, /href="\/capitanat\/planification\/2" class="vide"/);
-    assert.match(page, /data-texte="J01 vs BAD18-5 📅 jeudi 5 novembre 🕗 20h 📍 Gymnase\n\* SH1 : Simon\n\* DH : Simon">Copier pour WhatsApp/, "la rencontre d'abord, puis par prénom, sans cote");
+    assert.match(page, /data-texte="\* SH1 : Simon\n\* DH : Simon">Copier pour validation/, "à valider : par prénom, sans cote");
+    assert.match(page, /data-texte="J01 vs BAD18-5 📅 jeudi 5 novembre 🕗 20h 📍 Gymnase\n\* SH1 : Simon\n\* DH : Simon">Copier pour l'équipe/, "à annoncer : la rencontre d'abord");
   });
 
   it("range chaque geste dans la barre qui suit le titre de ce qu'il concerne", async () => {
@@ -1042,7 +1043,7 @@ describe("l'application assemblée", () => {
       [veille, [/>Modifier les critères</, />Suspendre</, />Supprimer<\/button>/]],
       ["/parametres/scrapping/ordonnancement/courrier", [/>Lancer maintenant</]],
       ["/capitanat/calendrier", [/>Exporter le calendrier \(\.ics\)</]],
-      ["/capitanat/planification/1", [/>Imprimer la feuille de rencontre</, />Copier pour WhatsApp</]],
+      ["/capitanat/planification/1", [/>Imprimer la feuille de rencontre</, />Copier pour validation</, />Copier pour l'équipe</]],
     ] as const) {
       const barre = barreSousLeTitre(await (await visiter(chemin)).text());
       assert.ok(barre !== null, `${chemin} : une barre sous le titre`);

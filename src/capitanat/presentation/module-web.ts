@@ -25,6 +25,7 @@ import {
   coteDe,
   fautesDeLaComposition,
   fautesParMatch,
+  annonceDeLaComposition,
   texteDeLaComposition,
   lignesDeLaFeuille,
   matchsParJoueur,
@@ -277,9 +278,15 @@ export function creerModuleCapitanat(options: {
       calendrier: leCalendrier,
       rencontre,
       etatsDesJournees: etatsDesJournees(leCalendrier.rencontres),
-      // Le texte à coller dans la discussion : la composition *enregistrée*,
-      // comme la feuille — ce qui n'est pas enregistré n'est pas annoncé.
-      texteAPartager: texteDeLaComposition(compositions.lire(journee), membres, rencontre, adversaireDe(rencontre, leCalendrier.equipe)),
+      // Les textes à coller dans WhatsApp : la composition *enregistrée*,
+      // comme la feuille — ce qui n'est pas enregistré ne se partage pas.
+      texteAValider: texteDeLaComposition(compositions.lire(journee), membres),
+      annonce: annonceDeLaComposition(
+        compositions.lire(journee),
+        membres,
+        rencontre,
+        adversaireDe(rencontre, leCalendrier.equipe),
+      ),
       cartes: cartesDuMatch(composition, membres, reponses, fautes),
       postes: POSTES,
       membres,

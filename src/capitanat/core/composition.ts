@@ -204,37 +204,43 @@ export function fautesParMatch(
 }
 
 /**
- * La composition en texte, à coller dans la discussion de l'équipe — 038.
+ * La composition en texte, à faire valider par la cocapitaine — 038.
  *
- * D'abord la rencontre, sur une ligne : journée, adversaire par son sigle,
- * date, heure et lieu, séparés d'emojis comme on l'écrirait à la main.
- * « vs » qu'on reçoive ou non : le lieu dit où l'on joue.
- *
- * Puis une ligne par match où quelqu'un est retenu, en liste WhatsApp (« * »),
- * et rien d'autre : ni classement ni cote, c'est une convocation. Chacun y est
- * désigné par son prénom, sauf quand deux membres le partagent. Une
- * composition vide ne s'annonce pas, rencontre comprise.
+ * Une ligne par match où quelqu'un est retenu, en liste WhatsApp (« * »), et
+ * rien d'autre : ni classement ni cote. Chacun y est désigné par son prénom,
+ * sauf quand deux membres le partagent. Pas de rencontre : on en parle déjà
+ * entre capitaines.
  */
-export function texteDeLaComposition(
-  composition: Composition,
-  membres: readonly MembreDeLEquipe[],
-  rencontre: Rencontre,
-  adversaire: EquipeDInterclub,
-): string {
+export function texteDeLaComposition(composition: Composition, membres: readonly MembreDeLEquipe[]): string {
   const noms = designations(membres);
-  const matchs = MATCHS.flatMap(({ match }) => {
+  return MATCHS.flatMap(({ match }) => {
     const retenus = POSTES.filter((poste) => poste.match === match).flatMap(({ id }) => {
       const licence = composition.get(id);
       return licence === undefined ? [] : [noms.get(licence) ?? licence];
     });
     return retenus.length === 0 ? [] : [`* ${match} : ${retenus.join(" & ")}`];
-  });
-  if (matchs.length === 0) return "";
+  }).join("\n");
+}
+
+/**
+ * La composition annoncée à l'équipe — 038 : le texte à valider, précédé
+ * d'une ligne qui situe la rencontre. Journée, adversaire par son sigle, date,
+ * heure et lieu, séparés d'emojis comme on l'écrirait à la main ; « vs »
+ * qu'on reçoive ou non, le lieu disant où l'on joue. Une composition vide ne
+ * s'annonce pas, rencontre comprise.
+ */
+export function annonceDeLaComposition(
+  composition: Composition,
+  membres: readonly MembreDeLEquipe[],
+  rencontre: Rencontre,
+  adversaire: EquipeDInterclub,
+): string {
+  const texte = texteDeLaComposition(composition, membres);
+  if (texte === "") return "";
 
   const journee = `J${String(rencontre.journee).padStart(2, "0")}`;
   const date = rencontre.debut.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-  const enTete = `${journee} vs ${sigleDe(adversaire)} 📅 ${date} 🕗 ${heure(rencontre.debut)} 📍 ${rencontre.lieu}`;
-  return [enTete, ...matchs].join("\n");
+  return `${journee} vs ${sigleDe(adversaire)} 📅 ${date} 🕗 ${heure(rencontre.debut)} 📍 ${rencontre.lieu}\n${texte}`;
 }
 
 export function placesVides(composition: Composition): number {
