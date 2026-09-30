@@ -12,7 +12,7 @@ import { forceDuTableau, forcesParTableau } from "../core/forces-par-tableau.ts"
 import type { DepotPreferences } from "../core/paires.ts";
 import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } from "../core/paires.ts";
 import type { DepotCalendrier, Rencontre } from "../core/calendrier.ts";
-import { adversaireDe, recoitOn } from "../core/calendrier.ts";
+import { adversaireDe, recoitOn, sigleDe } from "../core/calendrier.ts";
 import type { DepotDisponibilites } from "../core/disponibilite.ts";
 import { grilleDesDisponibilites, reponsesALaJournee, suggestionPour } from "../core/disponibilite.ts";
 import type { Composition, DepotCompositions, Faute, LigneDeFeuille } from "../core/composition.ts";
@@ -25,6 +25,7 @@ import {
   coteDe,
   fautesDeLaComposition,
   fautesParMatch,
+  texteDeLaComposition,
   lignesDeLaFeuille,
   matchsParJoueur,
   placesVides,
@@ -144,6 +145,7 @@ export function creerModuleCapitanat(options: {
       maintenant: horloge.maintenant(),
       adversaireDe,
       recoitOn,
+      sigleDe,
     });
   });
 
@@ -175,6 +177,7 @@ export function creerModuleCapitanat(options: {
       preselection: (nom: string, licence: Licence | null) => licence ?? suggestionPour(nom, membres),
       adversaireDe,
       recoitOn,
+      sigleDe,
     });
   });
 
@@ -257,6 +260,9 @@ export function creerModuleCapitanat(options: {
       calendrier: leCalendrier,
       rencontre,
       etatsDesJournees: etatsDesJournees(leCalendrier.rencontres),
+      // Le texte à coller dans la discussion : la composition *enregistrée*,
+      // comme la feuille — ce qui n'est pas enregistré n'est pas annoncé.
+      texteAPartager: texteDeLaComposition(compositions.lire(journee), membres),
       cartes: cartesDuMatch(composition, membres, reponses, fautes),
       postes: POSTES,
       membres,
@@ -281,6 +287,7 @@ export function creerModuleCapitanat(options: {
       coteDe,
       adversaireDe,
       recoitOn,
+      sigleDe,
     });
   };
 

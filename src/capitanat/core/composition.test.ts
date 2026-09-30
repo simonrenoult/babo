@@ -10,6 +10,7 @@ import {
   candidatsAuPoste,
   fautesDeLaComposition,
   fautesParMatch,
+  texteDeLaComposition,
   lignesDeLaFeuille,
   matchsParJoueur,
   placesVides,
@@ -205,5 +206,28 @@ describe("la sollicitation des joueurs", () => {
     });
 
     assert.equal(usage.size, 0);
+  });
+});
+
+describe("la composition, en texte à partager", () => {
+  it("liste les matchs où quelqu'un est retenu, par prénom, sans cote", () => {
+    const simon = { ...ALEX, nom: "Simon RENOULT" };
+    const marie = { ...DORA, nom: "Marie-Anne DE LA TOUR" };
+
+    assert.equal(
+      texteDeLaComposition(composition({ SH1: simon, SD: marie, "DH-1": simon, "DH-2": BRUNO }), [simon, BRUNO, marie]),
+      "* SH1 : Simon\n* SD : Marie-Anne\n* DH : Simon & Bruno",
+    );
+  });
+
+  it("donne le nom complet quand deux membres partagent un prénom", () => {
+    const un = { ...ALEX, nom: "Simon RENOULT" };
+    const autre = { ...BRUNO, nom: "Simon MARTIN" };
+
+    assert.equal(texteDeLaComposition(composition({ SH1: un, SH2: autre }), [un, autre]), "* SH1 : Simon RENOULT\n* SH2 : Simon MARTIN");
+  });
+
+  it("ne dit rien d'une composition vide", () => {
+    assert.equal(texteDeLaComposition(composition({}), MEMBRES), "");
   });
 });

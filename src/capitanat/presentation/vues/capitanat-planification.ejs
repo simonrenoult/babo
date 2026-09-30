@@ -52,15 +52,13 @@
   <h3>
     J<%= String(rencontre.journee).padStart(2, "0") %> —
     <%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) %>
-    à <%= rencontre.debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) %>
-  </h3>
-  <p>
-    <%= recoitOn(rencontre, calendrier.equipe) ? "Reçoit" : "Se déplace chez" %>
-    <strong><%= adversaireDe(rencontre, calendrier.equipe).nom %></strong>,
+    à <%= heure(rencontre.debut) %> —
+    <%= recoitOn(rencontre, calendrier.equipe) ? "reçoit" : "chez" %>
+    <% const adversaire = adversaireDe(rencontre, calendrier.equipe); %>
+    <abbr title="<%= adversaire.nom %>"><%= sigleDe(adversaire) %></abbr>,
     <a href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(rencontre.lieu) %>"
-       rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>.
-  </p>
-
+       rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>
+  </h3>
 
   <% if (disponibles === 0) { %>
     <p class="etat attention">
@@ -163,6 +161,10 @@
     <%# Un lien, habillé en bouton : il ouvre le PDF dans un onglet, il ne poste rien. %>
     <a class="bouton" href="/capitanat/planification/<%= rencontre.journee %>/feuille"
        target="_blank" rel="noopener">Imprimer la feuille de rencontre</a>
+    <% if (texteAPartager !== "") { %>
+      <%# Le texte voyage dans l'attribut, échappé par EJS : le script le lit tel quel. %>
+      <button type="button" class="copier" data-texte="<%= texteAPartager %>">Copier pour WhatsApp</button>
+    <% } %>
     <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
       <span>La feuille d'icbad, avec la composition <strong>enregistrée</strong> dans la colonne de
         <%= calendrier.equipe.nom %>. La colonne adverse et les scores restent à remplir à la
@@ -206,4 +208,25 @@
     </table>
   <% } %>
 <% } %>
+<script>
+  // Le presse-papiers demande un contexte sûr (HTTPS ou localhost) ; hors de
+  // lui, on retombe sur une zone de texte sélectionnée et `execCommand`.
+  for (const bouton of document.querySelectorAll("button.copier")) {
+    const libelle = bouton.textContent;
+    bouton.addEventListener("click", async () => {
+      const texte = bouton.dataset.texte;
+      try {
+        await navigator.clipboard.writeText(texte);
+      } catch {
+        const zone = Object.assign(document.createElement("textarea"), { value: texte });
+        document.body.append(zone);
+        zone.select();
+        document.execCommand("copy");
+        zone.remove();
+      }
+      bouton.textContent = "Copié ✓";
+      setTimeout(() => (bouton.textContent = libelle), 2000);
+    });
+  }
+</script>
 <%- include("pied") %>
