@@ -2,7 +2,13 @@
   La page d'une source : ce qu'elle apporte, sa session et les gestes pour la
   rouvrir, son acquisition, ses déploiements, et les tâches qui la lisent.
 %>
-<% const action = (geste) => `/parametres/scrapping/sources/${source}/${geste}`; %>
+<%
+  const action = (geste) => `/parametres/scrapping/sources/${source}/${geste}`;
+  // Les gestes de session : se connecter quand Babo le peut seul et qu'aucun code
+  // n'est attendu, oublier quand il y a quelque chose à oublier.
+  const connectable = etat && etat.autonome && !attendu;
+  const oubliable = etat && etat.session !== "absente";
+%>
 
 <h3>
   <code><%= source %></code>
@@ -39,9 +45,9 @@
   </span></span>
 </h4>
 
-<% if (etat && (etat.session !== "absente" || (etat.autonome && !attendu))) { %>
+<% if (connectable || oubliable) { %>
   <div class="barre-actions">
-    <% if (etat.autonome && !attendu) { %>
+    <% if (connectable) { %>
       <form method="post" action="<%= action("connexion") %>">
         <button type="submit">Se connecter maintenant</button>
         <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
@@ -50,7 +56,7 @@
         </span></span>
       </form>
     <% } %>
-    <% if (etat.session !== "absente") { %>
+    <% if (oubliable) { %>
       <form method="post" action="<%= action("oubli") %>">
         <button type="submit" class="danger">Oublier cette session</button>
       </form>
