@@ -34,6 +34,10 @@
   <%- include("../rapport-de-passe", { passe: declenchement }) %>
 <% } %>
 
+<% if (courrier) { %>
+  <%- include("courrier") %>
+<% } %>
+
 <h4>Planification</h4>
 <dl class="fiche">
   <dt>Cadence</dt>

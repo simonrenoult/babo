@@ -66,7 +66,7 @@ export class SessionMorte extends Error {
 
   constructor(source: Source, url: string) {
     super(
-      `Session ${source} tombée : ${url} a répondu la page de connexion. En enregistrer une nouvelle depuis /parametres/scrapping/sessions.`,
+      `Session ${source} tombée : ${url} a répondu la page de connexion. En enregistrer une nouvelle depuis /parametres/scrapping/sources/${source}.`,
     );
     this.name = "SessionMorte";
     this.source = source;

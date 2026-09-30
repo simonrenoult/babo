@@ -1,4 +1,8 @@
-<h3>Courrier
+<%#
+  Le courrier, sur la page de la tâche qui vide la boîte d'envoi : sa
+  configuration, le mail de test, et les derniers messages.
+%>
+<h4>Courrier
   <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
     <span>Alertes de panne, battement hebdomadaire, alertes et rappels de tournoi. Un seul
       destinataire : moi.</span>
@@ -7,7 +11,7 @@
       minutes, et abandonné à la troisième tentative. Un échec d'envoi ne peut pas être
       signalé par mail : il se lit ici, et dans les rapports d'exécution.</span>
   </span></span>
-</h3>
+</h4>
 
 <p class="etat <%= courrier.configure ? "" : "attention" %>">
   <% if (courrier.configure) { %>
@@ -23,7 +27,7 @@
   <%= courrier.enAttente %> message<%= courrier.enAttente > 1 ? "s" : "" %> en attente.
 </p>
 
-<form method="post" action="/parametres/scrapping/emails"><button type="submit">Envoyer un mail de test</button></form>
+<form method="post" action="/parametres/scrapping/ordonnancement/courrier/mail-de-test"><button type="submit">Envoyer un mail de test</button></form>
 
 <% if (mailDeTest) { %>
   <p class="etat">
@@ -36,6 +40,7 @@
 <% } %>
 
 <% if (courrier.derniers.length > 0) { %>
+  <h4>Derniers messages</h4>
   <table>
     <tr><th>Déposé le</th><th>Sujet</th><th>État</th><th>Tentatives</th><th>Dernier échec</th></tr>
     <% for (const message of courrier.derniers) { %>
@@ -43,7 +48,8 @@
         <td><%= message.deposeLe.toLocaleString("fr-FR") %></td>
         <td><%= message.sujet %></td>
         <td>
-          <%= { "en-attente": "en attente", envoye: "remis", abandonne: "abandonné" }[message.etat] %>
+          <% const [ton, libelle] = { "en-attente": ["attention", "en attente"], envoye: ["succes", "remis"], abandonne: ["erreur", "abandonné"] }[message.etat]; %>
+          <span class="pastille <%= ton %>"><%= libelle %></span>
         </td>
         <td><%= message.tentatives %></td>
         <td><%= message.dernierEchec ?? "—" %></td>

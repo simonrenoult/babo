@@ -61,7 +61,7 @@ export async function releverLesEngagements(options: {
     });
 
   if (options.jeton === null) {
-    return consigner("echec", 0, "aucune session badnet : en ouvrir une depuis /parametres/scrapping/sessions (027).");
+    return consigner("echec", 0, "aucune session badnet : en ouvrir une depuis /parametres/scrapping/sources/badnet (027).");
   }
 
   let tournois;
