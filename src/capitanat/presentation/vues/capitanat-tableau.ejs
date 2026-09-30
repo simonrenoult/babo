@@ -1,7 +1,6 @@
 <%- include("entete", { titre }) %>
 <h2>Capitanat</h2>
 <%- include("capitanat-onglets", { onglet: "preferences" }) %>
-<p><a href="/capitanat/preferences">← Préférences</a></p>
 <h3><%= force.intitule %> <span class="etat"><%= force.tableau %></span>
   <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
     <span><strong>Aide à la décision, pas classement officiel.</strong> Le sexe qui range les
@@ -21,6 +20,9 @@
       éligible, et ne jouera pourtant pas plus de deux matchs.</span>
   </span></span>
 </h3>
+<div class="barre-actions">
+  <%- include("retour", { chemin: "/capitanat/preferences", libelle: "Préférences" }) %>
+</div>
 
 <p>
   <%= force.matchs === 1 ? "Un match" : `${force.matchs} matchs` %> sur les six de

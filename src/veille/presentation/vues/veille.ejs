@@ -4,6 +4,16 @@
     <span>Des recherches nommées, relancées chaque matin sur badnet. Cinq au plus.</span>
   </span></span>
 </h2>
+<div class="barre-actions">
+  <% if (veilles.length < auPlus) { %>
+    <a class="bouton principal" href="/veille/nouvelle">Créer une veille</a>
+  <% } else { %>
+    <%# Le message prend la place du geste : là où on le cherche, il dit pourquoi il manque. %>
+    <p class="etat">
+      Cinq veilles, le maximum. Pour en créer une autre, il faut en supprimer une.
+    </p>
+  <% } %>
+</div>
 
 <% if (veilles.length === 0) { %>
   <p class="etat">
@@ -44,14 +54,6 @@
       </tr>
     <% }); %>
   </table>
-<% } %>
-
-<% if (veilles.length < auPlus) { %>
-  <p><a class="bouton principal" href="/veille/nouvelle">Créer une veille</a></p>
-<% } else { %>
-  <p class="etat">
-    Cinq veilles, le maximum. Pour en créer une autre, il faut en supprimer une.
-  </p>
 <% } %>
 
 <%- include("pied") %>

@@ -12,6 +12,21 @@
       signalé par mail : il se lit ici, et dans les rapports d'exécution.</span>
   </span></span>
 </h4>
+<div class="barre-actions">
+  <form method="post" action="/parametres/scrapping/ordonnancement/courrier/mail-de-test">
+    <button type="submit">Envoyer un mail de test</button>
+  </form>
+</div>
+
+<% if (mailDeTest) { %>
+  <p class="etat">
+    Mail de test <strong><%= { "en-attente": "en attente", envoye: "remis", abandonne: "abandonné" }[mailDeTest.etat] %></strong>,
+    déposé le <%= mailDeTest.deposeLe.toLocaleString("fr-FR") %>.
+    <% if (mailDeTest.dernierEchec) { %>
+      <br><%= mailDeTest.dernierEchec %>
+    <% } %>
+  </p>
+<% } %>
 
 <p class="etat <%= courrier.configure ? "" : "attention" %>">
   <% if (courrier.configure) { %>
@@ -26,18 +41,6 @@
   <% } %>
   <%= courrier.enAttente %> message<%= courrier.enAttente > 1 ? "s" : "" %> en attente.
 </p>
-
-<form method="post" action="/parametres/scrapping/ordonnancement/courrier/mail-de-test"><button type="submit">Envoyer un mail de test</button></form>
-
-<% if (mailDeTest) { %>
-  <p class="etat">
-    Mail de test <strong><%= { "en-attente": "en attente", envoye: "remis", abandonne: "abandonné" }[mailDeTest.etat] %></strong>,
-    déposé le <%= mailDeTest.deposeLe.toLocaleString("fr-FR") %>.
-    <% if (mailDeTest.dernierEchec) { %>
-      <br><%= mailDeTest.dernierEchec %>
-    <% } %>
-  </p>
-<% } %>
 
 <% if (courrier.derniers.length > 0) { %>
   <h4>Derniers messages</h4>

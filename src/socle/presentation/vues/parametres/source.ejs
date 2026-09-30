@@ -4,29 +4,30 @@
 %>
 <% const action = (geste) => `/parametres/scrapping/sources/${source}/${geste}`; %>
 
-<p><a href="/parametres/scrapping/sources">← Sources</a></p>
-
 <h3>
   <code><%= source %></code>
   <% if (etat) { %><%- include("../session", { session: etat.session }) %><% } %>
 </h3>
-<p><%= description %></p>
-
-<form method="post" action="<%= action("sonder") %>">
-  <button type="submit">Sonder</button>
-  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-    <span>Lit quelques pages connues de la source — sous session quand il y en a une — et compte ce
-      qu'elle en tire. Dix requêtes au plus. C'est la colonne « extraits » qui vaut : une session
-      morte peut rendre un statut 200 et une liste vide.</span>
-    <span>« Mur de connexion » : la session est morte. « Action introuvable » : la source a
-      redéployé. Le résultat est consigné comme une exécution de sa passe d'acquisition.</span>
-  </span></span>
-</form>
+<div class="barre-actions">
+  <%- include("../retour", { chemin: "/parametres/scrapping/sources", libelle: "Sources" }) %>
+  <form method="post" action="<%= action("sonder") %>">
+    <button type="submit">Sonder</button>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Lit quelques pages connues de la source — sous session quand il y en a une — et compte ce
+        qu'elle en tire. Dix requêtes au plus. C'est la colonne « extraits » qui vaut : une session
+        morte peut rendre un statut 200 et une liste vide.</span>
+      <span>« Mur de connexion » : la session est morte. « Action introuvable » : la source a
+        redéployé. Le résultat est consigné comme une exécution de sa passe d'acquisition.</span>
+    </span></span>
+  </form>
+</div>
 
 <% if (sonde) { %>
   <h4>Sonde</h4>
   <%- include("resultats-de-sonde") %>
 <% } %>
+
+<p><%= description %></p>
 
 <h4>Session
   <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
@@ -37,6 +38,25 @@
       affichée est celle que porte le jeton, quand il la porte.</span>
   </span></span>
 </h4>
+
+<% if (etat && (etat.session !== "absente" || (etat.autonome && !attendu))) { %>
+  <div class="barre-actions">
+    <% if (etat.autonome && !attendu) { %>
+      <form method="post" action="<%= action("connexion") %>">
+        <button type="submit">Se connecter maintenant</button>
+        <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+          <span>Son mot de passe est configuré : Babo peut ouvrir la session lui-même. badnet demandera
+            un code reçu par mail.</span>
+        </span></span>
+      </form>
+    <% } %>
+    <% if (etat.session !== "absente") { %>
+      <form method="post" action="<%= action("oubli") %>">
+        <button type="submit" class="danger">Oublier cette session</button>
+      </form>
+    <% } %>
+  </div>
+<% } %>
 
 <% if (connexion) { %>
   <p class="etat <%= connexion.issue === "ouverte" ? "succes" : "" %>">
@@ -81,14 +101,6 @@
         <button type="submit">Valider le code</button>
       </p>
     </form>
-  <% } else if (etat.autonome) { %>
-    <form method="post" action="<%= action("connexion") %>">
-      <button type="submit">Se connecter maintenant</button>
-      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-        <span>Son mot de passe est configuré : Babo peut ouvrir la session lui-même. badnet demandera
-          un code reçu par mail.</span>
-      </span></span>
-    </form>
   <% } %>
 
   <form method="post" action="<%= action("jeton") %>">
@@ -101,12 +113,6 @@
     </p>
     <button type="submit">Enregistrer la session</button>
   </form>
-
-  <% if (etat.session !== "absente") { %>
-    <form method="post" action="<%= action("oubli") %>">
-      <p><button type="submit" class="danger">Oublier cette session</button></p>
-    </form>
-  <% } %>
 <% } %>
 
 <h4>Acquisition</h4>

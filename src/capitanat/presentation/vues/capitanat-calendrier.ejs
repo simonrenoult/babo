@@ -9,17 +9,7 @@
     groupe et le code de l'équipe suffisent.
   </p>
 <% } else { %>
-  <p>
-    <strong><%= calendrier.equipe.nom %></strong>, <%= calendrier.competition %>,
-    <%= calendrier.groupe %>.
-  </p>
-  <p class="discret">
-    Importé le <%= calendrier.importeLe.toLocaleDateString("fr-FR") %> depuis
-    <a href="<%= calendrier.url %>" rel="noreferrer noopener" target="_blank">icbad</a>.
-    <a href="/parametres/calendrier">Réimporter</a> si le comité déplace une rencontre.
-  </p>
-
-  <p>
+  <div class="barre-actions">
     <a class="bouton" href="/capitanat/calendrier.ics" download>Exporter le calendrier (.ics)</a>
     <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
       <span>Toute la saison, pour un agenda. Dans Google Agenda : Paramètres › Importer et
@@ -28,6 +18,16 @@
         rencontre compte deux heures et demie : icbad ne publie que l'heure de début.</span>
       <span>Pour une seule rencontre, le lien <strong>Google Agenda</strong> de sa ligne.</span>
     </span></span>
+  </div>
+
+  <p>
+    <strong><%= calendrier.equipe.nom %></strong>, <%= calendrier.competition %>,
+    <%= calendrier.groupe %>.
+  </p>
+  <p class="discret">
+    Importé le <%= calendrier.importeLe.toLocaleDateString("fr-FR") %> depuis
+    <a href="<%= calendrier.url %>" rel="noreferrer noopener" target="_blank">icbad</a>.
+    <a href="/parametres/calendrier">Réimporter</a> si le comité déplace une rencontre.
   </p>
 
   <table>

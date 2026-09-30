@@ -63,6 +63,29 @@ Ils sont produits par `eslint.config.js` et testés par
 `socle/core` — un numéro de licence, un tableau. Jamais `Joueur` : `mon-profil` et
 `capitanat` gardent chacun le leur.
 
+## Les pages
+
+Une règle d'agencement, pour toutes les vues (039) : **les gestes se lisent
+immédiatement sous le titre de ce qu'ils concernent**, sur une ligne, la
+`div.barre-actions`. Un geste sur la page va sous son `<h2>` — ou sous les
+onglets, sur les pages qui en ont : l'onglet actif tient lieu de titre ; un
+geste sur une section va sous son `<h3>` ou `<h4>`. Le résultat d'un geste
+(sonde, rapport de passe, mail de test) s'affiche juste sous la barre.
+
+Est un geste ce qui agit sur la page ou la section : créer, modifier,
+suspendre, supprimer, lancer, sonder, exporter, imprimer, copier. Ne le sont
+pas le bouton qui termine un formulaire — il reste sous les champs qu'il envoie
+— ni celui d'une ligne de tableau, qui reste dans sa ligne. Un geste
+impossible n'est jamais grisé : la raison prend sa place dans la barre.
+
+Une **sous-page** — atteinte depuis une autre et absente des onglets : une
+tâche, une source, un tableau du capitanat, une veille, le formulaire de
+veille — ouvre sa barre par le partial `retour` du socle, `← <parent>`. Un
+lien fixe vers le parent hiérarchique, jamais l'historique, pour qu'il reste
+juste après un envoi de formulaire ; le seul retour de la page, et présent même
+sans aucun geste. La modification d'une veille ramène à cette veille, sa
+création à la liste.
+
 ## L'acquisition
 
 Deux sources, deux modules qui s'ignorent — `src/socle/infrastructure/acquisition/`,

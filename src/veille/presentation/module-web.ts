@@ -65,6 +65,7 @@ export function creerModuleVeille(options: {
   routeur.get("/nouvelle", (_requete, reponse) => {
     reponse.render("veille-formulaire", {
       titre: "Nouvelle veille",
+      retour: RETOUR_AUX_VEILLES,
       veille: null,
       // Mes séries du moment : le confort que 012 accorde après avoir refusé de
       // déduire le critère du classement. Une valeur de départ se corrige ; un
@@ -99,6 +100,7 @@ export function creerModuleVeille(options: {
 
     reponse.render("veille-formulaire", {
       titre: `Modifier « ${veille.nom} »`,
+      retour: retourALaVeille(veille),
       veille,
       seriesProposees: veille.series,
       motifs: [],
@@ -111,7 +113,7 @@ export function creerModuleVeille(options: {
     try {
       verifierLaVeille(saisie, { existantes: veilles.toutes() });
     } catch (erreur) {
-      return refuser(reponse, erreur, saisie, "Nouvelle veille");
+      return refuser(reponse, erreur, saisie, "Nouvelle veille", RETOUR_AUX_VEILLES);
     }
     const creee = veilles.creer(saisie, horloge.maintenant());
     reponse.redirect(`/veille/${creee.id}`);
@@ -126,7 +128,7 @@ export function creerModuleVeille(options: {
     try {
       verifierLaVeille(saisie, { existantes: veilles.toutes(), id });
     } catch (erreur) {
-      return refuser(reponse, erreur, saisie, `Modifier « ${existante.nom} »`);
+      return refuser(reponse, erreur, saisie, `Modifier « ${existante.nom} »`, retourALaVeille(existante));
     }
     veilles.modifier({ ...saisie, id });
     reponse.redirect(`/veille/${id}`);
@@ -194,15 +196,27 @@ function refuser(
   erreur: unknown,
   saisie: Omit<Veille, "id">,
   titre: string,
+  retour: Retour,
 ): void {
   if (!(erreur instanceof VeilleRefusee)) throw erreur;
   reponse.status(400).render("veille-formulaire", {
     titre,
+    retour,
     veille: { ...saisie, id: 0 },
     seriesProposees: saisie.series,
     motifs: erreur.motifs,
     ...vocabulaire(),
   });
+}
+
+/** Le parent d'une sous-page, où mène son retour (039) : un lien fixe, jamais l'historique. */
+type Retour = { chemin: string; libelle: string };
+
+const RETOUR_AUX_VEILLES: Retour = { chemin: "/veille", libelle: "Veilles" };
+
+/** Modifier une veille ramène à elle, pas à la liste : c'est d'elle qu'on venait. */
+function retourALaVeille(veille: Veille): Retour {
+  return { chemin: `/veille/${veille.id}`, libelle: veille.nom };
 }
 
 /** Les listes que le formulaire affiche : des codes fermés, jamais du texte libre. */
