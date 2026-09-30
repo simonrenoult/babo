@@ -984,7 +984,13 @@ describe("l'application assemblée", () => {
     return creation.headers.get("location") ?? "";
   }
 
-  /** La barre d'actions qui suit immédiatement un titre (039), ou `null`. */
+  /**
+   * La barre d'actions qui suit immédiatement un titre (039), ou `null`.
+   *
+   * Capturée jusqu'au premier `</div>` : une barre ne contient pas de `div`. Si
+   * l'une en gagnait une, la capture s'arrêterait en route — et « Supprimer en
+   * dernier » passerait à tort.
+   */
   function barreSousLeTitre(page: string): string | null {
     return /<\/h[2-4]>\s*(?:<nav[\s\S]*?<\/nav>\s*)*<div class="barre-actions">([\s\S]*?)<\/div>/.exec(page)?.[1] ?? null;
   }
