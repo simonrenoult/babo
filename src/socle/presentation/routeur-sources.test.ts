@@ -355,10 +355,11 @@ describe("l'écran des sources", () => {
     assert.match(sessions.corps, /<title>Paramètres/);
     assert.match(sessions.corps, /Enregistrer une session/);
     assert.match(sessions.corps, /href="\/parametres\/scrapping\/emails"/, "les onglets sont des liens");
-    assert.doesNotMatch(sessions.corps, /<h2>Courrier/, "le courrier a son propre onglet");
+    assert.doesNotMatch(sessions.corps, /<h3>Courrier/, "le courrier a son propre onglet");
 
     const courrier = await interroger(acces, "/parametres/scrapping/emails");
-    assert.match(courrier.corps, /<h2>Courrier/);
+    assert.match(courrier.corps, /<h3>Courrier/);
+    assert.match(courrier.corps, /<h2>Paramètres<\/h2>/, "le titre de la section, au-dessus des onglets");
     assert.doesNotMatch(courrier.corps, /Enregistrer une session/);
 
     const inconnu = await interroger(acces, "/parametres/scrapping/pouet");

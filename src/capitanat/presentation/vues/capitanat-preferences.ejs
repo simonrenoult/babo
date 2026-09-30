@@ -1,15 +1,17 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
 <%- include("capitanat-onglets") %>
-
-<p>
-  Une rencontre se joue en <strong>six matchs répartis sur cinq tableaux</strong> :
-  deux simples hommes, un simple dames, un double hommes, un double dames, un
-  mixte. Chaque tableau a sa page, qui range les joueurs éligibles du plus fort
-  au plus faible (spec 029), et c'est là que se saisit ce que je privilégie
-  (spec 030) : des joueurs marqués, qui remontent en tête, et sur les doubles et
-  le mixte des paires, rangées à la moyenne des deux cotes.
-</p>
+<h3>Forces par tableau
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Chaque tableau a sa page : les joueurs éligibles du plus fort au plus faible, et ce que
+      je privilégie — joueurs marqués, paires de double et de mixte.</span>
+    <span>Une rencontre se joue en <strong>six matchs répartis sur cinq tableaux</strong> : deux
+      simples hommes, un simple dames, un double hommes, un double dames, un mixte.</span>
+    <span><strong>Les cinq listes ne se cumulent pas.</strong> Un joueur figure dans tous les
+      tableaux où il est éligible, et ne jouera pourtant pas plus de deux matchs : les
+      additionner surestimerait la profondeur de l'effectif.</span>
+  </span></span>
+</h3>
 
 <%
   // Nommer les tableaux en manque, pas les compter : c'est la question que se
@@ -23,9 +25,9 @@
     <a href="/parametres/equipe">l'écran des paramètres</a>.
   </p>
 <% } else if (infaisables.length === 0) { %>
-  <p class="etat">L'effectif permet de remplir les cinq tableaux.</p>
+  <p class="etat succes">L'effectif permet de remplir les cinq tableaux.</p>
 <% } else { %>
-  <p class="etat">
+  <p class="etat attention">
     <%= infaisables.length %> tableau<%= infaisables.length > 1 ? "x" : "" %>
     que l'effectif ne permet pas de remplir :
     <%= infaisables
@@ -57,10 +59,4 @@
   <% } %>
 </table>
 
-<p>
-  <strong>Les cinq listes ne se cumulent pas.</strong> Un joueur figure dans
-  tous les tableaux où il est éligible, et ne fera pourtant pas les six matchs :
-  les additionner surestimerait la profondeur de l'effectif. Le plafond de
-  matchs par joueur viendra avec la composition de journée (spec 011).
-</p>
 <%- include("pied") %>

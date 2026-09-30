@@ -1,0 +1,25 @@
+<%# La tuile de l'accueil : mes lettres, puis le prochain tournoi. %>
+<% if (classement.vuLe === null) { %>
+  <p class="discret">Classement pas encore relevé.</p>
+<% } else { %>
+  <p class="fort">
+    <% for (const ligne of classement.lignes) { %>
+      <span class="discipline"><%= ligne.discipline %> <%- include("lettre", { lettre: ligne.lettre }) %></span>
+    <% } %>
+  </p>
+<% } %>
+
+<% if (prochain === null) { %>
+  <p class="discret">Aucun tournoi à venir.</p>
+<% } else { %>
+  <p>
+    Prochain tournoi <strong><%= prochain.quand %></strong> :
+    <a href="<%= prochain.fiche %>" rel="noreferrer"><%= prochain.nom %></a><%= prochain.lieu ? `, ${prochain.lieu}` : "" %>
+    <% if (prochain.tableaux.length > 0) { %>
+      <span class="discret">— <%= prochain.tableaux.map(intituleDeLEngagement).join(", ") %></span>
+    <% } %>
+  </p>
+  <% if (ensuite > 0) { %>
+    <p class="discret">Puis <%= ensuite %> autre<%= ensuite > 1 ? "s" : "" %>.</p>
+  <% } %>
+<% } %>

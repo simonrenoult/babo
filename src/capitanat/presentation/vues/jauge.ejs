@@ -1,0 +1,13 @@
+<%#
+  Le taux de sollicitation en barre : un joueur peu retenu doit sauter aux
+  yeux. Sous un tiers, la barre passe en couleur d'attention.
+  Paramètres : `selections`, `occasions` (des demi-journées possibles).
+%>
+<% if (occasions === 0) { %>
+  —
+<% } else { %>
+  <% const taux = Math.round((100 * selections) / occasions); %>
+  <span class="jauge<%= taux < 34 ? " faible" : "" %>" role="img" aria-label="<%= taux %> %"><span style="width: <%= Math.min(taux, 100) %>%"></span></span>
+  <%= taux %> %
+  <span class="etat"><%= selections %>/<%= occasions.toLocaleString("fr-FR") %></span>
+<% } %>

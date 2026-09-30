@@ -161,6 +161,31 @@ export function creerModuleVeille(options: {
     chemin: "/veille",
     routeur,
     vues: new URL("vues/", import.meta.url).pathname,
+    // Sur l'accueil : ce que chaque veille active retient, et la prochaine
+    // clôture d'inscription — c'est elle qui presse.
+    apercu: () => {
+      const maintenant = horloge.maintenant();
+      return {
+        vue: "veille-apercu",
+        donnees: {
+          veilles: veilles
+            .toutes()
+            .filter((veille) => veille.active)
+            .map((veille) => {
+              const { retenus, indetermines } = resultats(veille);
+              const cloture = [...retenus, ...indetermines]
+                .filter((tournoi) => tournoi.dateLimite !== null && tournoi.dateLimite >= maintenant)
+                .toSorted((un, autre) => Number(un.dateLimite) - Number(autre.dateLimite))[0];
+              return {
+                veille,
+                tournois: retenus.length + indetermines.length,
+                releveeLe: appartenances.releveeLe(veille.id),
+                cloture: cloture ?? null,
+              };
+            }),
+        },
+      };
+    },
   };
 }
 

@@ -1,4 +1,33 @@
 <%- include("entete", { titre }) %>
+<style>
+  /* Les journées : une pastille par rencontre, dont la couleur dit l'état. */
+  .journees a::before {
+    content: ""; display: inline-block; width: .5rem; height: .5rem; margin-right: .35rem;
+    border-radius: 50%; border: 1.5px solid var(--attenue); vertical-align: .05em;
+  }
+  .journees a.en-cours::before { border-color: var(--attention); background: linear-gradient(90deg, var(--attention) 50%, transparent 50%); }
+  .journees a.composee::before { border-color: var(--succes); background: var(--succes); }
+  .journees a[aria-current]::before { border-color: currentColor; }
+  .journees a[aria-current].composee::before, .journees a[aria-current].en-cours::before { background: currentColor; }
+
+  /* Une carte par match. Le liseré dit l'état, la pastille le nomme. */
+  .cartes { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); margin: 1rem 0; }
+  .carte {
+    --ton: var(--trait-fort);
+    padding: .75rem .9rem; background: var(--surface);
+    border: 1px solid var(--trait); border-left: 4px solid var(--ton); border-radius: var(--rayon);
+    box-shadow: var(--ombre);
+  }
+  .carte.incomplet { --ton: var(--attention); }
+  .carte.rempli { --ton: var(--succes); }
+  .carte.faute { --ton: var(--erreur); background: color-mix(in srgb, var(--erreur) 5%, var(--surface)); }
+  .carte header { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .6rem; }
+  .carte .code { font-size: 1.05rem; }
+  .carte .intitule { color: var(--attenue); font-size: .85rem; flex: 1; }
+  .carte .place + .place { margin-top: .6rem; }
+  .carte select { width: 100%; }
+  .carte .retenu { display: flex; align-items: center; gap: .4rem; margin-top: .3rem; font-size: .88rem; }
+</style>
 <h2><%= titre %></h2>
 <%- include("capitanat-onglets") %>
 
@@ -8,11 +37,15 @@
     depuis <a href="/parametres/calendrier">l'écran des paramètres</a>.
   </p>
 <% } else { %>
-  <nav class="onglets sous" aria-label="Journées">
+  <%
+    const ETATS = { composee: "composée", "en-cours": "en cours", vide: "à composer" };
+  %>
+  <nav class="onglets sous journees" aria-label="Journées">
     <% for (const autre of calendrier.rencontres) { %>
-      <a href="/capitanat/planification/<%= autre.journee %>"
+      <% const etat = etatsDesJournees.get(autre.journee) ?? "vide"; %>
+      <a href="/capitanat/planification/<%= autre.journee %>" class="<%= etat %>"
          <%- autre.journee === rencontre.journee ? 'aria-current="page"' : "" %>
-         title="<%= autre.debut.toLocaleDateString("fr-FR") %><%= composees.has(autre.journee) ? " — composée" : "" %>">J<%= String(autre.journee).padStart(2, "0") %><%= composees.has(autre.journee) ? " ✓" : "" %></a>
+         title="<%= autre.debut.toLocaleDateString("fr-FR") %> — <%= ETATS[etat] %>">J<%= String(autre.journee).padStart(2, "0") %><span class="visuellement-cache"> — <%= ETATS[etat] %></span></a>
     <% } %>
   </nav>
 
@@ -28,17 +61,9 @@
        rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>.
   </p>
 
-  <p>
-    Six matchs : deux simples hommes, un simple dames, un double hommes, un
-    double dames, un double mixte. Seuls se sélectionnent les joueurs qui ont
-    répondu <strong>oui</strong> ou <strong>si besoin</strong> au sondage de la
-    journée ; <strong>deux matchs au plus</strong> par joueur ; et le SH1 n'a
-    pas une moyenne de simple inférieure au SH2. Une composition incomplète
-    s'enregistre, une composition fautive non.
-  </p>
 
   <% if (disponibles === 0) { %>
-    <p class="etat">
+    <p class="etat attention">
       Personne n'est sélectionnable à cette journée : aucun membre rattaché n'a
       répondu oui ou si besoin. Les réponses s'importent depuis
       <a href="/parametres/disponibilites">l'écran des paramètres</a>, et les
@@ -48,7 +73,7 @@
   <% } %>
 
   <% if (fautes.length > 0) { %>
-    <div class="etat">
+    <div class="etat erreur">
       <strong><%= enregistree ? "La composition enregistrée ne tient plus :" : "Composition non enregistrée :" %></strong>
       <ul>
         <% for (const faute of fautes) { %>
@@ -57,7 +82,7 @@
       </ul>
     </div>
   <% } else if (enregistree && vides === 0) { %>
-    <p class="etat">Composition complète et conforme.</p>
+    <p class="etat succes">Composition complète et conforme.</p>
   <% } else if (enregistree && vides < postes.length) { %>
     <p class="etat">
       Composition en cours : <%= vides %> place<%= vides > 1 ? "s" : "" %>
@@ -74,18 +99,28 @@
     };
   %>
 
+  <%
+    const ETATS_DE_CARTE = {
+      vide: ["", "vide"], incomplet: ["attention", "incomplet"], rempli: ["succes", "complet"], faute: ["erreur", "en faute"],
+    };
+  %>
   <form method="post" action="/capitanat/planification/<%= rencontre.journee %>">
-    <table>
-      <% for (const { match, intitule } of matchs) { %>
-        <tr>
-          <th><%= intitule %></th>
-          <% for (const { poste, choisi, candidats } of postes.filter((entree) => entree.poste.match === match)) { %>
-            <td>
+    <div class="cartes">
+      <% for (const { match, intitule, places, etat } of cartes) { %>
+        <% const [ton, libelle] = ETATS_DE_CARTE[etat]; %>
+        <section class="carte <%= etat %>" aria-label="<%= intitule %>">
+          <header>
+            <strong class="code"><%= match %></strong>
+            <span class="intitule"><%= intitule %></span>
+            <span class="pastille <%= ton %>"><%= libelle %></span>
+          </header>
+          <% for (const { poste, choisi, candidats, classement, reponse } of places) { %>
+            <div class="place">
               <select name="<%= poste.id %>" aria-label="<%= intitule %> — <%= poste.sexe === "F" ? "dame" : "homme" %>">
                 <option value="">— <%= poste.sexe === "F" ? "une dame" : "un homme" %> —</option>
-                <% for (const { membre, reponse, cote: valeur } of candidats) { %>
+                <% for (const { membre, reponse: repondu, cote: valeur } of candidats) { %>
                   <option value="<%= membre.licence %>" <%= membre.licence === choisi ? "selected" : "" %>>
-                    <%= membre.nom ?? membre.licence %> — <%= cote(valeur) %><%= reponse === "si-besoin" ? " (si besoin)" : "" %><%= retenu(membre.licence) %>
+                    <%= membre.nom ?? membre.licence %> — <%= cote(valeur) %><%= repondu === "si-besoin" ? " (si besoin)" : "" %><%= retenu(membre.licence) %>
                   </option>
                 <% } %>
                 <%# Un choix que les réponses ne justifient plus reste visible, pour %>
@@ -94,40 +129,64 @@
                   <option value="<%= choisi %>" selected><%= nomDe(choisi) %> — non disponible</option>
                 <% } %>
               </select>
-            </td>
+              <% if (choisi !== null) { %>
+                <div class="retenu">
+                  <% if (classement === null) { %>
+                    <%- include("lettre", { lettre: "NC" }) %>
+                  <% } else { %>
+                    <%- include("lettre", { lettre: classement.lettre, cote: classement.cpph }) %>
+                  <% } %>
+                  <%- include("reponse", { reponse }) %>
+                </div>
+              <% } %>
+            </div>
           <% } %>
-        </tr>
+        </section>
       <% } %>
-    </table>
-    <p><button type="submit">Enregistrer la composition</button></p>
+    </div>
+    <p>
+      <button type="submit" class="principal">Enregistrer la composition</button>
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span>Les règles de composition :</span>
+        <span>• Six matchs : deux simples hommes, un simple dames, un double hommes, un double dames,
+          un double mixte.</span>
+        <span>• Seuls se sélectionnent les joueurs qui ont répondu <strong>oui</strong> ou <strong>si
+          besoin</strong> au sondage de la journée.</span>
+        <span>• <strong>Deux matchs au plus</strong> par joueur.</span>
+        <span>• Le SH1 n'a pas une moyenne de simple inférieure au SH2.</span>
+        <span>• Une composition incomplète s'enregistre, une composition fautive non.</span>
+      </span></span>
+    </p>
   </form>
 
   <p>
-    <a href="/capitanat/planification/<%= rencontre.journee %>/feuille" target="_blank" rel="noopener">Imprimer
-      la feuille de rencontre</a> — celle d'icbad, avec la composition
-    <strong>enregistrée</strong> écrite dans la colonne de
-    <%= calendrier.equipe.nom %> : licence, nom, classement et cote de la
-    discipline. La colonne adverse et les scores restent à remplir à la main.
+    <%# Un lien, habillé en bouton : il ouvre le PDF dans un onglet, il ne poste rien. %>
+    <a class="bouton" href="/capitanat/planification/<%= rencontre.journee %>/feuille"
+       target="_blank" rel="noopener">Imprimer la feuille de rencontre</a>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>La feuille d'icbad, avec la composition <strong>enregistrée</strong> dans la colonne de
+        <%= calendrier.equipe.nom %>. La colonne adverse et les scores restent à remplir à la
+        main.</span>
+    </span></span>
   </p>
 
   <% if (sollicites.length > 0) { %>
-    <h3>Sollicitation des disponibles</h3>
-    <p>
-      Pour chaque joueur disponible à cette journée : combien de fois il a été
-      retenu, sur les <strong>autres journées déjà composées</strong> où il
-      avait répondu oui ou si besoin — un ou deux tableaux comptent pour une
-      sélection, et un « si besoin » pour une demi-journée. Les moins retenus
-      d'abord : ce sont ceux qu'on oublie.
-    </p>
+    <h3>Sollicitation des disponibles
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span>Combien de fois chaque disponible a été retenu sur les autres journées composées — un «
+          si besoin » compte pour une demie. Les moins retenus d'abord : ce sont ceux qu'on
+          oublie.</span>
+      </span></span>
+    </h3>
     <table>
       <tr><th>Joueur</th><th>Au sondage</th><th>Retenu</th><th>Sur</th><th>Taux</th></tr>
       <% for (const { membre, reponse, selections, occasions } of sollicites) { %>
         <tr>
           <td><%= membre.nom ?? membre.licence %></td>
-          <td><%= reponse === "si-besoin" ? "si besoin" : "oui" %></td>
+          <td><%- include("reponse", { reponse }) %></td>
           <td><%= selections %></td>
           <td><%= occasions.toLocaleString("fr-FR") %> journée<%= occasions > 1 ? "s" : "" %></td>
-          <td><%= occasions === 0 ? "—" : `${Math.round((100 * selections) / occasions)} %` %></td>
+          <td><%- include("jauge", { selections, occasions }) %></td>
         </tr>
       <% } %>
     </table>
@@ -140,8 +199,8 @@
       <% for (const [licence, nombre] of [...matchsParJoueur].toSorted(([un], [autre]) => String(nomDe(un)).localeCompare(String(nomDe(autre)), "fr"))) { %>
         <tr>
           <td><%= nomDe(licence) %></td>
-          <td><%= nombre %><%= nombre > 2 ? " — trop" : "" %></td>
-          <td><%= { oui: "oui", "si-besoin": "si besoin", non: "non" }[reponses.get(licence)] ?? "sans réponse" %></td>
+          <td><%= nombre %><% if (nombre > 2) { %> <span class="pastille erreur">trop</span><% } %></td>
+          <td><%- include("reponse", { reponse: reponses.get(licence) }) %></td>
         </tr>
       <% } %>
     </table>

@@ -9,7 +9,7 @@
   atteintes : une page qui répond sans rien rendre est le mode de panne le plus
   coûteux, parce qu'elle passe pour un succès (019).
 %>
-<p class="etat">
+<p class="etat <%= passe.issue === "succes" ? "succes" : "erreur" %>">
   Passe <strong><%= passe.issue %></strong>, terminée le
   <%= passe.termineLe.toLocaleString("fr-FR") %> —
   <% const pluriel = passe.volumeExtrait > 1 ? "s" : ""; %>

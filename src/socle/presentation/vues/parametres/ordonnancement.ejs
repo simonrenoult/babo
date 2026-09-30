@@ -1,25 +1,18 @@
-<h2>Tâches</h2>
-<p>
-  Les tâches qui se déclenchent seules, et quand (spec 018). Le planificateur
-  vit dans le processus : tant qu'il est arrêté, rien ne s'exécute et rien ne
-  prévient — c'est le risque que 018 accepte, contre un service supervisé qui
-  relance l'application.
-</p>
-<p>
-  La <strong>grâce</strong> est le retard au-delà duquel une échéance dépassée
-  n'est plus rejouée mais abandonnée : large pour une passe dont la donnée est
-  de toute façon périmée, courte pour un rappel qui n'a de sens qu'avant
-  l'événement. Un échec est réessayé deux fois, à une heure puis à quatre ;
-  au-delà, la tâche attend son occurrence suivante.
-</p>
-<p>
-  La colonne <strong>Lancer</strong> déclenche une tâche à la main, comme si le
-  planificateur s'était réveillé : grâce court-circuitée, échéance clôturée,
-  suivante inscrite, rapport consigné — et affiché aussitôt sous le tableau
-  (spec 037). Coup unique, sans réessai : un échec se lit là, et on relance à la
-  main. Le battement n'en a pas, car son absence est précisément ce qu'il
-  annonce.
-</p>
+<h3>Tâches
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Les tâches qui se déclenchent seules, et quand.</span>
+    <span>Le planificateur vit dans le processus : tant qu'il est arrêté, rien ne s'exécute et
+      rien ne prévient.</span>
+    <span>La <strong>grâce</strong> est le retard au-delà duquel une échéance dépassée n'est plus
+      rejouée mais abandonnée : large pour une passe dont la donnée est de toute façon
+      périmée, courte pour un rappel qui n'a de sens qu'avant l'événement. Un échec est
+      réessayé deux fois, à une heure puis à quatre ; au-delà, la tâche attend son occurrence
+      suivante.</span>
+    <span><strong>Lancer</strong> déclenche une tâche comme si le planificateur s'était réveillé,
+      et affiche son rapport sous le tableau. Coup unique, sans réessai. Le battement n'a pas
+      ce bouton : son absence est précisément ce qu'il annonce.</span>
+  </span></span>
+</h3>
 
 <%
   const JOURS = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi",
@@ -77,7 +70,7 @@
 <%# Le rapport du dernier déclenchement, juste sous le tableau : c'est là %>
 <%# qu'on a cliqué, et c'est le verdict qu'on cherche immédiatement (037). %>
 <% if (declenchement) { %>
-  <h3>Dernier déclenchement</h3>
+  <h4>Dernier déclenchement</h4>
   <%- include("../rapport-de-passe", { passe: declenchement }) %>
 <% } %>
 

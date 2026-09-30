@@ -1,0 +1,22 @@
+<%# La tuile de l'accueil : une ligne par veille active. %>
+<% if (veilles.length === 0) { %>
+  <p class="discret">Aucune veille active. <a href="/veille/nouvelle">En créer une</a>.</p>
+<% } else { %>
+  <ul>
+    <% for (const ligne of veilles) { %>
+      <li>
+        <a href="/veille/<%= ligne.veille.id %>"><%= ligne.veille.nom %></a> :
+        <% if (ligne.releveeLe === null) { %>
+          <span class="discret">pas encore relevée</span>
+        <% } else { %>
+          <strong><%= ligne.tournois %></strong> tournoi<%= ligne.tournois > 1 ? "s" : "" %>
+          <% if (ligne.cloture !== null) { %>
+            <br><span class="discret">Clôture la plus proche le
+              <%= ligne.cloture.dateLimite.toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) %> :
+              <a href="<%= ligne.cloture.fiche %>" rel="noreferrer"><%= ligne.cloture.nom %></a></span>
+          <% } %>
+        <% } %>
+      </li>
+    <% } %>
+  </ul>
+<% } %>

@@ -1,0 +1,31 @@
+<%# La tuile de l'accueil : la prochaine rencontre, et où en est sa composition. %>
+<% if (calendrier === null) { %>
+  <p class="discret">
+    Aucun calendrier d'interclub. Il s'importe depuis
+    <a href="/parametres/calendrier">les paramètres</a>.
+  </p>
+<% } else if (rencontre === null) { %>
+  <p class="discret">Saison terminée : plus de rencontre au calendrier.</p>
+<% } else { %>
+  <p class="fort">
+    J<%= String(rencontre.journee).padStart(2, "0") %> ·
+    <%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) %>
+  </p>
+  <p>
+    <%= recoit ? "Reçoit" : "Chez" %> <strong><%= adversaire %></strong>,
+    à <%= rencontre.debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) %>
+  </p>
+  <p>
+    <% if (fautes > 0) { %>
+      <span class="pastille erreur">Composition fautive</span>
+    <% } else if (vides === 0) { %>
+      <span class="pastille succes">Composée</span>
+    <% } else if (vides < postes) { %>
+      <span class="pastille attention"><%= vides %> place<%= vides > 1 ? "s" : "" %> à pourvoir</span>
+    <% } else { %>
+      <span class="pastille">À composer</span>
+    <% } %>
+    <span class="discret"><%= disponibles %> disponible<%= disponibles > 1 ? "s" : "" %></span>
+  </p>
+  <p><a href="/capitanat/planification/<%= rencontre.journee %>">Planifier la journée</a></p>
+<% } %>

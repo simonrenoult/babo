@@ -1,23 +1,19 @@
-<h2>Enregistrer une session</h2>
-<p>
-  Babo ne renouvelle aucune session : il garde celle que tu lui donnes. Se
-  connecter dans un navigateur, y copier le cookie de session, le coller ici.
-  Pour badnet c'est incontournable — une 2FA garde la porte ; pour myffbad,
-  qui n'en a pas, c'est provisoire (spec 015). Babo ne demande jamais le mot de passe fédéral, et le jeton
-  est écrit dans la base chiffrée, jamais dans un journal — c'est pourquoi le
-  champ reste vide même quand une session existe : Babo ne réaffiche jamais un
-  jeton qu'on lui a confié. Ce qu'il en dit se lit juste au-dessus du champ.
-  L'échéance affichée est celle que porte le jeton, quand il la porte.
-</p>
+<h3>Enregistrer une session
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Se connecter dans un navigateur, y copier le cookie de session, le coller ici.</span>
+    <span>Pour badnet, coller un cookie est parfois incontournable : une double authentification
+      garde la porte. Le jeton est écrit dans la base chiffrée, jamais dans un journal, et
+      n'est jamais réaffiché : c'est pourquoi le champ reste vide même quand une session
+      existe. L'échéance affichée est celle que porte le jeton, quand il la porte.</span>
+  </span></span>
+</h3>
 
 <% if (connexion) { %>
   <p class="etat">
     <% if (connexion.issue === "ouverte") { %>
       <strong>Session <%= connexion.source %> ouverte.</strong> Aucun code n'a
-      été demandé — la double authentification ne s'est pas déclenchée. Son
-      échéance se lit ci-dessous, sous le nom de la source ;
-      faute d'une date portée par le jeton, elle est devinée à un mois, et
-      c'est la date d'obtention qui dira la vraie durée.
+      été demandé. Son échéance se lit ci-dessous ; faute d'une date portée par
+      le jeton, elle est devinée à un mois.
     <% } else { %>
       Un code de vérification a été demandé à
       <strong><%= connexion.source %></strong>. Il arrive par mail : le
@@ -27,7 +23,7 @@
 <% } %>
 
 <% for (const etat of etats) { %>
-  <h3><%= etat.source %></h3>
+  <h4><%= etat.source %></h4>
 
   <p class="etat">
     <% if (etat.session === "absente") { %>
@@ -55,8 +51,7 @@
       <p class="etat">
         <strong>Code demandé</strong> le
         <%= attendu.demandeeLe.toLocaleTimeString("fr-FR") %>. badnet l'envoie
-        par mail. L'attente tombe au bout de dix minutes : passé ce délai, il
-        faut en redemander un plutôt que de saisir un code périmé.
+        par mail ; il expire au bout de dix minutes.
       </p>
       <p>
         <label for="code-<%= etat.source %>">Code reçu par mail</label>
@@ -66,12 +61,11 @@
     </form>
   <% } else if (etat.autonome) { %>
     <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/connexion">
-      <p>
-        Cette source sait aller chercher sa session : son mot de passe est
-        configuré. myffbad aboutit d'un coup ; badnet a une double
-        authentification et demandera un code reçu par mail (specs 015 et 027).
-      </p>
       <button type="submit">Se connecter maintenant</button>
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span>Son mot de passe est configuré : Babo peut ouvrir la session lui-même. badnet demandera
+          un code reçu par mail.</span>
+      </span></span>
     </form>
   <% } %>
 
@@ -89,7 +83,7 @@
 
   <% if (etat.session !== "absente") { %>
     <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/oubli">
-      <button type="submit">Oublier cette session</button>
+      <button type="submit" class="danger">Oublier cette session</button>
     </form>
   <% } %>
 <% } %>

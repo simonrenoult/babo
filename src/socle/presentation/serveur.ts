@@ -3,6 +3,7 @@ import type { Configuration } from "../core/configuration.ts";
 import { CHEMIN_DES_PARAMETRES, routeurSources, type AccesAuxSources } from "./routeur-sources.ts";
 import { garde, routeurConnexion } from "./routeur-connexion.ts";
 import type { Authentification } from "../core/authentification.ts";
+import type { EtatDeLaSource } from "../core/acquisition.ts";
 
 /**
  * Un module de feature branché sur l'interface.
@@ -16,6 +17,19 @@ export type ModuleWeb = {
   readonly routeur: Router;
   /** Dossier des vues du module, ajouté aux racines connues du moteur. */
   readonly vues: string;
+  /**
+   * Ce que le module montre sur l'accueil : une vue partielle à lui, et ce
+   * qu'elle affiche. L'accueil ne sait pas ce qu'il y a dedans — il pose une
+   * tuile par module et lui laisse la parole, comme le menu lui laisse son
+   * intitulé (022). Absent : le module n'a rien à dire d'un coup d'œil.
+   */
+  readonly apercu?: () => Apercu;
+};
+
+export type Apercu = {
+  /** Le nom d'une vue du module, rendue dans la tuile. */
+  readonly vue: string;
+  readonly donnees: Readonly<Record<string, unknown>>;
 };
 
 export type EtatDuSocle = {
@@ -24,6 +38,7 @@ export type EtatDuSocle = {
 };
 
 const DOSSIER_VUES = new URL("vues/", import.meta.url).pathname;
+const FEUILLE_DE_STYLE = new URL("statique/babo.css", import.meta.url).pathname;
 
 /**
  * Construit l'application Express — spec 020.
@@ -50,6 +65,7 @@ export function creerApplication(options: {
   application.set("view engine", "ejs");
   application.set("views", [DOSSIER_VUES, ...modules.map((module) => module.vues)]);
   application.locals["modules"] = modules.map(({ intitule, chemin }) => ({ intitule, chemin }));
+  const apercus = modules.filter((module) => module.apercu !== undefined);
 
   application.use(express.urlencoded({ extended: false }));
 
@@ -61,6 +77,15 @@ export function creerApplication(options: {
     // que chaque routeur ne le lui passe.
     reponse.locals["chemin"] = requete.path;
     suite();
+  });
+
+  // La feuille de style, seule chose servie avant le garde : la page de
+  // connexion en a besoin, et elle ne dit rien de ce qu'il y a derrière. Un
+  // seul fichier nommé, pas un dossier statique, pour que ce qui répond sans
+  // jeton reste une liste qu'on relit d'un coup d'œil (021). `no-cache` :
+  // revalidée à chaque page d'un 304, jamais périmée après un déploiement.
+  application.get("/babo.css", (_requete, reponse) => {
+    reponse.sendFile(FEUILLE_DE_STYLE, { headers: { "Cache-Control": "no-cache" } });
   });
 
   // Le garde passe avant tout le reste : c'est lui qui décide ce qui répond
@@ -79,8 +104,15 @@ export function creerApplication(options: {
     reponse.json({ statut: "ok", ...etatDuSocle() });
   });
 
+  // Un tableau de bord : ce que chaque module a d'important à dire, et une
+  // ligne sur les sources qui ne se fait remarquer que quand l'une est en panne.
   application.get("/", (_requete, reponse) => {
-    reponse.render("accueil", { titre: "Accueil", socle: etatDuSocle() });
+    reponse.render("accueil", {
+      titre: "Accueil",
+      tuiles: apercus.map((module) => ({ intitule: module.intitule, chemin: module.chemin, ...module.apercu?.() })),
+      pannes: pannesDesSources(sources.etats()),
+      socle: etatDuSocle(),
+    });
   });
 
   // L'écran des paramètres est du socle, pas d'une feature : c'est la même
@@ -115,4 +147,21 @@ export function creerApplication(options: {
   );
 
   return application;
+}
+
+/**
+ * Ce qui, dans l'état des sources, demande un geste — en une phrase chacun.
+ *
+ * Une session absente n'en fait pas partie : myffbad se lit à froid, et une
+ * source qu'on n'a jamais configurée n'est pas en panne. Une session expirée
+ * que la source sait rouvrir seule non plus : la passe suivante s'en charge.
+ */
+export function pannesDesSources(etats: readonly EtatDeLaSource[]): readonly string[] {
+  return etats.flatMap((etat) => {
+    const pannes: string[] = [];
+    if (etat.derniereIssue === "echec") pannes.push(`${etat.source} : la dernière passe a échoué`);
+    if (etat.derniereIssue === "vide") pannes.push(`${etat.source} : la dernière passe n'a rien rendu`);
+    if (etat.session === "expiree" && !etat.autonome) pannes.push(`${etat.source} : session expirée`);
+    return pannes;
+  });
 }

@@ -109,12 +109,30 @@ export function candidatsAuPoste(
  * Une place vide n'est pas une faute : on planifie en plusieurs fois, et
  * `placesVides` le dit à part.
  */
+/**
+ * Une règle enfreinte, et les matchs qu'elle touche.
+ *
+ * Les matchs sont ce qui permet à la page de marquer la bonne carte : un
+ * joueur qui en joue trois les désigne tous les trois, un SH1 plus faible que
+ * le SH2 désigne les deux simples.
+ */
+export type Faute = { readonly message: string; readonly matchs: readonly Match[] };
+
 export function fautesDeLaComposition(
   composition: Composition,
   membres: readonly MembreDeLEquipe[],
   reponses: ReadonlyMap<Licence, Reponse>,
 ): readonly string[] {
-  const fautes: string[] = [];
+  return fautesParMatch(composition, membres, reponses).map(({ message }) => message);
+}
+
+export function fautesParMatch(
+  composition: Composition,
+  membres: readonly MembreDeLEquipe[],
+  reponses: ReadonlyMap<Licence, Reponse>,
+): readonly Faute[] {
+  const fautes: Faute[] = [];
+  const faute = (message: string, ...matchs: Match[]) => fautes.push({ message, matchs });
   const parLicence = new Map(membres.map((membre) => [membre.licence, membre]));
   const nom = (licence: Licence) => parLicence.get(licence)?.nom ?? licence;
 
@@ -123,18 +141,19 @@ export function fautesDeLaComposition(
     if (licence === undefined) continue;
     const membre = parLicence.get(licence);
     if (membre === undefined) {
-      fautes.push(`${intituleDu(poste)} : ${licence} n'est plus dans l'équipe.`);
+      faute(`${intituleDu(poste)} : ${licence} n'est plus dans l'équipe.`, poste.match);
       continue;
     }
     if (membre.sexe !== poste.sexe) {
-      fautes.push(`${intituleDu(poste)} : ${nom(licence)} n'y a pas sa place.`);
+      faute(`${intituleDu(poste)} : ${nom(licence)} n'y a pas sa place.`, poste.match);
     }
     const reponse = reponses.get(licence);
     if (reponse !== "oui" && reponse !== "si-besoin") {
-      fautes.push(
+      faute(
         `${intituleDu(poste)} : ${nom(licence)} n'est pas disponible à cette journée (${
           reponse === "non" ? "a répondu non" : "pas de réponse au sondage"
         }).`,
+        poste.match,
       );
     }
   }
@@ -144,7 +163,7 @@ export function fautesDeLaComposition(
   for (const match of ["DH", "DD"] as const) {
     const [un, autre] = POSTES.filter((poste) => poste.match === match).map(({ id }) => composition.get(id));
     if (un !== undefined && un === autre) {
-      fautes.push(`${intituleDuMatch(match)} : ${nom(un)} ne fait pas une paire à lui seul.`);
+      faute(`${intituleDuMatch(match)} : ${nom(un)} ne fait pas une paire à lui seul.`, match);
     }
   }
 
@@ -156,8 +175,9 @@ export function fautesDeLaComposition(
   }
   for (const [licence, matchs] of matchsDe) {
     if (matchs.size > MATCHS_PAR_JOUEUR) {
-      fautes.push(
+      faute(
         `${nom(licence)} joue ${matchs.size} matchs (${[...matchs].join(", ")}) : ${MATCHS_PAR_JOUEUR} au plus par rencontre.`,
+        ...matchs,
       );
     }
   }
@@ -168,8 +188,10 @@ export function fautesDeLaComposition(
     const cote1 = coteOuZero(parLicence.get(sh1), "simple");
     const cote2 = coteOuZero(parLicence.get(sh2), "simple");
     if (cote1 < cote2) {
-      fautes.push(
+      faute(
         `Le SH1 (${nom(sh1)}, ${cote1.toLocaleString("fr-FR")} points) a une moyenne inférieure au SH2 (${nom(sh2)}, ${cote2.toLocaleString("fr-FR")} points) : les inverser.`,
+        "SH1",
+        "SH2",
       );
     }
   }

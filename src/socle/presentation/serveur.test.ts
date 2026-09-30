@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Router } from "express";
-import { creerApplication, type ModuleWeb } from "./serveur.ts";
+import { creerApplication, pannesDesSources, type ModuleWeb } from "./serveur.ts";
 import type { Configuration } from "../core/configuration.ts";
 import { licence } from "../core/licence.ts";
 import type { AccesAuxSources } from "./routeur-sources.ts";
@@ -102,7 +102,30 @@ describe("l'interface du socle", () => {
     const reponse = await interroger("/");
     assert.equal(reponse.statut, 200);
     assert.match(reponse.corps, /40 Ko/);
-    assert.match(reponse.corps, /Captures archivées/);
+    assert.match(reponse.corps, /captures archivées/);
+  });
+
+  it("ne signale les sources que quand l'une demande un geste", () => {
+    const etat = {
+      source: "myffbad",
+      session: "absente",
+      autonome: false,
+      enregistreeLe: null,
+      expireLe: null,
+      joursRestants: null,
+      derniereAcquisition: null,
+      derniereIssue: "succes",
+    } as const;
+
+    // Jamais configurée n'est pas en panne ; expirée mais autonome se rouvre seule.
+    assert.deepEqual(pannesDesSources([etat, { ...etat, session: "expiree", autonome: true }]), []);
+    assert.deepEqual(pannesDesSources([{ ...etat, derniereIssue: "vide" }]), [
+      "myffbad : la dernière passe n'a rien rendu",
+    ]);
+    assert.deepEqual(pannesDesSources([{ ...etat, derniereIssue: "echec", session: "expiree" }]), [
+      "myffbad : la dernière passe a échoué",
+      "myffbad : session expirée",
+    ]);
   });
 
   it("propose dans sa navigation les modules qu'on lui a montés", async () => {

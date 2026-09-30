@@ -9,6 +9,7 @@ import {
   POSTES,
   candidatsAuPoste,
   fautesDeLaComposition,
+  fautesParMatch,
   lignesDeLaFeuille,
   matchsParJoueur,
   placesVides,
@@ -123,6 +124,15 @@ describe("la composition d'une journée", () => {
       fautesDeLaComposition(composition({ SH1: DORA, "DH-1": ALEX, "DH-2": ALEX }), MEMBRES, tousDisponibles),
       ["Simple hommes 1 : Dora n'y a pas sa place.", "Double hommes : Alex ne fait pas une paire à lui seul."],
     );
+  });
+
+  it("désigne les matchs que chaque faute touche, pour marquer la bonne carte", () => {
+    const matchs = (places: Parameters<typeof composition>[0]) =>
+      fautesParMatch(composition(places), MEMBRES, tousDisponibles).map((faute) => faute.matchs);
+
+    assert.deepEqual(matchs({ SH1: BRUNO, SH2: ALEX }), [["SH1", "SH2"]], "le SH1 plus faible : les deux simples");
+    assert.deepEqual(matchs({ SH1: ALEX, "DH-1": ALEX, "MX-H": ALEX }), [["SH1", "DH", "MX"]], "trois matchs");
+    assert.deepEqual(matchs({ SD: ALEX }), [["SD"]], "un homme en simple dames");
   });
 });
 
