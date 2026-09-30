@@ -83,8 +83,23 @@ body {
 }
 
 h1, h2, h3 { line-height: 1.25; letter-spacing: -.01em; }
-h2 { font-size: 1.5rem; margin: 0 0 var(--espace-8); }
-h3 { font-size: 1.1rem; margin: var(--espace-32) 0 var(--espace-8); }
+h2 { font-size: 1.5rem; margin-top: 0; }
+h3 { font-size: 1.1rem; margin-top: var(--espace-32); }
+h4 { margin-top: var(--espace-24); }
+h5 { margin-top: var(--espace-16); }
+/*
+ * Sous un titre ou un sous-titre, 8 px, toujours : ni plus, parce que la marge
+ * haute de ce qui suit se fondrait avec, ni moins. D'où le `!important` — la
+ * règle doit l'emporter sur celle, plus précise, du bloc qui suit (onglets,
+ * fiche, cartes…), et c'est précisément ce qu'elle dit.
+ */
+h2, h3, h4, h5 { margin-bottom: var(--espace-8); }
+:is(h2, h3, h4, h5) + * { margin-top: 0 !important; }
+/*
+ * Un formulaire sans marge laisse passer celle de son premier paragraphe, même
+ * derrière un champ caché.
+ */
+:is(h2, h3, h4, h5) + * > :is(:first-child, [type="hidden"] + *) { margin-top: 0 !important; }
 /* Le titre d'une sous-page, juste sous ses onglets : ils le séparent déjà. */
 .onglets + h3 { margin-top: 0; }
 
@@ -354,7 +369,7 @@ span.etat { font-size: .85em; color: var(--attenue); }
   border: 1px solid var(--trait); border-radius: var(--rayon);
   box-shadow: var(--ombre);
 }
-.tuile > h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 var(--espace-16); }
+.tuile > h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin-top: 0; }
 .tuile > h2 a { color: var(--attenue); text-decoration: none; }
 .tuile > h2 a:hover { color: var(--accent); }
 .tuile p { margin: var(--espace-8) 0; }
