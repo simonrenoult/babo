@@ -344,7 +344,11 @@ describe("l'application assemblée", () => {
   it("sert l'accueil avec l'état réel de la base", async () => {
     const reponse = await visiter(`/`);
     assert.equal(reponse.status, 200);
-    assert.match(await reponse.text(), /Captures archivées/);
+    const page = await reponse.text();
+    assert.match(page, /captures archivées/);
+    // Une tuile par module, chacune avec ce qu'elle a à dire sur une base vide.
+    assert.match(page, /<h2><a href="\/mon-profil">Mon profil<\/a><\/h2>[\s\S]*Classement pas encore relevé/);
+    assert.match(page, /Aucune veille active/);
   });
 
   it("dit sur mon profil qu'aucune passe n'a abouti, plutôt qu'un tableau de tirets", async () => {
@@ -922,12 +926,48 @@ describe("l'application assemblée", () => {
     assert.match(relue, /7 places\s+encore vides/);
   });
 
+  it("titre chaque page du nom de sa section, sous-pages comprises", async () => {
+    for (const [chemin, section] of [
+      ["/mon-profil", "Mon profil"],
+      ["/capitanat", "Capitanat"],
+      ["/capitanat/calendrier", "Capitanat"],
+      ["/capitanat/tableau/SH", "Capitanat"],
+      ["/veille", "Veille de tournois"],
+      ["/parametres/scrapping/ordonnancement", "Paramètres"],
+      ["/parametres/equipe", "Paramètres"],
+    ] as const) {
+      const page = await (await visiter(chemin)).text();
+      assert.match(page, new RegExp(`<h2>${section}(</h2>|\\s)`), chemin);
+    }
+  });
+
+  it("annonce sur l'accueil la prochaine rencontre, et où en est sa composition", async () => {
+    const page = await (await visiter("/")).text();
+
+    // Le calendrier du test est daté : passé la saison, la tuile le dit.
+    assert.match(
+      page,
+      /Chez <strong>Badminton Paris 18eme 5<\/strong>[\s\S]*(places? à pourvoir|À composer|Composée)|Saison terminée/,
+    );
+  });
+
+  it("montre une carte par match, avec son état, et l'état de chaque journée", async () => {
+    // J01 : Simon en SH1 et dans le double hommes, rien d'autre.
+    const page = await (await visiter("/capitanat/planification/1")).text();
+
+    assert.match(page, /<section class="carte rempli" aria-label="Simple hommes 1">/);
+    assert.match(page, /<section class="carte incomplet" aria-label="Double hommes">/, "un seul des deux");
+    assert.match(page, /<section class="carte vide" aria-label="Simple dames">/);
+    assert.match(page, /href="\/capitanat\/planification\/1" class="en-cours"/);
+    assert.match(page, /href="\/capitanat\/planification\/2" class="vide"/);
+  });
+
   it("dit, en composant une journée, combien de fois chacun a déjà été retenu", async () => {
     const page = await (await visiter("/capitanat/planification/2")).text();
 
     assert.match(page, /Simon RENOULT — [^<]*· retenu 1\/1/, "retenu en J01, où il était disponible");
     assert.match(page, /Sollicitation des disponibles/);
-    assert.match(page, /<td>1<\/td>\s*<td>1 journée<\/td>\s*<td>100 %<\/td>/);
+    assert.match(page, /<td>1<\/td>\s*<td>1 journée<\/td>\s*<td>\s*<span class="jauge" role="img" aria-label="100 %">/);
   });
 
   it("donne sur les effectifs le taux de sollicitation de la saison", async () => {
@@ -1015,6 +1055,15 @@ describe("l'application assemblée", () => {
       const corps = await reponse.text();
       assert.match(corps, /Numéro de licence/);
       assert.doesNotMatch(corps, /Capitanat/, "aucune navigation avant d'être entré");
+    });
+
+    it("sert la feuille de style sans session : la page de connexion la charge", async () => {
+      const reponse = await sansCookie("/babo.css");
+
+      assert.equal(reponse.status, 200);
+      assert.match(reponse.headers.get("content-type") ?? "", /^text\/css/);
+      assert.equal(reponse.headers.get("cache-control"), "no-cache");
+      assert.match(await (await sansCookie("/connexion")).text(), /href="\/babo\.css"/);
     });
 
     it("laisse la sonde de vie répondre, mais sans rien dire de la base", async () => {

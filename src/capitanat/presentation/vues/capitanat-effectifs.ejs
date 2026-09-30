@@ -12,7 +12,17 @@
 <% } else { %>
   <%- include("peremption", { fraicheur }) %>
 
-  <h3>Mon équipe</h3>
+  <h3>Mon équipe
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Le sexe et le téléphone viennent du fichier importé depuis <a
+        href="/parametres/equipe">les paramètres</a> ; l'import remplace la liste entière. Le
+        nom et le classement sont relevés sur myffbad chaque vendredi.</span>
+      <span>La <strong>sollicitation</strong> rapporte les journées où un joueur a été retenu à
+        celles où il était disponible — un « si besoin » comptant pour une demie —, sur les
+        journées déjà composées en <a href="/capitanat/planification">Planification</a>. « — » :
+        aucune journée composée où il était disponible.</span>
+    </span></span>
+  </h3>
 
   <%
     // Une case vide ne doit jamais pouvoir se lire comme « non classé » : tant
@@ -21,33 +31,23 @@
     const releves = equipe.filter((membre) => membre.nom !== null).length;
   %>
 
-  <p>
+  <p class="discret">
     <%= equipe.length %> membre<%= equipe.length > 1 ? "s" : "" %>, moi compris.
-    Le sexe et le téléphone viennent du fichier ; le nom et le classement sont
-    relevés sur myffbad chaque vendredi (spec 028). L'import remplace la liste
-    entière.
   </p>
 
   <% if (releves === 0) { %>
-    <p class="etat">
+    <p class="etat attention">
       Noms et classements non encore relevés. La passe se lance depuis
       <a href="/parametres/scrapping/ordonnancement">l'écran des paramètres</a>.
     </p>
   <% } else if (releves < equipe.length) { %>
-    <p class="etat">
+    <p class="etat attention">
       <%= equipe.length - releves %> membre<%= equipe.length - releves > 1 ? "s" : "" %>
       sans relevé : la dernière passe ne les a pas trouvés sur myffbad. Le
       rapport en donne la raison sur <a href="/parametres/scrapping/logs">l'écran des paramètres</a>.
     </p>
   <% } %>
 
-  <p>
-    La <strong>sollicitation</strong> rapporte les journées où un joueur a été
-    retenu à celles où il était disponible — un « si besoin » comptant pour une
-    demie —, sur les journées déjà
-    composées en <a href="/capitanat/planification">Planification</a> (spec 009).
-    « — » : aucune journée composée où il était disponible.
-  </p>
 
   <table>
     <tr>
@@ -71,21 +71,13 @@
             <% if (classement === undefined) { %>
               <span class="etat"><%= membre.nom === null ? "non relevé" : "non joué" %></span>
             <% } else { %>
-              <%= classement.lettre %>
-              <span class="etat"><%= classement.cpph.toLocaleString("fr-FR") %></span>
+              <%- include("lettre", { lettre: classement.lettre, cote: classement.cpph }) %>
             <% } %>
           </td>
         <% } %>
         <td><%= membre.vuLe === null ? "—" : membre.vuLe.toLocaleDateString("fr-FR") %></td>
         <% const { selections, occasions } = usage.get(membre.licence) ?? { selections: 0, occasions: 0 }; %>
-        <td>
-          <% if (occasions === 0) { %>
-            —
-          <% } else { %>
-            <%= Math.round((100 * selections) / occasions) %> %
-            <span class="etat"><%= selections %>/<%= occasions.toLocaleString("fr-FR") %></span>
-          <% } %>
-        </td>
+        <td><%- include("jauge", { selections, occasions }) %></td>
         <td><a href="tel:<%= membre.appel %>"><%= membre.telephone %></a></td>
         <td>
           <a href="<%= membre.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>
@@ -93,15 +85,6 @@
       </tr>
     <% } %>
   </table>
+
 <% } %>
-
-
-<h3>Ce qui viendra ici</h3>
-<ul>
-  <li>Performance individuelle — spec 006</li>
-  <li>Ratio victoire/défaite de l'équipe — spec 007</li>
-  <li>Disponibilités et taux de sollicitation — specs 008 et 009</li>
-  <li>Tableaux préférés du joueur — spec 010</li>
-  <li>Composition de journée — spec 011</li>
-</ul>
 <%- include("pied") %>

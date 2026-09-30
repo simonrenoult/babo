@@ -1,0 +1,7 @@
+<%#
+  Une lettre de classement, dans la couleur de sa série : N, R, D, P, et NC à
+  part — « NC » commence par un N, et n'est pas une série nationale.
+  Paramètres : `lettre`, et `cote` facultative, affichée à côté.
+%>
+<% const serie = lettre === "NC" ? "nc" : lettre[0].toLowerCase(); %>
+<span class="lettre serie-<%= serie %>"><%= lettre %></span><% if (locals.cote != null) { %> <span class="etat"><%= cote.toLocaleString("fr-FR") %></span><% } %>

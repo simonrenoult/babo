@@ -1,20 +1,23 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
 
-<h3>Mon classement</h3>
+<h3>Mon classement
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Le classement bouge à la publication hebdomadaire du CPPH.</span>
+  </span></span>
+</h3>
 
 <%- include("peremption", { fraicheur }) %>
 
 <% if (classement.vuLe === null) { %>
   <p class="etat">
     Aucun relevé : la première passe myffbad n'a pas encore abouti. L'état de la
-    source et la sonde d'accès sont sur <a href="/sources">l'écran des sources</a>.
+    source est dans <a href="/parametres">les paramètres</a>.
   </p>
 <% } else { %>
-  <p>
+  <p class="discret">
     Licence <%= classement.licence %>, relevé le
-    <%= classement.vuLe.toLocaleString("fr-FR") %>. Le classement ne bouge qu'à
-    la publication hebdomadaire du CPPH.
+    <%= classement.vuLe.toLocaleString("fr-FR") %>.
   </p>
 
   <table>
@@ -22,24 +25,28 @@
     <% for (const ligne of classement.lignes) { %>
       <tr>
         <td><%= ligne.discipline %></td>
-        <td><%= ligne.lettre %></td>
+        <td><%- include("lettre", { lettre: ligne.lettre }) %></td>
         <td><%= ligne.cpph.toLocaleString("fr-FR") %></td>
       </tr>
     <% } %>
   </table>
 <% } %>
 
-<h3>Mes prochains tournois</h3>
+<h3>Mes prochains tournois
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Le nom de chaque tournoi mène à sa fiche badnet, seul endroit où une inscription se
+      modifie ou s'annule.</span>
+  </span></span>
+</h3>
 
 <%- include("peremption", { fraicheur: fraicheurDesEngagements }) %>
 
 <% if (tournois.length === 0) { %>
   <p class="etat">
     <% if (engagementsConnus === 0) { %>
-      Aucun engagement relevé. Ils viennent de badnet, sous session : si la
-      session est morte, <a href="/sources">l'écran des sources</a> le dit et
-      permet d'en rouvrir une. En intersaison, c'est simplement qu'il n'y a rien
-      à relever.
+      Aucun engagement relevé. En intersaison, c'est normal ; sinon, la session
+      badnet est peut-être morte : <a href="/parametres/scrapping/sessions">les paramètres</a>
+      le disent et permettent d'en rouvrir une.
     <% } else { %>
       Aucun tournoi à venir. Les <%= engagementsConnus %> engagement<%= engagementsConnus > 1 ? "s" : "" %>
       relevé<%= engagementsConnus > 1 ? "s" : "" %> sont tous passés.
@@ -66,27 +73,12 @@
 
   <% if (tournois.some((tournoi) => tournoi.lieu === null)) { %>
     <p class="etat">
-      <strong>Le lieu de certains tournois n'est pas encore relevé.</strong> La
-      page de badnet qui porte mes inscriptions donne le nom, la date et les
-      tableaux, jamais la ville : celle-ci se lit sur la fiche publique du
-      tournoi, qu'une passe anonyme va chercher chaque jour. Son rapport, sur
-      <a href="/sources">l'écran des sources</a>, dit pourquoi une fiche est
-      restée muette.
+      <strong>Le lieu de certains tournois n'est pas encore relevé.</strong> Il
+      se lit sur la fiche publique du tournoi, relevée chaque jour ;
+      <a href="/parametres/scrapping/logs">le rapport de la passe</a> dit pourquoi
+      une fiche est restée muette.
     </p>
   <% } %>
 
-  <p>
-    Le chevauchement de deux dates n'est pas signalé, et c'est délibéré : sur
-    une liste courte et triée, il se voit mieux à l'œil qu'une règle appuyée sur
-    une date sans durée ne saurait le dire. Le nom de chaque tournoi mène à sa
-    fiche badnet, seul endroit où une inscription se modifie ou s'annule.
-  </p>
 <% } %>
-
-<h3>Ce qui viendra ici</h3>
-<ul>
-  <li>Évolution du classement — spec 024</li>
-  <li>Historique de matchs — spec 003</li>
-  <li>Ratio victoire/défaite par tableau — spec 004</li>
-</ul>
 <%- include("pied") %>

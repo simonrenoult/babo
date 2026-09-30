@@ -70,5 +70,18 @@ export function creerModuleMonProfil(options: {
     chemin: "/mon-profil",
     routeur,
     vues: new URL("vues/", import.meta.url).pathname,
+    // Sur l'accueil : mes lettres, et le prochain tournoi où je suis engagé.
+    apercu: () => {
+      const aVenir = prochainsTournois(engagements, tournois, horloge.maintenant());
+      return {
+        vue: "mon-profil-apercu",
+        donnees: {
+          classement: monClassement(licence, classements),
+          prochain: aVenir[0] ?? null,
+          ensuite: aVenir.length - 1,
+          intituleDeLEngagement,
+        },
+      };
+    },
   };
 }

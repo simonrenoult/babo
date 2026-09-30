@@ -1,7 +1,26 @@
 <%- include("entete", { titre }) %>
+<h2>Capitanat</h2>
 <%- include("capitanat-onglets", { onglet: "preferences" }) %>
 <p><a href="/capitanat/preferences">← Préférences</a></p>
-<h2><%= force.intitule %> <span class="etat"><%= force.tableau %></span></h2>
+<h3><%= force.intitule %> <span class="etat"><%= force.tableau %></span>
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span><strong>Aide à la décision, pas classement officiel.</strong> Le sexe qui range les
+      joueurs entre <code>SH</code> et <code>SD</code> vient du fichier importé, pas de
+      myffbad, qui ne le publie nulle part. La cote et la lettre, elles, sont relevées et
+      affichées telles quelles.</span>
+    <span><strong>Deux blocs, pas un bonus de points.</strong> Ce que je privilégie remonte en
+      tête, et chaque bloc reste rangé à la cote : le meilleur non marqué reste en tête de son
+      bloc.</span>
+    <span><strong>Une paire n'a pas de classement fédéral</strong> : son ordre est la moyenne des
+      deux cotes, qui se compare à une cote individuelle. Sur les cotes plutôt que sur les
+      séries, parce que deux paires « D8 + D9 » peuvent valoir deux cent cinquante points
+      d'écart. Cet ordre bouge à chaque publication du CPPH.</span>
+    <span><strong>Ce que je marque ici est ma décision, pas la déclaration du joueur.</strong> Les
+      deux peuvent se contredire, et ce désaccord est lui-même une information.</span>
+    <span>Les cinq listes ne se cumulent pas : un joueur figure dans tous les tableaux où il est
+      éligible, et ne jouera pourtant pas plus de deux matchs.</span>
+  </span></span>
+</h3>
 
 <p>
   <%= force.matchs === 1 ? "Un match" : `${force.matchs} matchs` %> sur les six de
@@ -14,7 +33,7 @@
 <%- include("peremption", { fraicheur }) %>
 
 <% if (force.manques.length > 0) { %>
-  <p class="etat">
+  <p class="etat attention">
     L'effectif ne permet pas de remplir ce tableau : il manque
     <%= joueursRequis(force.manques, force.discipline) %>.
   </p>
@@ -47,7 +66,7 @@
         <%# La cote d'abord : c'est elle qui fait l'ordre. Ni l'une ni l'autre %>
         <%# n'est convertie — myffbad rend les deux, la page les affiche (001). %>
         <td><%= joueur.cpph.toLocaleString("fr-FR") %></td>
-        <td><%= joueur.lettre %></td>
+        <td><%- include("lettre", { lettre: joueur.lettre }) %></td>
         <td><%= joueur.licence %></td>
         <td>
           <a href="<%= joueur.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>
@@ -64,33 +83,19 @@
     <% }) %>
   </table>
 
-  <p class="etat">
-    <strong>Deux blocs, pas un bonus de points.</strong> Ce que je privilégie
-    remonte en tête, et chaque bloc reste rangé à la cote : la comparaison ne se
-    perd pas, le meilleur non marqué reste en tête de son bloc. Un bonus aurait
-    produit un ordre qui ne serait ni celui du classement, ni le mien (spec 030).
-  </p>
 <% } %>
 
 <% if (page.enPaires) { %>
-  <h3>Paires</h3>
-
-  <p>
-    Ce tableau se joue en paires, et <strong>une paire n'a pas de classement
-    fédéral</strong> : son ordre est la moyenne des deux cotes en
-    <%= force.discipline %>. La moyenne plutôt que la somme parce qu'elle se
-    compare à une cote individuelle, et sur les cotes plutôt que sur les séries
-    parce que deux paires « D8 + D9 » peuvent valoir deux cent cinquante points
-    d'écart — c'est justement l'écart qu'on cherche. Cet ordre bouge à chaque
-    publication hebdomadaire du CPPH (spec 030).
-  </p>
+  <h4>Paires
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Rangées à la moyenne des deux cotes en <%= force.discipline %>.</span>
+    </span></span>
+  </h4>
 
   <% if (page.paires.length === 0 && page.pairesHorsOrdre.length === 0) { %>
     <p class="etat">
-      Aucune paire saisie. Les paires ne sont pas énumérées : une équipe de seize
-      en produirait soixante-quatre en mixte, et soixante-quatre lignes pour en
-      retenir trois sont du bruit. Une paire saisie enregistre une intention, là
-      où une paire calculée n'enregistre rien.
+      Aucune paire saisie. Les paires ne sont pas énumérées : on saisit
+      ci-dessous celles qu'on envisage.
     </p>
   <% } %>
 
@@ -112,9 +117,9 @@
             <% }) %>
           </td>
           <td>
-            <%= paire.joueurs
-                  .map((joueur) => `${joueur.lettre} ${joueur.cote.toLocaleString("fr-FR")}`)
-                  .join(" · ") %>
+            <% paire.joueurs.forEach((joueur, index) => { %>
+              <%= index === 0 ? "" : " · " %><%- include("lettre", { lettre: joueur.lettre, cote: joueur.cote }) %>
+            <% }) %>
           </td>
           <td><%= paire.cote.toLocaleString("fr-FR") %></td>
           <td>
@@ -128,7 +133,7 @@
           <td>
             <form method="post" action="/capitanat/paires/<%= paire.id %>/suppression">
               <input type="hidden" name="tableau" value="<%= force.tableau %>">
-              <button type="submit">Supprimer</button>
+              <button type="submit" class="danger">Supprimer</button>
             </form>
           </td>
         </tr>
@@ -137,15 +142,13 @@
   <% } %>
 
   <% if (page.pairesHorsOrdre.length > 0) { %>
-    <h4>Paires hors de l'ordre</h4>
-    <p>
-      <%= page.pairesHorsOrdre.length %>
-      paire<%= page.pairesHorsOrdre.length > 1 ? "s" : "" %> dont un membre au
-      moins n'est pas classé en <%= force.discipline %>. Sans les deux cotes, il
-      n'y a pas de moyenne — et les ranger dernières ferait disparaître
-      l'anomalie qu'on veut voir : en début de saison, un joueur sans classement
-      est presque toujours une licence fausse, pas un joueur faible (spec 029).
-    </p>
+    <h5>Paires hors de l'ordre
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span><%= page.pairesHorsOrdre.length %> paire<%= page.pairesHorsOrdre.length > 1 ? "s" : ""
+          %> dont un membre au moins n'est pas classé en <%= force.discipline %> : pas de moyenne
+          possible. En début de saison, c'est souvent une licence fausse.</span>
+      </span></span>
+    </h5>
     <ul>
       <% for (const paire of page.pairesHorsOrdre) { %>
         <li>
@@ -165,14 +168,14 @@
           </form>
           <form method="post" action="/capitanat/paires/<%= paire.id %>/suppression">
             <input type="hidden" name="tableau" value="<%= force.tableau %>">
-            <button type="submit">Supprimer</button>
+            <button type="submit" class="danger">Supprimer</button>
           </form>
         </li>
       <% } %>
     </ul>
   <% } %>
 
-  <h4>Saisir une paire</h4>
+  <h5>Saisir une paire</h5>
   <% if (page.emplacements.some((emplacement) => emplacement.candidats.length === 0)) { %>
     <p class="etat">
       L'équipe ne compte personne du sexe requis pour ce tableau : il n'y a
@@ -196,29 +199,23 @@
           </select>
         <% }) %>
         <button type="submit">Saisir la paire</button>
+        <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+          <span>Un joueur peut figurer dans plusieurs paires du même tableau : pour comparer. Les paires
+            ne se cumulent donc pas.</span>
+        </span></span>
       </p>
     </form>
-    <p class="etat">
-      Le tableau ne se choisit pas : il se déduit des sexes — deux hommes DH,
-      deux femmes DD, un de chaque MX. Un joueur peut appartenir à plusieurs
-      paires du même tableau : c'est le geste de début de saison, essayer
-      quelqu'un avec l'un puis avec l'autre et comparer. <strong>Ces paires ne
-      se cumulent donc pas</strong> plus que les cinq tableaux : les deux
-      premières peuvent partager un joueur.
-    </p>
   <% } %>
 <% } %>
 
 <% if (force.ecartes.length > 0) { %>
-  <h3>Hors de l'ordre</h3>
-  <p>
-    <%= force.ecartes.length %> joueur<%= force.ecartes.length > 1 ? "s" : "" %>
-    sans classement en <%= force.discipline %>, donc sans place dans l'ordre de
-    force — et nommé<%= force.ecartes.length > 1 ? "s" : "" %> ici plutôt que
-    rangé<%= force.ecartes.length > 1 ? "s" : "" %>
-    dernier<%= force.ecartes.length > 1 ? "s" : "" %> : en début de saison,
-    c'est presque toujours une licence fausse, pas un joueur faible.
-  </p>
+  <h4>Hors de l'ordre
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span><%= force.ecartes.length %> joueur<%= force.ecartes.length > 1 ? "s" : "" %> sans
+        classement en <%= force.discipline %>. En début de saison, c'est souvent une licence
+        fausse, pas un joueur faible.</span>
+    </span></span>
+  </h4>
   <ul>
     <% for (const joueur of force.ecartes) { %>
       <li>
@@ -236,26 +233,4 @@
   </ul>
 <% } %>
 
-<p class="etat">
-  <strong>Aide à la décision, pas classement officiel.</strong> Le sexe qui range
-  les joueurs entre <code>SH</code> et <code>SD</code> vient du fichier importé,
-  pas de myffbad, qui ne le publie nulle part : cette page trie l'équipe pour son
-  capitaine, elle ne présente aucun fait fédéral (spec 029, amendant 028). La
-  cote et la lettre, elles, sont relevées et affichées telles quelles.
-</p>
-
-<p class="etat">
-  <strong>Ce que je marque ici est ma décision, pas la déclaration du joueur.</strong>
-  Les tableaux souhaités ou refusés par le joueur lui-même, et ses partenaires
-  privilégiés à lui, relèveront de la spec 010. Les deux peuvent se contredire,
-  et ce désaccord est lui-même une information : il se voit en mettant les deux
-  côte à côte, jamais en les fusionnant (spec 030).
-</p>
-
-<p>
-  Les cinq listes ne se cumulent pas : un joueur figure dans tous les tableaux où
-  il est éligible, et ne fera pourtant pas les six matchs de la rencontre. La
-  <a href="/capitanat">page des effectifs</a> les montre côte à côte ; c'est la
-  composition de journée (spec 011) qui plafonnera les matchs par joueur.
-</p>
 <%- include("pied") %>

@@ -11,11 +11,12 @@
 <% } else { %>
   <p>
     <strong><%= calendrier.equipe.nom %></strong>, <%= calendrier.competition %>,
-    <%= calendrier.groupe %>. Importé le
-    <%= calendrier.importeLe.toLocaleDateString("fr-FR") %> depuis
-    <a href="<%= calendrier.url %>" rel="noreferrer noopener" target="_blank">icbad</a> ;
-    à réimporter depuis <a href="/parametres/calendrier">l'écran des paramètres</a>
-    si le comité déplace une rencontre.
+    <%= calendrier.groupe %>.
+  </p>
+  <p class="discret">
+    Importé le <%= calendrier.importeLe.toLocaleDateString("fr-FR") %> depuis
+    <a href="<%= calendrier.url %>" rel="noreferrer noopener" target="_blank">icbad</a>.
+    <a href="/parametres/calendrier">Réimporter</a> si le comité déplace une rencontre.
   </p>
 
   <table>

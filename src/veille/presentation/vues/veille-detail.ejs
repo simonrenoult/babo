@@ -2,14 +2,13 @@
 <h2><%= titre %></h2>
 
 <% if (!veille.active) { %>
-  <p class="etat">
+  <p class="etat attention">
     Veille suspendue : elle ne cherche plus et n'alerte plus. Ce qu'elle a déjà
-    vu est conservé — c'est tout l'intérêt de la suspendre plutôt que de la
-    supprimer.
+    vu est conservé.
   </p>
 <% } %>
 
-<p class="etat">
+<p class="discret">
   Dans un rayon de <%= veille.rayonKm %> km autour de
   <%= veille.latitude.toFixed(4) %>, <%= veille.longitude.toFixed(4) %> —
   à vol d'oiseau.
@@ -37,18 +36,15 @@
 <% if (resultats.retenus.length === 0 && releveeLe === null) { %>
   <p class="etat">
     <strong>Cette veille n'a pas encore été relevée.</strong>
-    La recherche tourne chaque matin à 5 h 15, et les fiches des tournois
-    trouvés un quart d'heure plus tard : les premiers résultats apparaîtront
-    demain matin. Rien ne dit encore si ces critères sont trop étroits — ils
-    n'ont pas servi.
+    La recherche tourne chaque matin à 5 h 15 : les premiers résultats
+    apparaîtront demain matin.
   </p>
 <% } else if (resultats.retenus.length === 0 && resultats.enAttenteDeFiche === 0
               && resultats.ecartes === 0 && resultats.indetermines.length === 0) { %>
   <p class="etat">
     <strong>La dernière recherche n'a rien rendu dans ce périmètre</strong>
     (<%= releveeLe.toLocaleString("fr-FR") %>). badnet n'y publie aucun tournoi
-    à venir : c'est le rayon ou la fenêtre qu'il faut élargir, pas les tableaux
-    ni les séries.
+    à venir : c'est le rayon ou la fenêtre qu'il faut élargir.
   </p>
 <% } else if (resultats.retenus.length === 0) { %>
   <p class="etat">
@@ -81,14 +77,12 @@
 <% } %>
 
 <% if (resultats.indetermines.length > 0) { %>
-  <h3>Tableaux non déclarés</h3>
-  <p>
-    Ces tournois sont dans le périmètre, mais leur organisateur n'a pas encore
-    saisi ses tableaux ni ses séries. Ce sont le plus souvent les tournois
-    fraîchement publiés — ceux qui se remplissent le plus vite. Ils sont donc
-    montrés à part plutôt qu'écartés : « non déclaré » n'est pas « pas pour
-    moi ».
-  </p>
+  <h3>Tableaux non déclarés
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Dans le périmètre, mais sans tableaux ni séries saisis : le plus souvent des tournois
+        fraîchement publiés, ceux qui se remplissent le plus vite.</span>
+    </span></span>
+  </h3>
   <table>
     <tr><th>Tournoi</th><th>Quand</th><th>Où</th><th class="nombre">Distance</th><th>Inscription avant</th></tr>
     <% resultats.indetermines.forEach(function (t) { %>
@@ -103,11 +97,10 @@
   </table>
 <% } %>
 
-<p class="etat">
+<p class="discret">
   <%= resultats.ecartes %> tournoi<%= resultats.ecartes > 1 ? "s" : "" %> écarté<%= resultats.ecartes > 1 ? "s" : "" %> par les critères.
   <% if (resultats.enAttenteDeFiche > 0) { %>
-    <%= resultats.enAttenteDeFiche %> en attente de leur fiche : la recherche passe
-    à 5 h 15, les fiches à 5 h 30. Ils apparaîtront demain.
+    <%= resultats.enAttenteDeFiche %> en attente de leur fiche : ils apparaîtront demain.
   <% } %>
 </p>
 
@@ -120,11 +113,10 @@
 </form>
 
 <form method="post" action="/veille/<%= veille.id %>/supprimer">
-  <button type="submit">Supprimer</button>
-  <span class="etat">
-    La suppression emporte ce que la veille a vu : recréée, elle alerterait de
-    nouveau sur tout. Suspendre garde cette mémoire.
-  </span>
+  <button type="submit" class="danger">Supprimer</button>
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Supprimer oublie ce que la veille a vu ; suspendre le garde.</span>
+  </span></span>
 </form>
 
 <p><a href="/veille">Retour aux veilles</a></p>

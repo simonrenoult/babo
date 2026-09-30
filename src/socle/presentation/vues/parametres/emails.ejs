@@ -1,18 +1,15 @@
-<h2>Courrier</h2>
-<p>
-  Les mails que Babo envoie : les alertes de panne et le battement de 019, les
-  alertes de tournoi de 013, les rappels de 014 (spec 016). Le SMTP est celui
-  d'un compte Gmail, et le seul destinataire est moi — 008 a retiré les mails
-  des coéquipiers, il n'y a personne d'autre à qui écrire.
-</p>
-<p>
-  <strong>Tout message est écrit en base avant d'être remis</strong>, puis
-  envoyé aussitôt. Un envoi qui échoue est repris à cinq puis à trente minutes,
-  et abandonné à la troisième tentative. Un échec d'envoi ne peut pas être
-  signalé par mail : il se lit ici, et dans les rapports d'exécution.
-</p>
+<h3>Courrier
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Alertes de panne, battement hebdomadaire, alertes et rappels de tournoi. Un seul
+      destinataire : moi.</span>
+    <span><strong>Tout message est écrit en base avant d'être remis</strong>, puis envoyé aussitôt
+      par le SMTP d'un compte Gmail. Un envoi qui échoue est repris à cinq puis à trente
+      minutes, et abandonné à la troisième tentative. Un échec d'envoi ne peut pas être
+      signalé par mail : il se lit ici, et dans les rapports d'exécution.</span>
+  </span></span>
+</h3>
 
-<p class="etat">
+<p class="etat <%= courrier.configure ? "" : "attention" %>">
   <% if (courrier.configure) { %>
     Courrier configuré, à destination de <strong><%= courrier.destinataire %></strong>.
   <% } else { %>

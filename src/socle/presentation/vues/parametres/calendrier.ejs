@@ -1,17 +1,13 @@
-<h2>Importer le calendrier d'interclub</h2>
-<p>
-  Le calendrier de la saison, tel qu'icbad le publie pour le groupe de mon
-  équipe : date, heure, gymnase et adversaire de chaque rencontre. La page est
-  publique, sans session.
-</p>
-<p>
-  <strong>Pas de passe planifiée</strong> : le calendrier se fixe en début de
-  saison et ne bouge qu'à la marge. On l'importe une fois, et de nouveau si le
-  comité déplace une rencontre. <strong>L'import remplace le calendrier
-  entier</strong> ; en cas d'échec, rien n'est écrit et l'ancien reste en place.
-  La page lue est archivée, et l'import laisse sa trace dans les
-  <a href="/parametres/scrapping/logs">logs d'exécution</a>.
-</p>
+<h3>Importer le calendrier d'interclub
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Lu sur la page publique du groupe sur icbad. On l'importe en début de saison, et de
+      nouveau si le comité déplace une rencontre.</span>
+    <span>Pas de passe planifiée : le calendrier ne bouge qu'à la marge. <strong>L'import remplace
+      le calendrier entier</strong> ; en cas d'échec, rien n'est écrit et l'ancien reste en
+      place. La page lue est archivée, et l'import laisse sa trace dans les <a
+      href="/parametres/scrapping/logs">logs d'exécution</a>.</span>
+  </span></span>
+</h3>
 
 <%
   // Un refus rend la saisie telle quelle, pour qu'on la corrige ; sinon le
@@ -22,14 +18,14 @@
 %>
 
 <% if (importCalendrier?.issue === "importe") { %>
-  <p class="etat">
+  <p class="etat succes">
     Calendrier importé : <strong><%= importCalendrier.calendrier.rencontres %></strong>
     rencontre<%= importCalendrier.calendrier.rencontres > 1 ? "s" : "" %> pour
     <strong><%= importCalendrier.calendrier.nomEquipe %></strong>. La liste est
     sur <a href="/capitanat">Capitanat</a>.
   </p>
 <% } else if (importCalendrier?.issue === "refuse") { %>
-  <p class="etat">
+  <p class="etat erreur">
     <strong>Import refusé, rien n'a été écrit.</strong>
     <%= importCalendrier.raison %>
   </p>

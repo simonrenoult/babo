@@ -1,0 +1,386 @@
+/*
+ * La feuille de style de toute l'interface.
+ *
+ * Servie à part plutôt que recopiée dans chaque page : le navigateur la garde
+ * en cache et la revalide d'un 304. Elle est du socle, donc ne nomme aucune
+ * feature : ce qui est propre à une page reste dans sa vue, et s'appuie sur
+ * les jetons ci-dessous plutôt que sur des couleurs en dur.
+ */
+
+/* --- Jetons ------------------------------------------------------------ */
+
+:root {
+  color-scheme: light dark;
+
+  --fond: #f7f8f6;
+  --surface: #ffffff;
+  --texte: #1c211e;
+  --attenue: #5d6660;
+  --trait: #dde2de;
+  --trait-fort: #c3cac5;
+
+  /* Le vert d'un terrain : c'est la seule couleur de marque. */
+  --accent: #1f7a4d;
+  --accent-texte: #ffffff;
+  --accent-doux: #e3f1e9;
+
+  --succes: #1f7a4d;
+  --attention: #a86b00;
+  --erreur: #b3261e;
+  --info: #3b6ea8;
+
+  --rayon: .5rem;
+  --ombre: 0 1px 2px rgb(0 0 0 / .06), 0 1px 1px rgb(0 0 0 / .04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #121513;
+    --surface: #1a1e1c;
+    --texte: #e6ebe7;
+    --attenue: #9aa49d;
+    --trait: #2c322e;
+    --trait-fort: #3d4540;
+
+    --accent: #5cc68d;
+    --accent-texte: #0d1f15;
+    --accent-doux: #1d3327;
+
+    --succes: #5cc68d;
+    --attention: #e0a93a;
+    --erreur: #ef7b72;
+    --info: #7fb0e6;
+
+    --ombre: none;
+  }
+}
+
+/* --- Base -------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { line-height: 1.25; letter-spacing: -.01em; }
+h2 { font-size: 1.5rem; margin: 0 0 .5rem; }
+h3 { font-size: 1.1rem; margin: 2rem 0 .6rem; }
+/* Le titre d'une sous-page, juste sous ses onglets : ils le séparent déjà. */
+.onglets + h3 { margin-top: 0; }
+
+a { color: var(--accent); text-underline-offset: .15em; }
+a:hover { text-decoration-thickness: 2px; }
+
+code {
+  font: .88em/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  padding: .1em .35em;
+  border-radius: .25rem;
+  background: color-mix(in srgb, var(--texte) 8%, transparent);
+}
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+nav { display: flex; gap: 1rem; }
+
+/* --- Cadre : menu à gauche, contenu à droite --------------------------- */
+
+.app { display: grid; grid-template-columns: 14rem minmax(0, 1fr); min-height: 100vh; }
+.app.nu { grid-template-columns: minmax(0, 1fr); }
+/* La connexion, seule page sans menu : une colonne étroite au centre. */
+.app.nu .contenu { width: 100%; max-width: 34rem; margin: 3rem auto 0; }
+
+.menu {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 1.5rem;
+  padding: 1.5rem 1rem;
+  background: var(--surface);
+  border-right: 1px solid var(--trait);
+}
+.menu h1 { margin: 0 .5rem; font-size: 1.35rem; }
+.menu h1 a { color: var(--texte); text-decoration: none; }
+.menu h1 a::before { content: "🏸"; margin-right: .4rem; }
+.menu nav { flex-direction: column; gap: .15rem; }
+.menu nav a {
+  padding: .45rem .6rem; border-radius: var(--rayon);
+  color: var(--texte); text-decoration: none;
+}
+.menu nav a:hover { background: color-mix(in srgb, var(--texte) 6%, transparent); }
+.menu nav a[aria-current] { font-weight: 600; color: var(--accent); background: var(--accent-doux); }
+.menu form { margin-top: auto; }
+.menu form button { width: 100%; }
+
+.contenu { padding: 2rem 2.5rem; max-width: 72rem; }
+.contenu > header { border-bottom: 1px solid var(--trait); padding-bottom: .75rem; }
+.contenu > header h1 { margin: 0; font-size: 1.25rem; }
+
+footer {
+  margin-top: 3rem; padding-top: .75rem;
+  border-top: 1px solid var(--trait);
+  font-size: .85rem; color: var(--attenue);
+}
+
+/* --- Onglets que portent les pages elles-mêmes : paramètres, capitanat - */
+
+.onglets {
+  flex-wrap: wrap; gap: 0 1.25rem;
+  margin: 1rem 0 1.5rem;
+  border-bottom: 1px solid var(--trait);
+}
+.onglets a {
+  padding: .5rem 0; margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--attenue); text-decoration: none;
+}
+.onglets a:hover { color: var(--texte); }
+.onglets a[aria-current] { color: var(--accent); font-weight: 600; border-bottom-color: var(--accent); }
+
+/* Les sous-onglets (les journées d'interclub) : des pastilles. */
+.onglets.sous { gap: .35rem; margin-top: -.75rem; border-bottom: 0; font-size: .9rem; }
+.onglets.sous a {
+  padding: .2rem .6rem; margin: 0;
+  border: 1px solid var(--trait); border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.onglets.sous a[aria-current] { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+
+/* --- Tableaux ---------------------------------------------------------- */
+
+table {
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  /* Un tableau trop large défile sur lui-même, pas la page entière. */
+  display: block; max-width: 100%; overflow-x: auto; width: max-content;
+  font-variant-numeric: tabular-nums;
+}
+th, td { text-align: left; padding: .5rem .9rem; vertical-align: top; }
+tr + tr > * { border-top: 1px solid var(--trait); }
+/* La ligne d'en-têtes : celle qui n'a que des `th`. */
+tr:first-child:not(:has(td)) > th {
+  font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--attenue);
+  background: color-mix(in srgb, var(--texte) 3%, transparent);
+}
+tr:hover > td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+/* Un en-tête en tête de ligne (planification, état du socle). */
+tr:has(td) > th { font-weight: 600; white-space: nowrap; }
+.nombre { text-align: right; }
+
+/* --- Formulaires ------------------------------------------------------- */
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"]), select, textarea {
+  padding: .4rem .6rem;
+  background: var(--surface);
+  border: 1px solid var(--trait-fort);
+  border-radius: calc(var(--rayon) - .15rem);
+  max-width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+td select { min-width: 14rem; }
+
+/* Un lien qui mène à une action (« Créer une veille ») a l'air d'un bouton. */
+button, a.bouton {
+  display: inline-block; text-decoration: none; color: inherit;
+  padding: .45rem .9rem;
+  border: 1px solid var(--trait-fort);
+  border-radius: calc(var(--rayon) - .15rem);
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 500;
+}
+button:hover, a.bouton:hover { border-color: var(--accent); color: var(--accent); }
+/* L'action d'une page, là où il y en a une qui prime sur les autres. */
+button.principal, a.bouton.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); }
+button.principal:hover, a.bouton.principal:hover { background: color-mix(in srgb, var(--accent) 85%, black); color: var(--accent-texte); }
+button.danger:hover { border-color: var(--erreur); color: var(--erreur); }
+
+label { font-weight: 500; }
+
+/* --- Messages d'état --------------------------------------------------- */
+
+/*
+ * Un `.etat` en paragraphe est un encadré : neutre par défaut, puis
+ * `succes`, `attention` ou `erreur` selon ce qu'il annonce. En ligne, c'est
+ * une annotation discrète à côté d'une valeur (une cote, « non relevé »).
+ */
+.etat { --ton: var(--info); }
+.etat.succes { --ton: var(--succes); }
+.etat.attention { --ton: var(--attention); }
+.etat.erreur { --ton: var(--erreur); }
+
+p.etat, div.etat {
+  padding: .7rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--ton) 30%, transparent);
+  border-left: 4px solid var(--ton);
+  border-radius: var(--rayon);
+  background: color-mix(in srgb, var(--ton) 8%, var(--surface));
+}
+p.etat.succes::before, div.etat.succes::before { content: "✓ "; color: var(--ton); font-weight: 700; }
+p.etat.attention::before, div.etat.attention::before { content: "⚠ "; color: var(--ton); }
+div.etat ul { margin: .4rem 0 0; padding-left: 1.25rem; }
+
+span.etat { font-size: .85em; color: var(--attenue); }
+
+/* --- Téléphone : le menu repasse en bandeau au-dessus du contenu ------- */
+
+@media (max-width: 42rem) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .menu {
+    position: static; height: auto;
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
+    padding: .75rem 1rem;
+    border-right: 0; border-bottom: 1px solid var(--trait);
+  }
+  .menu nav { flex-direction: row; flex-wrap: wrap; gap: .1rem; }
+  .menu nav a { padding: .3rem .5rem; }
+  .menu form { margin-top: 0; margin-left: auto; }
+  .menu form button { width: auto; }
+  .contenu { padding: 1rem; }
+  td select { min-width: 0; }
+}
+
+/* --- Texte d'appoint --------------------------------------------------- */
+
+/* Ce qui se lit après coup : une note, une précision, un décompte. */
+.discret { font-size: .88rem; color: var(--attenue); }
+
+/*
+ * L'infobulle : le « pourquoi » d'une page ou d'un geste, derrière une icône.
+ *
+ *   <span class="infobulle">
+ *     <button type="button" aria-label="En savoir plus"></button>
+ *     <span class="bulle" role="tooltip">…</span>
+ *   </span>
+ *
+ * La bulle s'ouvre au survol, et au focus : c'est ce qui la rend lisible au
+ * clavier, et sur un téléphone, où toucher l'icône lui donne le focus. Elle
+ * reste dans le flux du document, simplement transparente : un lecteur d'écran
+ * la lit, et les liens qu'elle porte gardent la bulle ouverte en recevant le
+ * focus. Pas de `<p>` dedans — une bulle est un `span` ; ses paragraphes sont
+ * des `span` que la feuille met en bloc.
+ */
+.infobulle { position: relative; display: inline-block; vertical-align: middle; line-height: 1; }
+.infobulle > button {
+  display: inline-block; width: 1.1rem; height: 1.1rem; padding: 0; margin: 0 .15rem;
+  border: 0; border-radius: 50%; background: var(--attenue); cursor: help;
+  /* Le « ? » cerclé de Lucide, en masque : il prend la couleur du texte. */
+  -webkit-mask: var(--icone-aide) center / contain no-repeat;
+  mask: var(--icone-aide) center / contain no-repeat;
+}
+.infobulle > button:hover, .infobulle:focus-within > button { background: var(--accent); }
+.infobulle > .bulle {
+  position: absolute; z-index: 20; left: -.6rem; top: calc(100% + .45rem);
+  width: max-content; max-width: min(24rem, 80vw);
+  padding: .7rem .9rem;
+  background: var(--surface); color: var(--texte);
+  border: 1px solid var(--trait-fort); border-radius: var(--rayon);
+  box-shadow: 0 6px 20px rgb(0 0 0 / .15);
+  font-size: .88rem; font-weight: 400; line-height: 1.5; letter-spacing: normal;
+  text-transform: none; text-align: left; white-space: normal;
+}
+/*
+ * Fermée, la bulle est réduite à un pixel plutôt que transparente : une bulle
+ * transparente garde sa largeur, et celle qui touche le bord droit ferait
+ * défiler toute la page. Réduite, un lecteur d'écran la lit toujours.
+ */
+.infobulle:not(:hover, :focus-within, .ouverte) > .bulle {
+  width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+/* Un pont invisible entre l'icône et la bulle : la souris y passe sans la fermer. */
+.infobulle > .bulle::before { content: ""; position: absolute; left: 0; right: 0; top: -.5rem; height: .5rem; }
+.bulle > span { display: block; }
+
+/* Sur un écran étroit, la bulle ne déborde pas : elle se pose en bas. */
+@media (max-width: 42rem) {
+  .infobulle > .bulle { position: fixed; left: 1rem; right: 1rem; top: auto; bottom: 1rem; max-width: none; width: auto; }
+  .infobulle > .bulle::before { display: none; }
+}
+.bulle > span + span { margin-top: .5em; }
+
+:root {
+  --icone-aide: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+
+/* --- Accueil : une tuile par module ------------------------------------ */
+
+.tuiles {
+  display: grid; gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  margin-bottom: 1.5rem;
+}
+.tuile {
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--trait); border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+}
+.tuile > h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .75rem; }
+.tuile > h2 a { color: var(--attenue); text-decoration: none; }
+.tuile > h2 a:hover { color: var(--accent); }
+.tuile p { margin: .4rem 0; }
+.tuile .fort { font-size: 1.15rem; font-weight: 600; margin: 0; }
+.tuile ul { margin: .4rem 0; padding-left: 1.1rem; }
+.tuile table { box-shadow: none; }
+
+/* --- Pastilles : un état en un mot ------------------------------------- */
+
+.pastille {
+  --ton: var(--attenue);
+  display: inline-block; padding: .1rem .55rem; white-space: nowrap;
+  border-radius: 999px;
+  font-size: .82rem; font-weight: 600;
+  color: var(--ton);
+  background: color-mix(in srgb, var(--ton) 14%, transparent);
+}
+.pastille.succes { --ton: var(--succes); }
+.pastille.attention { --ton: var(--attention); }
+.pastille.erreur { --ton: var(--erreur); }
+
+/* --- Classement : une lettre, dans la couleur de sa série -------------- */
+
+:root {
+  --serie-n: #7b3fa0; --serie-r: #c0501b; --serie-d: #2667a8; --serie-p: #2b8a4b; --serie-nc: #7a817c;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --serie-n: #c79be6; --serie-r: #f29a66; --serie-d: #86b8ec; --serie-p: #74cf93; --serie-nc: #9aa49d; }
+}
+.lettre {
+  --ton: var(--serie-nc);
+  display: inline-block; min-width: 2.2em; padding: .05rem .4rem;
+  border: 1px solid color-mix(in srgb, var(--ton) 45%, transparent); border-radius: .3rem;
+  background: color-mix(in srgb, var(--ton) 14%, transparent);
+  color: var(--ton); font-size: .82rem; font-weight: 700; text-align: center; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.lettre.serie-n { --ton: var(--serie-n); }
+.lettre.serie-r { --ton: var(--serie-r); }
+.lettre.serie-d { --ton: var(--serie-d); }
+.lettre.serie-p { --ton: var(--serie-p); }
+
+/* --- Jauge : un taux en barre ------------------------------------------ */
+
+.jauge {
+  display: inline-block; flex: none; width: 4.5rem; height: .45rem; margin-right: .35rem; vertical-align: middle;
+  border-radius: 999px; background: color-mix(in srgb, var(--texte) 10%, transparent); overflow: hidden;
+}
+.jauge > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.jauge.faible > span { background: var(--attention); min-width: .45rem; }
+
+/* Lu par un lecteur d'écran, invisible à l'œil. */
+.visuellement-cache {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.tuile .fort .discipline { margin-right: .75rem; white-space: nowrap; font-size: 1rem; }

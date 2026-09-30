@@ -2,10 +2,12 @@
 <h2><%= titre %></h2>
 
 <% if (motifs.length > 0) { %>
-  <p class="etat">Rien n'a été enregistré :</p>
-  <ul>
-    <% motifs.forEach(function (motif) { %><li><%= motif %></li><% }); %>
-  </ul>
+  <div class="etat erreur">
+    <strong>Rien n'a été enregistré :</strong>
+    <ul>
+      <% motifs.forEach(function (motif) { %><li><%= motif %></li><% }); %>
+    </ul>
+  </div>
 <% } %>
 
 <form method="post" action="<%= veille === null || veille.id === 0 ? "/veille" : "/veille/" + veille.id %>">
@@ -15,15 +17,16 @@
              value="<%= veille === null ? "" : veille.nom %>"
              placeholder="DH avec Louis">
     </label>
-    <span class="etat">C'est ce nom qui dira, dans le mail d'alerte, pourquoi ce tournoi m'est signalé.</span>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Il dira, dans le mail d'alerte, pourquoi ce tournoi m'est signalé.</span>
+    </span></span>
   </p>
 
-  <h3>Périmètre</h3>
-  <p class="etat">
-    Un point et un rayon, à vol d'oiseau. Le temps de trajet réel est le vrai
-    critère, et il attend une spec à lui : depuis Paris, 40 km au nord-ouest
-    font 35 minutes de train, 40 km au sud-est deux changements et 1 h 20.
-  </p>
+  <h3>Périmètre
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Un point et un rayon, à vol d'oiseau.</span>
+    </span></span>
+  </h3>
   <p>
     <label>Latitude
       <input type="number" step="any" name="latitude" required
@@ -62,17 +65,8 @@
     <input type="date" name="fenetreAu"
            value="<%= veille !== null && veille.fenetre.nature === "intervalle" ? veille.fenetre.au.toISOString().slice(0, 10) : "" %>">
   </p>
-  <p class="etat">
-    Pas de récurrence annuelle : « tous les novembres » a l'air utile et ne
-    l'est pas — ce qu'on veut vraiment, c'est « pendant les vacances de la
-    Toussaint », dont les dates changent chaque année.
-  </p>
 
   <h3>Tableaux</h3>
-  <p class="etat">
-    badnet ne connaît que simple, double et mixte : c'est ce qu'on lui demande.
-    Le genre se filtre ici, sur la fiche du tournoi, qui nomme SH, SD, DH, DD et MX.
-  </p>
   <p>
     <% tousLesTableaux.forEach(function (tableau) { %>
       <label>
@@ -83,14 +77,12 @@
     <% }); %>
   </p>
 
-  <h3>Séries admises</h3>
-  <p class="etat">
-    Saisies, jamais déduites de mon classement : une paire entre par la série la
-    plus haute des deux, et un classement bouge à chaque CPPH — une veille qui
-    changerait de sens toute seule un vendredi matin serait une veille à qui je
-    ne ferais plus confiance. Les cases cochées par défaut sont mes séries du
-    moment.
-  </p>
+  <h3>Séries admises
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Cochées par défaut : mes séries du moment. Elles ne suivent pas mon classement ensuite —
+        une paire entre par la série la plus haute des deux.</span>
+    </span></span>
+  </h3>
   <p>
     <% toutesLesSeries.forEach(function (serie) { %>
       <label>
@@ -101,7 +93,11 @@
     <% }); %>
   </p>
 
-  <h3>Catégories d'âge</h3>
+  <h3>Catégories d'âge
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Aucune cochée : toutes.</span>
+    </span></span>
+  </h3>
   <p>
     <% toutesLesCategories.forEach(function (categorie) { %>
       <label>
@@ -110,7 +106,6 @@
         <%= categorie %>
       </label>
     <% }); %>
-    <span class="etat">Aucune cochée : toutes.</span>
   </p>
 
   <p>
@@ -121,7 +116,7 @@
     </label>
   </p>
 
-  <p><button type="submit">Enregistrer</button></p>
+  <p><button type="submit" class="principal">Enregistrer</button></p>
 </form>
 
 <p><a href="/veille">Retour aux veilles</a></p>

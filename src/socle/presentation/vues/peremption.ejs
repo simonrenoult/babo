@@ -14,14 +14,11 @@
   service pour une panne.
 %>
 <% if (fraicheur.perimee) { %>
-  <p class="etat">
-    <strong>Donnée périmée.</strong> Le dernier relevé date de
-    <%= fraicheur.ageEnJours %> jour<%= fraicheur.ageEnJours > 1 ? "s" : "" %>,
-    alors que la passe qui l'alimente tourne
-    <%= fraicheur.periodeEnJours === 1 ? "chaque jour" : `tous les ${fraicheur.periodeEnJours} jours` %> :
-    elle a manqué son tour. Ce qui s'affiche ici reste le dernier relevé
-    disponible — jamais une page vide —, mais il n'est plus d'aujourd'hui. Le
-    rapport de la passe en donne la raison sur
-    <a href="/parametres/scrapping/logs">l'écran des paramètres</a>.
+  <p class="etat attention">
+    <strong>Donnée périmée</strong> : dernier relevé il y a
+    <%= fraicheur.ageEnJours %> jour<%= fraicheur.ageEnJours > 1 ? "s" : "" %>, alors que la passe tourne
+    <%= fraicheur.periodeEnJours === 1 ? "chaque jour" : `tous les ${fraicheur.periodeEnJours} jours` %>.
+    Ce qui s'affiche reste le dernier relevé disponible. La raison est dans
+    <a href="/parametres/scrapping/logs">le rapport de la passe</a>.
   </p>
 <% } %>

@@ -11,17 +11,20 @@ import { listeDeLEquipe } from "../core/coequipier.ts";
 import { forceDuTableau, forcesParTableau } from "../core/forces-par-tableau.ts";
 import type { DepotPreferences } from "../core/paires.ts";
 import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } from "../core/paires.ts";
-import type { DepotCalendrier } from "../core/calendrier.ts";
+import type { DepotCalendrier, Rencontre } from "../core/calendrier.ts";
 import { adversaireDe, recoitOn } from "../core/calendrier.ts";
 import type { DepotDisponibilites } from "../core/disponibilite.ts";
 import { grilleDesDisponibilites, reponsesALaJournee, suggestionPour } from "../core/disponibilite.ts";
-import type { Composition, DepotCompositions, LigneDeFeuille } from "../core/composition.ts";
+import type { Composition, DepotCompositions, Faute, LigneDeFeuille } from "../core/composition.ts";
+import type { MembreDeLEquipe } from "../core/coequipier.ts";
+import type { Reponse } from "../core/disponibilite.ts";
 import {
   MATCHS,
   POSTES,
   candidatsAuPoste,
   coteDe,
   fautesDeLaComposition,
+  fautesParMatch,
   lignesDeLaFeuille,
   matchsParJoueur,
   placesVides,
@@ -91,6 +94,27 @@ export function creerModuleCapitanat(options: {
   const routeur = Router();
 
   const equipe = () => listeDeLEquipe(coequipiers, identites, classements);
+
+  /**
+   * Où en est chaque journée : composée, en cours, ou vide — les pastilles
+   * au-dessus de la planification.
+   */
+  const etatsDesJournees = (rencontres: readonly Rencontre[]) => {
+    const toutes = compositions.toutes();
+    return new Map(
+      rencontres.map(({ journee }) => {
+        const composition = toutes.get(journee);
+        if (composition === undefined || composition.size === 0) return [journee, "vide"] as const;
+        return [journee, placesVides(composition) === 0 ? "composee" : "en-cours"] as const;
+      }),
+    );
+  };
+
+  /** La prochaine rencontre : celle qu'on compose. `undefined` en fin de saison. */
+  const laProchaine = (rencontres: readonly Rencontre[]) => {
+    const maintenant = horloge.maintenant();
+    return rencontres.find((rencontre) => rencontre.debut >= maintenant);
+  };
 
   // Trois onglets : l'effectif et ce qu'il permet d'aligner, le calendrier de
   // la saison, et ce que je privilégie tableau par tableau. `/capitanat` reste
@@ -199,9 +223,7 @@ export function creerModuleCapitanat(options: {
         calendrier: null,
       });
     }
-    const maintenant = horloge.maintenant();
-    const prochaine =
-      leCalendrier.rencontres.find((rencontre) => rencontre.debut >= maintenant) ?? leCalendrier.rencontres.at(-1);
+    const prochaine = laProchaine(leCalendrier.rencontres) ?? leCalendrier.rencontres.at(-1);
     reponse.redirect(`/capitanat/planification/${prochaine?.journee ?? 1}`);
   });
 
@@ -209,7 +231,7 @@ export function creerModuleCapitanat(options: {
     reponse: Response,
     journee: number,
     suite: () => void,
-    saisie?: { readonly composition: Composition; readonly fautes: readonly string[] },
+    saisie?: { readonly composition: Composition; readonly fautes: readonly Faute[] },
   ): void => {
     const leCalendrier = calendrier.lire();
     const rencontre = leCalendrier?.rencontres.find((candidate) => candidate.journee === journee);
@@ -220,6 +242,9 @@ export function creerModuleCapitanat(options: {
     const toutesLesReponses = disponibilites.reponses();
     const reponses = reponsesALaJournee(journee, repondants, toutesLesReponses);
     const composition = saisie?.composition ?? compositions.lire(journee);
+    // Un choix enregistré que les réponses ne justifient plus (nouveau
+    // sondage, joueur parti) reste affiché, et la faute dit pourquoi.
+    const fautes = saisie?.fautes ?? fautesParMatch(composition, membres, reponses);
     const usage = sollicitations({
       journee,
       compositions: compositions.toutes(),
@@ -231,18 +256,12 @@ export function creerModuleCapitanat(options: {
       onglet: "planification",
       calendrier: leCalendrier,
       rencontre,
-      composees: compositions.journeesComposees(),
-      matchs: MATCHS,
-      postes: POSTES.map((poste) => ({
-        poste,
-        choisi: composition.get(poste.id) ?? null,
-        candidats: candidatsAuPoste(poste, membres, reponses),
-      })),
+      etatsDesJournees: etatsDesJournees(leCalendrier.rencontres),
+      cartes: cartesDuMatch(composition, membres, reponses, fautes),
+      postes: POSTES,
       membres,
       reponses,
-      // Un choix enregistré que les réponses ne justifient plus (nouveau
-      // sondage, joueur parti) reste affiché, et la faute dit pourquoi.
-      fautes: saisie?.fautes ?? fautesDeLaComposition(composition, membres, reponses),
+      fautes: fautes.map(({ message }) => message),
       enregistree: saisie === undefined,
       vides: placesVides(composition),
       matchsParJoueur: matchsParJoueur(composition),
@@ -317,7 +336,7 @@ export function creerModuleCapitanat(options: {
       }),
     );
     const reponses = reponsesALaJournee(journee, disponibilites.repondants(), disponibilites.reponses());
-    const fautes = fautesDeLaComposition(composition, equipe(), reponses);
+    const fautes = fautesParMatch(composition, equipe(), reponses);
     if (fautes.length > 0) return planification(reponse, journee, suite, { composition, fautes });
 
     if (calendrier.lire()?.rencontres.some((rencontre) => rencontre.journee === journee) !== true) return suite();
@@ -438,6 +457,29 @@ export function creerModuleCapitanat(options: {
     chemin: "/capitanat",
     routeur,
     vues: new URL("vues/", import.meta.url).pathname,
+    // Sur l'accueil : la prochaine rencontre, et où en est sa composition.
+    apercu: () => {
+      const leCalendrier = calendrier.lire();
+      const rencontre = leCalendrier === null ? undefined : laProchaine(leCalendrier.rencontres);
+      if (leCalendrier === null || rencontre === undefined) {
+        return { vue: "capitanat-apercu", donnees: { calendrier: leCalendrier, rencontre: null } };
+      }
+      const composition = compositions.lire(rencontre.journee);
+      const reponses = reponsesALaJournee(rencontre.journee, disponibilites.repondants(), disponibilites.reponses());
+      return {
+        vue: "capitanat-apercu",
+        donnees: {
+          calendrier: leCalendrier,
+          rencontre,
+          adversaire: adversaireDe(rencontre, leCalendrier.equipe).nom,
+          recoit: recoitOn(rencontre, leCalendrier.equipe),
+          vides: placesVides(composition),
+          postes: POSTES.length,
+          fautes: fautesDeLaComposition(composition, equipe(), reponses).length,
+          disponibles: [...reponses.values()].filter((valeur) => valeur !== "non").length,
+        },
+      };
+    },
   };
 }
 
@@ -487,4 +529,41 @@ function champsAlignes(corps: unknown, nom: string): readonly string[] {
 
 function refuser(reponse: Response, message: string): void {
   reponse.status(400).render("erreur", { titre: "Paire refusée", message });
+}
+
+/**
+ * Une carte par match : ses places, qui les tient, et son état — vide,
+ * incomplet, rempli, ou en faute dès qu'une règle enfreinte le désigne.
+ */
+function cartesDuMatch(
+  composition: Composition,
+  membres: readonly MembreDeLEquipe[],
+  reponses: ReadonlyMap<Licence, Reponse>,
+  fautes: readonly Faute[],
+) {
+  const parLicence = new Map(membres.map((membre) => [membre.licence, membre]));
+  return MATCHS.map(({ match, intitule }) => {
+    const places = POSTES.filter((poste) => poste.match === match).map((poste) => {
+      const choisi = composition.get(poste.id) ?? null;
+      const membre = choisi === null ? undefined : parLicence.get(choisi);
+      return {
+        poste,
+        choisi,
+        candidats: candidatsAuPoste(poste, membres, reponses),
+        // Ce que la carte montre du joueur retenu : sa lettre et sa cote dans
+        // la discipline du match, et sa réponse au sondage.
+        classement: membre?.classements.find(({ discipline }) => discipline === poste.discipline) ?? null,
+        reponse: choisi === null ? null : (reponses.get(choisi) ?? null),
+      };
+    });
+    const remplies = places.filter(({ choisi }) => choisi !== null).length;
+    const etat = fautes.some((faute) => faute.matchs.includes(match))
+      ? "faute"
+      : remplies === 0
+        ? "vide"
+        : remplies === places.length
+          ? "rempli"
+          : "incomplet";
+    return { match, intitule, places, etat };
+  });
 }

@@ -5,19 +5,10 @@
 <style>
   .grille td.reponse, .grille th.rencontre { text-align: center; padding-right: .5rem; padding-left: .5rem; }
   .grille th.rencontre { font-weight: normal; font-size: .85rem; white-space: nowrap; }
-  .grille td.oui { background: color-mix(in srgb, #2e9e4f 22%, transparent); }
-  .grille td.si-besoin { background: color-mix(in srgb, #d9a400 22%, transparent); }
-  .grille td.non { opacity: .5; }
-  .grille tr.decompte td { border-top: 1px solid currentColor; font-size: .9rem; text-align: center; }
-  .grille .remarque { display: block; font-size: .8rem; opacity: .7; }
+  .grille tr.decompte td { border-top: 1px solid var(--trait-fort); font-size: .9rem; text-align: center; }
+  .grille .remarque { display: block; font-size: .8rem; color: var(--attenue); }
 </style>
 
-<p>
-  Qui est disponible pour chaque rencontre, tel que le sondage le dit (spec
-  008). Le sondage s'importe depuis
-  <a href="/parametres/disponibilites">l'écran des paramètres</a> ; un nouveau
-  sondage remplace les journées qu'il couvre, et elles seules.
-</p>
 
 <% if (calendrier === null) { %>
   <p class="etat">
@@ -31,12 +22,22 @@
   </p>
 <% } else { %>
   <%
-    const libelles = { oui: "Oui", "si-besoin": "Si besoin", non: "Non" };
     const aRattacher = grille.lignes.filter((ligne) => ligne.membre === null).length;
   %>
 
+  <h3>Grille des disponibilités
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Les réponses viennent du sondage, importé depuis <a
+        href="/parametres/disponibilites">les paramètres</a> ; un nouveau sondage remplace les
+        journées qu'il couvre, et elles seules.</span>
+      <span>Le décompte ne compte que les noms rattachés : c'est le sexe du membre qui dit s'il
+        remplit un tableau de dames ou d'hommes. Une colonne marquée « — » n'a pas encore été
+        sondée.</span>
+    </span></span>
+  </h3>
+
   <% if (aRattacher > 0) { %>
-    <p class="etat">
+    <p class="etat attention">
       <strong><%= aRattacher %></strong> nom<%= aRattacher > 1 ? "s" : "" %> du sondage
       rattaché<%= aRattacher > 1 ? "s" : "" %> à aucun membre : leurs réponses
       sont comptées à part, faute de savoir si ce sont des femmes ou des hommes.
@@ -74,7 +75,8 @@
           </td>
           <% for (const colonne of grille.colonnes) { %>
             <% const reponse = ligne.reponses.get(colonne.rencontre.journee); %>
-            <td class="reponse <%= reponse ?? "" %>"><%= reponse ? libelles[reponse] : "" %></td>
+            <%# Une colonne pas encore sondée reste vide : « sans réponse » n'y aurait pas de sens. %>
+            <td class="reponse"><% if (reponse || colonne.sondee) { %><%- include("reponse", { reponse }) %><% } %></td>
           <% } %>
         </tr>
       <% } %>
@@ -102,11 +104,6 @@
     </table>
   </div>
 
-  <p>
-    Le décompte ne compte que les noms rattachés : c'est le sexe du membre qui
-    dit s'il remplit un tableau de dames ou d'hommes. Une colonne marquée « — »
-    n'a pas encore été sondée.
-  </p>
 
   <% if (grille.silencieux.length > 0) { %>
     <p class="etat">
@@ -115,13 +112,12 @@
     </p>
   <% } %>
 
-  <h3 id="rattachements">Rattacher les noms du sondage</h3>
-  <p>
-    Le sondage parle en prénoms et en surnoms. Chaque nom se rattache une fois à
-    un membre de l'équipe, et le rattachement vaut pour les sondages suivants.
-    Quand un prénom ne désigne qu'un membre, il est proposé — <strong>à
-    confirmer en enregistrant</strong> : rien n'est rattaché sans vous.
-  </p>
+  <h3 id="rattachements">Rattacher les noms du sondage
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Chaque nom se rattache une fois, et vaut pour les sondages suivants. Un prénom qui ne
+        désigne qu'un membre est proposé — <strong>à confirmer en enregistrant</strong>.</span>
+    </span></span>
+  </h3>
 
   <form method="post" action="/capitanat/disponibilites/rattachements">
     <table>

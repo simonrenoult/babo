@@ -1,12 +1,9 @@
 <%- include("entete", { titre }) %>
-<h2><%= titre %></h2>
-
-<p>
-  Une veille est une recherche qu'on nomme et qu'on garde — « DH avec Louis »,
-  « Tournois en région avec l'équipe ». Chacune interroge badnet chaque matin à
-  5 h 15 et retient les tournois qui répondent à ses critères. Cinq au plus :
-  au-delà, on ne les relit plus.
-</p>
+<h2><%= titre %>
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Des recherches nommées, relancées chaque matin sur badnet. Cinq au plus.</span>
+  </span></span>
+</h2>
 
 <% if (veilles.length === 0) { %>
   <p class="etat">
@@ -50,12 +47,10 @@
 <% } %>
 
 <% if (veilles.length < auPlus) { %>
-  <p><a href="/veille/nouvelle">Créer une veille</a></p>
+  <p><a class="bouton principal" href="/veille/nouvelle">Créer une veille</a></p>
 <% } else { %>
   <p class="etat">
-    Cinq veilles, le maximum. Pour en créer une autre, il faut en supprimer une
-    — ou en suspendre une, si c'est son relevé quotidien qu'on veut arrêter
-    sans perdre ce qu'elle a déjà vu.
+    Cinq veilles, le maximum. Pour en créer une autre, il faut en supprimer une.
   </p>
 <% } %>
 
