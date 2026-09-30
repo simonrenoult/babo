@@ -1,56 +1,37 @@
 <h3>Tâches
   <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-    <span>Les tâches qui se déclenchent seules, et quand.</span>
-    <span>Le planificateur vit dans le processus : tant qu'il est arrêté, rien ne s'exécute et
-      rien ne prévient.</span>
-    <span>La <strong>grâce</strong> est le retard au-delà duquel une échéance dépassée n'est plus
-      rejouée mais abandonnée : large pour une passe dont la donnée est de toute façon
-      périmée, courte pour un rappel qui n'a de sens qu'avant l'événement. Un échec est
-      réessayé deux fois, à une heure puis à quatre ; au-delà, la tâche attend son occurrence
-      suivante.</span>
-    <span><strong>Lancer</strong> déclenche une tâche comme si le planificateur s'était réveillé,
-      et affiche son rapport sous le tableau. Coup unique, sans réessai. Le battement n'a pas
-      ce bouton : son absence est précisément ce qu'il annonce.</span>
+    <span>Les tâches qui se déclenchent seules, et quand. Le planificateur vit dans le processus :
+      tant qu'il est arrêté, rien ne s'exécute et rien ne prévient.</span>
+    <span><strong>Voir</strong> ouvre le détail d'une tâche : ce qu'elle relève, sa grâce, son
+      réglage et l'historique de ses exécutions.</span>
+    <span><strong>Lancer</strong> déclenche une tâche comme si le planificateur s'était réveillé.
+      Coup unique, sans réessai. Le battement n'a pas ce bouton : son absence est précisément
+      ce qu'il annonce.</span>
   </span></span>
 </h3>
 
-<%
-  const JOURS = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi",
-                  5: "vendredi", 6: "samedi", 7: "dimanche" };
-  const cadenceLisible = (cadence) => {
-    const heure = `${String(cadence.heure).padStart(2, "0")} h ${String(cadence.minute).padStart(2, "0")}`;
-    if (cadence.nature === "ponctuelle") return "au fil de l'eau";
-    if (cadence.nature === "quotidienne") return `chaque jour à ${heure}`;
-    return `chaque ${JOURS[cadence.jour]} à ${heure}`;
-  };
-%>
-
 <table>
   <tr>
-    <th>Tâche</th><th>Cadence</th><th>Grâce</th>
-    <th>Prochaine échéance</th><th>Tentatives</th><th>Dernière issue</th>
-    <th>Action</th>
+    <th>Nom</th><th>Cadence</th><th>Prochaine échéance</th><th>Dernier résultat</th><th>Actions</th>
   </tr>
   <% for (const tache of taches) { %>
     <tr>
-      <td><%= tache.intitule %></td>
+      <td title="<%= tache.intitule %>"><code><%= tache.tache %></code></td>
       <td>
-        <%= cadenceLisible(tache.reglage.cadence) %><%= tache.reglage.active ? "" : " (suspendue)" %>
+        <%= cadenceLisible(tache.reglage.cadence) %>
+        <% if (!tache.reglage.active) { %><span class="pastille">suspendue</span><% } %>
       </td>
-      <td><%= tache.reglage.graceMinutes %> min</td>
-      <td>
-        <%= tache.prochaine ? tache.prochaine.prevueLe.toLocaleString("fr-FR") : "aucune" %>
-      </td>
-      <td><%= tache.prochaine ? tache.prochaine.tentatives : "—" %></td>
-      <td>
+      <td><%= tache.prochaine ? tache.prochaine.prevueLe.toLocaleString("fr-FR") : "—" %></td>
+      <td data-tri="<%= tache.dernierRapport?.demarreLe.getTime() ?? "" %>">
         <% if (tache.dernierRapport) { %>
-          <%= tache.dernierRapport.issue %>,
-          le <%= tache.dernierRapport.demarreLe.toLocaleString("fr-FR") %>
+          <%- include("../issue", { issue: tache.dernierRapport.issue }) %>
+          <span class="etat"><%= tache.dernierRapport.demarreLe.toLocaleString("fr-FR") %></span>
         <% } else { %>
-          jamais exécutée
+          <span class="etat">jamais exécutée</span>
         <% } %>
       </td>
-      <td>
+      <td class="actions">
+        <a class="bouton" href="/parametres/scrapping/ordonnancement/<%= encodeURIComponent(tache.tache) %>">Voir</a>
         <%# Règle uniforme, une exception : toute tâche active à cadence porte %>
         <%# un bouton Lancer, sauf le battement dont le silence est exactement %>
         <%# l'information qu'il préserve (037, 019). Les ponctuelles ne sont %>
@@ -59,56 +40,8 @@
           <form method="post" action="/parametres/scrapping/ordonnancement/<%= tache.tache %>/executer">
             <button type="submit">Lancer</button>
           </form>
-        <% } else { %>
-          —
         <% } %>
       </td>
     </tr>
   <% } %>
 </table>
-
-<%# Le rapport du dernier déclenchement, juste sous le tableau : c'est là %>
-<%# qu'on a cliqué, et c'est le verdict qu'on cherche immédiatement (037). %>
-<% if (declenchement) { %>
-  <h4>Dernier déclenchement</h4>
-  <%- include("../rapport-de-passe", { passe: declenchement }) %>
-<% } %>
-
-<% for (const tache of taches) { %>
-  <form method="post" action="/parametres/scrapping/ordonnancement">
-    <input type="hidden" name="tache" value="<%= tache.tache %>">
-    <p>
-      <strong><%= tache.intitule %></strong><br>
-      <label for="nature-<%= tache.tache %>">Cadence</label>
-      <select id="nature-<%= tache.tache %>" name="nature">
-        <% for (const nature of ["quotidienne", "hebdomadaire", "ponctuelle"]) { %>
-          <option value="<%= nature %>"
-                  <%= tache.reglage.cadence.nature === nature ? "selected" : "" %>>
-            <%= nature %>
-          </option>
-        <% } %>
-      </select>
-      <label for="jour-<%= tache.tache %>">jour</label>
-      <select id="jour-<%= tache.tache %>" name="jour">
-        <% for (const numero of [1, 2, 3, 4, 5, 6, 7]) { %>
-          <option value="<%= numero %>"
-                  <%= tache.reglage.cadence.jour === numero ? "selected" : "" %>>
-            <%= JOURS[numero] %>
-          </option>
-        <% } %>
-      </select>
-      <label for="heure-<%= tache.tache %>">à</label>
-      <input id="heure-<%= tache.tache %>" name="heure" type="number" min="0" max="23" size="2"
-             value="<%= tache.reglage.cadence.heure ?? 0 %>"> h
-      <input name="minute" type="number" min="0" max="59" size="2"
-             aria-label="minute" value="<%= tache.reglage.cadence.minute ?? 0 %>">
-      <label for="grace-<%= tache.tache %>">grâce</label>
-      <input id="grace-<%= tache.tache %>" name="grace" type="number" min="0" size="4"
-             value="<%= tache.reglage.graceMinutes %>"> min
-      <label for="active-<%= tache.tache %>">active</label>
-      <input id="active-<%= tache.tache %>" name="active" type="checkbox"
-             <%= tache.reglage.active ? "checked" : "" %>>
-      <button type="submit">Régler</button>
-    </p>
-  </form>
-<% } %>

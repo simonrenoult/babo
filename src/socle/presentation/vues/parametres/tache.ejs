@@ -1,0 +1,162 @@
+<%#
+  La page d'une tâche ordonnancée : ce qu'elle relève, quand elle tourne et
+  avec quelle marge, son réglage, et ce qu'elle a produit.
+%>
+<%
+  const duree = (minutes) =>
+    minutes % 60 === 0 ? `${minutes / 60} h` : minutes > 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes} min`;
+  const reglage = tache.reglage;
+  const cadence = reglage.cadence;
+  const succes = historique.filter((rapport) => rapport.issue === "succes").length;
+%>
+
+<p><a href="/parametres/scrapping/ordonnancement">← Tâches</a></p>
+
+<h3>
+  <code><%= tache.tache %></code>
+  <% if (reglage.active) { %><span class="pastille succes">active</span><% } else { %><span class="pastille">suspendue</span><% } %>
+</h3>
+<p><strong><%= tache.intitule %></strong></p>
+<p><%= tache.description %></p>
+
+<% if (declenchable) { %>
+  <form method="post" action="/parametres/scrapping/ordonnancement/<%= tache.tache %>/executer">
+    <button type="submit" class="principal">Lancer maintenant</button>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Joue la tâche tout de suite, comme si le planificateur s'était réveillé, et affiche
+        son rapport ici. Coup unique, sans réessai ; l'échéance prévue reste en place.</span>
+    </span></span>
+  </form>
+<% } %>
+
+<% if (declenchement) { %>
+  <h4>Dernier déclenchement</h4>
+  <%- include("../rapport-de-passe", { passe: declenchement }) %>
+<% } %>
+
+<h4>Planification</h4>
+<dl class="fiche">
+  <dt>Cadence</dt>
+  <dd><%= cadenceLisible(cadence) %></dd>
+
+  <dt>Prochaine échéance</dt>
+  <dd>
+    <% if (tache.prochaine) { %>
+      <%= tache.prochaine.prevueLe.toLocaleString("fr-FR") %>
+      <% if (tache.prochaine.tentatives > 0) { %>
+        <span class="pastille attention">
+          <%= tache.prochaine.tentatives %> tentative<%= tache.prochaine.tentatives > 1 ? "s" : "" %> sur <%= plafond %>
+        </span>
+        <span class="etat">prochain essai le <%= tache.prochaine.prochaineTentativeLe.toLocaleString("fr-FR") %></span>
+      <% } %>
+    <% } else { %>
+      <span class="etat"><%= reglage.active ? "aucune d'inscrite" : "aucune : la tâche est suspendue" %></span>
+    <% } %>
+  </dd>
+
+  <dt>Grâce</dt>
+  <dd>
+    <%= duree(reglage.graceMinutes) %>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Le retard au-delà duquel une échéance manquée (processus arrêté, machine éteinte)
+        n'est plus rejouée mais abandonnée. Large pour une passe dont la donnée est de toute
+        façon périmée, courte pour un rappel qui n'a de sens qu'avant l'événement.</span>
+    </span></span>
+  </dd>
+
+  <dt>Tentatives</dt>
+  <dd>
+    <%= plafond %> au plus par échéance : après un échec, réessai
+    <%= delais.map((ms) => duree(ms / 60_000)).join(" puis ") %> plus tard, puis la tâche attend
+    son occurrence suivante. Une extraction vide n'est pas réessayée : relire la même page ne la
+    rendrait pas moins vide.
+  </dd>
+</dl>
+
+<h4>Résultats</h4>
+<dl class="fiche">
+  <dt>Dernière exécution</dt>
+  <dd>
+    <% if (tache.dernierRapport) { %>
+      <%- include("../issue", { issue: tache.dernierRapport.issue }) %>
+      <%= tache.dernierRapport.demarreLe.toLocaleString("fr-FR") %>
+    <% } else { %>
+      <span class="etat">jamais exécutée</span>
+    <% } %>
+  </dd>
+
+  <dt>Dernier succès</dt>
+  <dd>
+    <% if (dernierSucces) { %>
+      <%= dernierSucces.demarreLe.toLocaleString("fr-FR") %>
+      <% if (dernierSucces.volumeExtrait !== null) { %><span class="etat"><%= dernierSucces.volumeExtrait %> extraits</span><% } %>
+    <% } else { %>
+      <span class="etat"><%= historique.length === 0 ? "—" : "aucun dans l'historique" %></span>
+    <% } %>
+  </dd>
+
+  <% if (historique.length > 0) { %>
+    <dt>Taux de succès</dt>
+    <dd>
+      <%= Math.round((100 * succes) / historique.length) %> %
+      <span class="etat"><%= succes %> sur <%= historique.length %> exécution<%= historique.length > 1 ? "s" : "" %></span>
+    </dd>
+  <% } %>
+</dl>
+
+<h4>Réglage</h4>
+<% if (cadence.nature === "ponctuelle") { %>
+  <p class="etat">
+    Tâche ponctuelle : ses échéances sont inscrites par l'appelant, pas par une cadence.
+  </p>
+<% } %>
+<form method="post" action="/parametres/scrapping/ordonnancement" class="reglage">
+  <input type="hidden" name="tache" value="<%= tache.tache %>">
+  <p>
+    <label for="nature">Cadence</label>
+    <select id="nature" name="nature">
+      <% for (const nature of ["quotidienne", "hebdomadaire", "ponctuelle"]) { %>
+        <option value="<%= nature %>" <%= cadence.nature === nature ? "selected" : "" %>><%= nature %></option>
+      <% } %>
+    </select>
+    <label for="jour">le</label>
+    <select id="jour" name="jour">
+      <% for (const [numero, nom] of Object.entries({ 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi", 5: "vendredi", 6: "samedi", 7: "dimanche" })) { %>
+        <option value="<%= numero %>" <%= String(cadence.jour) === numero ? "selected" : "" %>><%= nom %></option>
+      <% } %>
+    </select>
+    <label for="heure">à</label>
+    <input id="heure" name="heure" type="number" min="0" max="23" size="2" value="<%= cadence.heure ?? 0 %>"> h
+    <input name="minute" type="number" min="0" max="59" size="2" aria-label="minute" value="<%= cadence.minute ?? 0 %>">
+  </p>
+  <p>
+    <label for="grace">Grâce</label>
+    <input id="grace" name="grace" type="number" min="0" size="5" value="<%= reglage.graceMinutes %>"> min
+    <label><input name="active" type="checkbox" <%= reglage.active ? "checked" : "" %>> active</label>
+  </p>
+  <p>
+    <button type="submit">Enregistrer le réglage</button>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Le jour ne compte que pour une cadence hebdomadaire. Changer le réglage replanifie ce
+        qui n'a pas encore tourné ; décocher « active » suspend la tâche sans rien effacer.</span>
+    </span></span>
+  </p>
+</form>
+
+<h4>Historique <span class="etat"><%= historique.length === 0 ? "" : `${historique.length} dernière${historique.length > 1 ? "s" : ""} exécution${historique.length > 1 ? "s" : ""}` %></span></h4>
+<% if (historique.length === 0) { %>
+  <p class="etat">Aucune exécution consignée pour cette tâche.</p>
+<% } else { %>
+  <table>
+    <tr><th>Démarrée</th><th>Issue</th><th>Extraits</th><th>Durée</th><th>Détail</th></tr>
+    <% for (const rapport of historique) { %>
+      <tr>
+        <td><%= rapport.demarreLe.toLocaleString("fr-FR") %></td>
+        <td data-tri="<%= rapport.issue %>"><%- include("../issue", { issue: rapport.issue }) %></td>
+        <td><%= rapport.volumeExtrait ?? "—" %></td>
+        <td><%= Math.round((rapport.termineLe.getTime() - rapport.demarreLe.getTime()) / 1000) %> s</td>
+        <td><%= rapport.detail ?? "" %></td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>

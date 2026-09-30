@@ -1,0 +1,3 @@
+<%# L'issue d'une exécution, en pastille. `vide` est une panne comme `echec` (019). Paramètre : `issue`. %>
+<% const [ton, libelle] = { succes: ["succes", "succès"], vide: ["erreur", "extraction vide"], echec: ["erreur", "échec"] }[issue] ?? ["", issue]; %>
+<span class="pastille <%= ton %>"><%= libelle %></span>

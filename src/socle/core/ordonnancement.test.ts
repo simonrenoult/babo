@@ -131,6 +131,7 @@ function tacheTemoin(
   return {
     tache,
     intitule: tache,
+    description: "",
     reglageParDefaut,
     get appels() {
       return appels;
@@ -410,6 +411,7 @@ describe("le réessai", () => {
     const quiLeve: TacheOrdonnancee = {
       tache: "acquisition:myffbad",
       intitule: "tâche qui lève",
+      description: "",
       reglageParDefaut: CLASSEMENT,
       executer: () => Promise.reject(new Error("le réseau est tombé")),
     };
@@ -437,6 +439,7 @@ describe("les tâches entre elles", () => {
     const myffbad: TacheOrdonnancee = {
       tache: "acquisition:myffbad",
       intitule: "myffbad",
+      description: "",
       reglageParDefaut: quotidienne,
       executer: () => Promise.reject(new Error("session morte")),
     };
@@ -636,6 +639,7 @@ describe("le déclenchement à la main", () => {
     const lente: TacheOrdonnancee = {
       tache: "acquisition:myffbad",
       intitule: "passe lente",
+      description: "",
       reglageParDefaut: CLASSEMENT,
       executer: () => {
         appels += 1;

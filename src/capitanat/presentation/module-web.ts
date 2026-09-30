@@ -7,7 +7,7 @@ import type { DepotIdentites } from "../../socle/core/identite.ts";
 import type { Licence } from "../../socle/core/licence.ts";
 import { estUnTableau, type Tableau } from "../../socle/core/tableau.ts";
 import type { DepotCoequipiers } from "../core/coequipier.ts";
-import { listeDeLEquipe } from "../core/coequipier.ts";
+import { designations, listeDeLEquipe } from "../core/coequipier.ts";
 import { forceDuTableau, forcesParTableau } from "../core/forces-par-tableau.ts";
 import type { DepotPreferences } from "../core/paires.ts";
 import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } from "../core/paires.ts";
@@ -168,6 +168,7 @@ export function creerModuleCapitanat(options: {
    */
   routeur.get("/disponibilites", (_requete, reponse) => {
     const membres = equipe();
+    const noms = designations(membres);
     const leCalendrier = calendrier.lire();
     const repondants = disponibilites.repondants();
     reponse.render("capitanat-disponibilites", {
@@ -188,6 +189,9 @@ export function creerModuleCapitanat(options: {
       // Le membre préselectionné : le rattachement en base, sinon la
       // proposition par le prénom — que le capitaine confirme en enregistrant.
       preselection: (nom: string, licence: Licence | null) => licence ?? suggestionPour(nom, membres),
+      // Le prénom seul, comme entre coéquipiers — le nom complet départage
+      // deux membres qui le partagent.
+      nomDe: (membre: MembreDeLEquipe) => noms.get(membre.licence) ?? membre.licence,
       adversaireDe,
       recoitOn,
       sigleDe,

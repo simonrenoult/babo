@@ -132,6 +132,12 @@ export type DepotEcheances = {
 export type TacheOrdonnancee = {
   readonly tache: string;
   readonly intitule: string;
+  /**
+   * Ce que la tâche fait, en une ou deux phrases : quelles données elle relève
+   * et d'où, ou ce qu'elle envoie. C'est ce que la page de détail d'une tâche
+   * affiche, pour qu'on sache ce qu'un échec fait manquer.
+   */
+  readonly description: string;
   /** Posé au premier démarrage, puis jamais réécrit : l'écran a la main ensuite. */
   readonly reglageParDefaut: Omit<ReglageDeTache, "tache">;
   /**
@@ -225,6 +231,7 @@ export type Passage = {
 export type EtatDeLaTache = {
   readonly tache: string;
   readonly intitule: string;
+  readonly description: string;
   readonly reglage: ReglageDeTache;
   readonly prochaine: Echeance | null;
   readonly dernierRapport: RapportArchive | null;
@@ -488,6 +495,7 @@ export function creerOrdonnanceur(options: {
       return taches.map((tache) => ({
         tache: tache.tache,
         intitule: tache.intitule,
+        description: tache.description,
         reglage: reglageDe(tache),
         prochaine: echeances.prochaine(tache.tache),
         dernierRapport: rapports.dernierRapport(tache.tache),

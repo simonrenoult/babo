@@ -397,3 +397,14 @@ th > button.trier:focus-visible { outline: 2px solid var(--accent); outline-offs
 th > button.trier::after { content: "↕"; opacity: .35; font-size: .9em; }
 th[aria-sort="ascending"] > button.trier::after { content: "↑"; opacity: 1; color: var(--accent); }
 th[aria-sort="descending"] > button.trier::after { content: "↓"; opacity: 1; color: var(--accent); }
+
+/* Une cellule de boutons : côte à côte, formulaires compris. */
+td.actions { white-space: nowrap; }
+td.actions > * { display: inline-block; margin: 0 .25rem 0 0; vertical-align: middle; }
+td.actions form { margin: 0; }
+
+/* Une fiche : des libellés à gauche, leurs valeurs à droite. */
+dl.fiche { display: grid; grid-template-columns: max-content 1fr; gap: .45rem 1.5rem; margin: 1rem 0; }
+dl.fiche dt { color: var(--attenue); font-size: .9rem; }
+dl.fiche dd { margin: 0; }
+@media (max-width: 42rem) { dl.fiche { grid-template-columns: 1fr; gap: .1rem; } dl.fiche dd { margin-bottom: .5rem; } }

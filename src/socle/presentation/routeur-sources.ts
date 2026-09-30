@@ -4,6 +4,7 @@ import type { EtatDuDeploiement } from "../core/build.ts";
 import type { EtatDuCourrier, MessageDepose } from "../core/courrier.ts";
 import type { RapportArchive } from "../core/rapport-execution.ts";
 import type { EtatDeLaTache, JourDeLaSemaine, ReglageDeTache } from "../core/ordonnancement.ts";
+import { DELAIS_DE_REESSAI, PLAFOND_DE_TENTATIVES } from "../core/ordonnancement.ts";
 import type { ResultatDeSonde } from "../core/sonde.ts";
 import type { Source } from "../core/source.ts";
 import { estUneSource } from "../core/source.ts";
@@ -117,7 +118,7 @@ export type AccesAuxSources = {
    * bien passée : c'est cette liste qui distingue « rien ne s'est cassé » de
    * « plus rien ne tourne ».
    */
-  rapports(): readonly RapportArchive[];
+  rapports(tache?: string): readonly RapportArchive[];
   /**
    * Dépose un mail de test, par le chemin normal.
    *
@@ -258,7 +259,6 @@ const CALENDRIER_PAR_DEFAUT: DemandeDeCalendrier = {
 /** Le résultat d'un geste, rendu sur l'onglet qui l'a déclenché. */
 type ResultatsDeGeste = {
   readonly sonde?: readonly ResultatDeSonde[];
-  readonly declenchement?: RapportArchive | null;
   readonly equipe?: ResultatDImport;
   readonly calendrier?: ResultatDImportDuCalendrier;
   readonly disponibilites?: ResultatDImportDesDisponibilites;
@@ -297,12 +297,11 @@ export function routeurSources(acces: AccesAuxSources): Router {
     emails: (vue) => ({ courrier: acces.courrier(), mailDeTest: vue.mailDeTest ?? null }),
     logs: () => ({ rapports: acces.rapports() }),
     deploiement: () => ({ deploiements: acces.deploiements() }),
-    ordonnancement: (vue) => ({
+    ordonnancement: () => ({
       taches: acces.ordonnancement(),
       // Le battement ne porte pas de bouton : passé au tableau pour que la
       // vue ne reçoive pas la règle en dur (spec 037).
       battement: TACHE_BATTEMENT,
-      declenchement: vue.declenchement ?? null,
     }),
     sources: () => ({ etats: acces.etats() }),
     equipe: (vue) => ({ equipe: vue.equipe ?? null }),
@@ -326,6 +325,34 @@ export function routeurSources(acces: AccesAuxSources): Router {
       ...lectures[onglet](vue),
     });
   };
+
+  /**
+   * La page d'une tâche, sous l'onglet des tâches : ce qu'elle relève, quand
+   * elle tourne et avec quelle marge, son réglage, et ce qu'elle a produit.
+   */
+  const pageDeLaTache = (reponse: Response, etat: EtatDeLaTache, declenchement: RapportArchive | null = null): void => {
+    const historique = acces.rapports(etat.tache);
+    reponse.render("parametres", {
+      titre: "Paramètres",
+      groupes: GROUPES_AFFICHES,
+      groupeCourant: GROUPES_AFFICHES.find((groupe) => groupe.onglets.some((sous) => sous.id === "ordonnancement")),
+      onglet: "ordonnancement",
+      gabarit: "tache",
+      tache: etat,
+      historique,
+      dernierSucces: historique.find((rapport) => rapport.issue === "succes") ?? null,
+      declenchable: raisonDeNePasLancer(etat) === null,
+      plafond: PLAFOND_DE_TENTATIVES,
+      delais: DELAIS_DE_REESSAI,
+      declenchement,
+    });
+  };
+
+  routeur.get("/scrapping/ordonnancement/:tache", (requete, reponse) => {
+    const etat = acces.ordonnancement().find((candidate) => candidate.tache === requete.params.tache);
+    if (etat === undefined) return rendreTacheInconnue(reponse, requete.params.tache);
+    pageDeLaTache(reponse, etat);
+  });
 
   // La racine et le groupe ouvrent sur leur premier onglet ; un chemin qui
   // n'est pas un onglet tombe sur la 404 commune.
@@ -366,27 +393,14 @@ export function routeurSources(acces: AccesAuxSources): Router {
     if (etat === undefined) {
       return rendreTacheInconnue(reponse, tache);
     }
-    if (tache === TACHE_BATTEMENT) {
-      return rendreTacheNonDeclenchable(
-        reponse,
-        tache,
-        "C'est le battement hebdomadaire : son silence est précisément l'information qu'il préserve (019).",
-      );
-    }
-    if (!etat.reglage.active) {
-      return rendreTacheNonDeclenchable(reponse, tache, "La tâche est suspendue (case « active » décochée).");
-    }
-    if (etat.reglage.cadence.nature === "ponctuelle") {
-      return rendreTacheNonDeclenchable(
-        reponse,
-        tache,
-        "Une échéance ponctuelle se déclenche à son échéance, pas à la main — un rappel J-1 envoyé à J+2 est pire qu'un rappel manquant (014).",
-      );
-    }
+    const raison = raisonDeNePasLancer(etat);
+    if (raison !== null) return rendreTacheNonDeclenchable(reponse, tache, raison);
 
     acces
       .executerMaintenant(tache)
-      .then((declenchement) => ecran(reponse, "ordonnancement", { declenchement }))
+      // Le rapport s'affiche sur la page de la tâche, au-dessus de son
+      // historique : c'est là qu'on lit ce qu'elle produit d'habitude.
+      .then((declenchement) => pageDeLaTache(reponse, etat, declenchement))
       .catch(suite);
   });
 
@@ -456,7 +470,7 @@ export function routeurSources(acces: AccesAuxSources): Router {
     }
 
     acces.reglerLaTache(reglage);
-    reponse.redirect(cheminDe("ordonnancement"));
+    reponse.redirect(`${cheminDe("ordonnancement")}/${encodeURIComponent(reglage.tache)}`);
   });
 
   routeur.post("/scrapping/sessions/:source/jeton", (requete, reponse) => {
@@ -529,6 +543,21 @@ function rendreInconnue(reponse: Response, source: string): void {
     titre: "Source inconnue",
     message: `« ${source} » n'est pas une source connue. Babo n'en connaît que deux : myffbad et badnet (spec 015).`,
   });
+}
+
+/**
+ * Pourquoi une tâche ne se lance pas à la main, `null` si elle le peut — la
+ * route qui l'exécute et le bouton qui l'affiche disent la même chose (037).
+ */
+function raisonDeNePasLancer(etat: EtatDeLaTache): string | null {
+  if (etat.tache === TACHE_BATTEMENT) {
+    return "C'est le battement hebdomadaire : son silence est précisément l'information qu'il préserve (019).";
+  }
+  if (!etat.reglage.active) return "La tâche est suspendue (case « active » décochée).";
+  if (etat.reglage.cadence.nature === "ponctuelle") {
+    return "Une échéance ponctuelle se déclenche à son échéance, pas à la main — un rappel J-1 envoyé à J+2 est pire qu'un rappel manquant (014).";
+  }
+  return null;
 }
 
 function rendreTacheInconnue(reponse: Response, tache: string): void {

@@ -297,7 +297,7 @@ describe("l'application assemblée", () => {
         // que l'écran le monte, pas que la minuterie bat.
         courrier: () => courrier.etat(),
         envoyerUnMailDeTest: () => courrier.deposer(messageDeTest(horlogeSysteme.maintenant())),
-        rapports: () => rapports.derniers(50),
+        rapports: (tache) => rapports.derniers(50, tache),
         ordonnancement: () => [],
         reglerLaTache: () => {},
         // L'import enchaîne la passe (028, 037) par le même geste que le
@@ -878,7 +878,7 @@ describe("l'application assemblée", () => {
     assert.match(await importe.text(), /<strong>5<\/strong>\s*répondants/);
 
     const avant = await (await visiter("/capitanat/disponibilites")).text();
-    assert.match(avant, /qui est blessée/, "la remarque du sondage est gardée");
+    assert.match(avant, /title="[^"]*qui est blessée[^"]*"/, "la remarque du sondage, au survol seulement");
     assert.match(avant, /<option value="07194591" selected>/, "Simon est proposé par son prénom");
     assert.match(avant, /proposé/);
 
@@ -895,8 +895,9 @@ describe("l'application assemblée", () => {
     assert.equal(rattache.status, 302);
 
     const apres = await (await visiter("/capitanat/disponibilites")).text();
-    assert.match(apres, /Simon RENOULT/, "le nom fédéral remplace le prénom du sondage");
-    assert.match(apres, /« Simon » au sondage/);
+    assert.doesNotMatch(apres, /Simon RENOULT/, "le prénom seul, comme entre coéquipiers");
+    assert.match(apres, /<td>\s*Simon\s*<\/td>/, "rattaché, il est nommé par son prénom");
+    assert.doesNotMatch(apres, /« Simon » au sondage/, "le prénom est celui du sondage : rien à signaler");
     assert.match(apres, /0 · 1/, "Simon, homme, disponible");
   });
 

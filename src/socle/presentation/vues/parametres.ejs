@@ -19,6 +19,6 @@
   </nav>
 <% } %>
 
-<%- include(`parametres/${onglet}`) %>
+<%- include(`parametres/${locals.gabarit ?? onglet}`) %>
 
 <%- include("pied") %>

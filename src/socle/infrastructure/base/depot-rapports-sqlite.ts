@@ -36,6 +36,11 @@ export function depotRapportsSqlite(base: BaseSqlite): DepotRapports {
   const derniers = base.prepare(
     `select ${colonnes} order by demarre_le desc, id desc limit ?`,
   );
+  // L'historique d'une tâche : filtré en base, pas parmi les cinquante
+  // derniers de toutes — une passe quotidienne y noierait l'hebdomadaire.
+  const derniersParTache = base.prepare(
+    `select ${colonnes} where tache = ? order by demarre_le desc, id desc limit ?`,
+  );
   const depuis = base.prepare(
     `select ${colonnes} where demarre_le >= ? order by demarre_le, id`,
   );
@@ -63,8 +68,9 @@ export function depotRapportsSqlite(base: BaseSqlite): DepotRapports {
       return ligne === undefined ? null : versRapport(ligne);
     },
 
-    derniers(combien: number): readonly RapportArchive[] {
-      return (derniers.all(combien) as Ligne[]).map(versRapport);
+    derniers(combien: number, tache?: string): readonly RapportArchive[] {
+      const lignes = tache === undefined ? derniers.all(combien) : derniersParTache.all(tache, combien);
+      return (lignes as Ligne[]).map(versRapport);
     },
 
     depuis(quand: Date): readonly RapportArchive[] {
