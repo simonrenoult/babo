@@ -61,7 +61,9 @@ Trois interdits, vérifiés par `npm run lint` et non par la discipline :
 Ils sont produits par `eslint.config.js` et testés par
 `test/architecture.test.ts`. Ce qui n'appartient à aucun module descend dans
 `socle/core` — un numéro de licence, un tableau. Jamais `Joueur` : `mon-profil` et
-`capitanat` gardent chacun le leur.
+`capitanat` gardent chacun le leur. Le format de l'heure, « 20h30 », y est
+descendu (`socle/core/heure.ts`) : un texte composé au cœur l'écrit comme les
+pages.
 
 ## Les pages
 
@@ -973,6 +975,14 @@ bibliothèque : `pdf-lib` en tire quatre autres. Les coordonnées ont été
 relevées sur la feuille du 30 septembre 2026 ; si le comité change sa mise en
 page, c'est là qu'elles se corrigent. Le téléchargement binaire vit à part du
 port `ClientHttp`, qui rend du texte : `telecharger` dans `client-fetch.ts`.
+
+**L'annonce WhatsApp.** « Copier pour WhatsApp » met dans le presse-papiers la
+composition *enregistrée*, composée par `texteDeLaComposition` au cœur. Une
+première ligne situe la rencontre — `J03 vs BAP18-5 📅 samedi 10 octobre 🕗
+20h30 📍 <lieu>` : adversaire par son sigle, « vs » qu'on reçoive ou non, le lieu
+disant où l'on joue —, puis une ligne par match où quelqu'un est retenu, par
+prénom. Une composition vide ne s'annonce pas du tout. Pas de lien `wa.me` : le
+capitaine choisit le groupe en collant (038).
 
 ## Ce qui n'est pas encore là
 
