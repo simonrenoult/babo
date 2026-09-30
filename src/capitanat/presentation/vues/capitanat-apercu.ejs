@@ -13,7 +13,7 @@
   </p>
   <p>
     <%= recoit ? "Reçoit" : "Chez" %> <strong><%= adversaire %></strong>,
-    à <%= rencontre.debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) %>
+    à <%= heure(rencontre.debut) %>
   </p>
   <p>
     <% if (fautes > 0) { %>

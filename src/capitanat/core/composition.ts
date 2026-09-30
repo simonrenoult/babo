@@ -199,6 +199,43 @@ export function fautesParMatch(
   return fautes;
 }
 
+/**
+ * La composition en texte, à coller dans la discussion de l'équipe.
+ *
+ * Une ligne par match où quelqu'un est retenu, en liste WhatsApp (« * »), et
+ * rien d'autre : ni classement ni cote, c'est une convocation. Chacun y est
+ * désigné par son prénom, sauf quand deux membres le partagent.
+ */
+export function texteDeLaComposition(composition: Composition, membres: readonly MembreDeLEquipe[]): string {
+  const prenoms = new Map(membres.map((membre) => [membre.licence, prenomDe(membre)]));
+  const homonymes = (prenom: string) => [...prenoms.values()].filter((autre) => autre === prenom).length > 1;
+  const designer = (licence: Licence) => {
+    const membre = membres.find((candidat) => candidat.licence === licence);
+    const prenom = prenoms.get(licence);
+    if (membre === undefined || prenom === undefined) return licence;
+    return homonymes(prenom) ? (membre.nom ?? licence) : prenom;
+  };
+
+  return MATCHS.flatMap(({ match }) => {
+    const retenus = POSTES.filter((poste) => poste.match === match).flatMap(({ id }) => {
+      const licence = composition.get(id);
+      return licence === undefined ? [] : [designer(licence)];
+    });
+    return retenus.length === 0 ? [] : [`* ${match} : ${retenus.join(" & ")}`];
+  }).join("\n");
+}
+
+/**
+ * « Simon » pour « Simon RENOULT » : myffbad écrit le nom de famille en
+ * capitales, le prénom est ce qui le précède. Sans nom relevé, la licence.
+ */
+function prenomDe(membre: MembreDeLEquipe): string {
+  if (membre.nom === null) return membre.licence;
+  const mots = membre.nom.split(/\s+/);
+  const prenom = mots.filter((mot) => mot !== mot.toUpperCase() || !/\p{L}/u.test(mot));
+  return prenom.length === 0 ? membre.nom : prenom.join(" ");
+}
+
 export function placesVides(composition: Composition): number {
   return POSTES.filter(({ id }) => !composition.has(id)).length;
 }

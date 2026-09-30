@@ -1,3 +1,3 @@
 <%# La réponse d'un joueur au sondage de la journée, en pastille. Paramètre : `reponse`, ou rien. %>
-<% const [classe, libelle] = { oui: ["succes", "oui"], "si-besoin": ["attention", "si besoin"], non: ["erreur", "non"] }[locals.reponse] ?? ["", "sans réponse"]; %>
+<% const [classe, libelle] = { oui: ["succes", "dispo"], "si-besoin": ["attention", "si besoin"], non: ["erreur", "indispo"] }[locals.reponse] ?? ["", "sans réponse"]; %>
 <span class="pastille <%= classe %>"><%= libelle %></span>

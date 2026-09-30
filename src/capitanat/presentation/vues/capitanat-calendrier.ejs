@@ -31,7 +31,7 @@
              rel="noreferrer noopener" target="_blank">J<%= String(rencontre.journee).padStart(2, "0") %></a>
         </td>
         <td><%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) %></td>
-        <td><%= rencontre.debut.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) %></td>
+        <td><%= heure(rencontre.debut) %></td>
         <td><%= recoitOn(rencontre, calendrier.equipe) ? "reçoit" : "se déplace" %></td>
         <td><%= adversaireDe(rencontre, calendrier.equipe).nom %></td>
         <td>

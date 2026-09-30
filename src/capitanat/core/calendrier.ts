@@ -103,6 +103,14 @@ export function adversaireDe(rencontre: Rencontre, equipe: EquipeDInterclub): Eq
   return rencontre.domicile.code === equipe.code ? rencontre.exterieur : rencontre.domicile;
 }
 
+/**
+ * Le sigle d'une équipe, sans son département : « BAP18-5 » pour
+ * « 75-BAP18-5 ». C'est ainsi qu'on les nomme entre joueurs.
+ */
+export function sigleDe(equipe: EquipeDInterclub): string {
+  return equipe.code.replace(/^\d+-/, "");
+}
+
 export function recoitOn(rencontre: Rencontre, equipe: EquipeDInterclub): boolean {
   return rencontre.domicile.code === equipe.code;
 }

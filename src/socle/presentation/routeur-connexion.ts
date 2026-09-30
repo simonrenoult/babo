@@ -1,5 +1,6 @@
 import { Router, type CookieOptions, type Request, type RequestHandler } from "express";
 import type { Authentification, VerdictDeSession } from "../core/authentification.ts";
+import { heure } from "./format.ts";
 
 /**
  * La porte, côté HTTP — spec 021.
@@ -102,7 +103,7 @@ export function routeurConnexion(authentification: Authentification, secure: boo
       suite,
       erreur:
         connexion.issue === "verrouillee"
-          ? `Trop de tentatives. Réessayer après ${connexion.jusqua.toLocaleTimeString("fr-FR")}.`
+          ? `Trop de tentatives. Réessayer après ${heure(connexion.jusqua)}.`
           : // Un seul message pour les deux moitiés fausses : la licence n'est
             // pas un secret, dire laquelle cloche ne renseignerait que qui
             // cherche à entrer.

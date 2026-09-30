@@ -50,7 +50,7 @@
     <form method="post" action="/parametres/scrapping/sessions/<%= etat.source %>/code">
       <p class="etat">
         <strong>Code demandé</strong> le
-        <%= attendu.demandeeLe.toLocaleTimeString("fr-FR") %>. badnet l'envoie
+        <%= heure(attendu.demandeeLe) %>. badnet l'envoie
         par mail ; il expire au bout de dix minutes.
       </p>
       <p>

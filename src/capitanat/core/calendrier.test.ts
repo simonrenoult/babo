@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { PageDeGroupe, Rencontre } from "./calendrier.ts";
-import { CalendrierRefuse, adversaireDe, calendrierDeLEquipe, recoitOn } from "./calendrier.ts";
+import { CalendrierRefuse, adversaireDe, calendrierDeLEquipe, recoitOn, sigleDe } from "./calendrier.ts";
 
 const BAP = { nom: "Bad’ à Paname 5", code: "75-BAP-5" };
 const RCF = { nom: "Racing Club de France 4", code: "75-RCF-4" };
@@ -50,5 +50,10 @@ describe("le calendrier de mon équipe", () => {
     assert.deepEqual(adversaireDe(aDomicile, BAP), RCF);
     assert.equal(recoitOn(aLExterieur, BAP), false);
     assert.deepEqual(adversaireDe(aLExterieur, BAP), AC);
+  });
+
+  it("nomme une équipe par son sigle, sans le département", () => {
+    assert.equal(sigleDe(BAP), "BAP-5");
+    assert.equal(sigleDe({ nom: "Badminton Paris 18eme 5", code: "75-BAD18-5" }), "BAD18-5");
   });
 });
