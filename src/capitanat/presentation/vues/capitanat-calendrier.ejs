@@ -19,9 +19,20 @@
     <a href="/parametres/calendrier">Réimporter</a> si le comité déplace une rencontre.
   </p>
 
+  <p>
+    <a class="bouton" href="/capitanat/calendrier.ics" download>Exporter le calendrier (.ics)</a>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Toute la saison, pour un agenda. Dans Google Agenda : Paramètres › Importer et
+        exporter › Importer, puis choisir ce fichier.</span>
+      <span>Réimporter après un changement met les rencontres à jour sans les doubler. Chaque
+        rencontre compte deux heures et demie : icbad ne publie que l'heure de début.</span>
+      <span>Pour une seule rencontre, le lien <strong>Google Agenda</strong> de sa ligne.</span>
+    </span></span>
+  </p>
+
   <table>
     <tr>
-      <th>Journée</th><th>Date</th><th>Heure</th><th></th><th>Adversaire</th><th>Lieu</th>
+      <th>Journée</th><th>Date</th><th>Heure</th><th></th><th>Adversaire</th><th>Lieu</th><th>Agenda</th>
     </tr>
     <% for (const rencontre of calendrier.rencontres) { %>
       <%# Une rencontre passée reste listée, estompée : la saison se lit d'un bloc. %>
@@ -33,12 +44,16 @@
         <td data-tri="<%= rencontre.debut.getTime() %>"><%= rencontre.debut.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) %></td>
         <td><%= heure(rencontre.debut) %></td>
         <td><%= recoitOn(rencontre, calendrier.equipe) ? "reçoit" : "se déplace" %></td>
-        <td><%= adversaireDe(rencontre, calendrier.equipe).nom %></td>
+        <% const adversaire = adversaireDe(rencontre, calendrier.equipe); %>
+        <td><abbr title="<%= adversaire.nom %>"><%= sigleDe(adversaire) %></abbr></td>
         <td>
           <%# L'API « search » de Google Maps : une URL stable, sans clé, qui ouvre %>
           <%# l'application sur téléphone. Le lieu est encodé, jamais recollé tel quel. %>
           <a href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(rencontre.lieu) %>"
              rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>
+        </td>
+        <td>
+          <a href="<%= lienGoogle(rencontre, calendrier) %>" rel="noreferrer noopener" target="_blank">Google Agenda</a>
         </td>
       </tr>
     <% } %>

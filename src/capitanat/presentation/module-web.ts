@@ -11,7 +11,7 @@ import { listeDeLEquipe } from "../core/coequipier.ts";
 import { forceDuTableau, forcesParTableau } from "../core/forces-par-tableau.ts";
 import type { DepotPreferences } from "../core/paires.ts";
 import { PaireRefusee, seJoueEnPaires, tableauDuCapitaine, verifierLaPaire } from "../core/paires.ts";
-import type { DepotCalendrier, Rencontre } from "../core/calendrier.ts";
+import type { CalendrierDInterclub, DepotCalendrier, Rencontre } from "../core/calendrier.ts";
 import { adversaireDe, recoitOn, sigleDe } from "../core/calendrier.ts";
 import type { DepotDisponibilites } from "../core/disponibilite.ts";
 import { grilleDesDisponibilites, reponsesALaJournee, suggestionPour } from "../core/disponibilite.ts";
@@ -32,6 +32,7 @@ import {
   sollicitations,
 } from "../core/composition.ts";
 import { enJoueurs, joueursRequis } from "./mots.ts";
+import { enIcs, evenementDe, lienGoogle } from "./agenda.ts";
 
 /**
  * Le module `capitanat` — specs 005 à 011.
@@ -146,7 +147,19 @@ export function creerModuleCapitanat(options: {
       adversaireDe,
       recoitOn,
       sigleDe,
+      lienGoogle: (rencontre: Rencontre, leCalendrier: CalendrierDInterclub) =>
+        lienGoogle(evenementDe(rencontre, leCalendrier)),
     });
+  });
+
+  /** Toute la saison en iCalendar, à importer dans un agenda. */
+  routeur.get("/calendrier.ics", (_requete, reponse, suite) => {
+    const leCalendrier = calendrier.lire();
+    if (leCalendrier === null) return suite();
+    reponse
+      .type("text/calendar; charset=utf-8")
+      .setHeader("Content-Disposition", `attachment; filename="interclub-${sigleDe(leCalendrier.equipe)}.ics"`);
+    reponse.send(enIcs(leCalendrier, horloge.maintenant()));
   });
 
   /**

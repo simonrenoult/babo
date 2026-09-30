@@ -834,6 +834,18 @@ describe("l'application assemblée", () => {
     );
   });
 
+  it("exporte le calendrier en iCalendar, et lie chaque rencontre à Google Agenda", async () => {
+    const page = await (await visiter("/capitanat/calendrier")).text();
+    assert.match(page, /href="\/capitanat\/calendrier\.ics"/);
+    assert.match(page, /href="https:\/\/calendar\.google\.com\/calendar\/render\?action=TEMPLATE&amp;/);
+
+    const ics = await visiter("/capitanat/calendrier.ics");
+    assert.equal(ics.status, 200);
+    assert.match(ics.headers.get("content-type") ?? "", /^text\/calendar/);
+    assert.match(ics.headers.get("content-disposition") ?? "", /attachment; filename="interclub-.+\.ics"/);
+    assert.match(await ics.text(), /^BEGIN:VCALENDAR\r\n[\s\S]*BEGIN:VEVENT/);
+  });
+
   it("importe un sondage, propose de rattacher Simon, puis compte ses disponibilités", async () => {
     const cps = { nom: "CPS Xtrem Bad 5", code: "75-CPS10-5" };
     const adversaire = { nom: "Badminton Paris 18eme 5", code: "75-BAD18-5" };
