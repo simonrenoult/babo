@@ -57,7 +57,8 @@ export type DepotRapports = {
    * aveugle ne date rien.
    */
   dernierSucces(tache: string): RapportArchive | null;
-  derniers(combien: number): readonly RapportArchive[];
+  /** Les plus récents d'abord ; d'une seule tâche quand on la nomme. */
+  derniers(combien: number, tache?: string): readonly RapportArchive[];
   /**
    * Tout ce qui a tourné depuis une date, du plus ancien au plus récent.
    *

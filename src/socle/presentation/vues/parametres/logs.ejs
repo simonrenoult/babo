@@ -19,11 +19,7 @@
         <td><%= rapport.demarreLe.toLocaleString("fr-FR") %></td>
         <td><%= rapport.tache %></td>
         <td>
-          <% if (rapport.issue === "succes") { %>
-            <span class="pastille succes">succès</span>
-          <% } else { %>
-            <span class="pastille erreur"><%= rapport.issue === "vide" ? "extraction vide" : "échec" %></span>
-          <% } %>
+          <%- include("../issue", { issue: rapport.issue }) %>
         </td>
         <td><%= rapport.volumeExtrait ?? "—" %></td>
         <td>

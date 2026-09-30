@@ -187,3 +187,29 @@ export function parNom(un: Nommable, autre: Nommable): number {
 function laPlusRecente(dates: readonly Date[]): Date | null {
   return dates.length === 0 ? null : new Date(Math.max(...dates.map((date) => date.getTime())));
 }
+
+/**
+ * Comment on appelle chacun entre coéquipiers : « Simon » pour « Simon
+ * RENOULT ». Quand deux membres partagent un prénom, le nom complet les
+ * distingue. Sans nom relevé, la licence.
+ */
+export function designations(membres: readonly MembreDeLEquipe[]): ReadonlyMap<Licence, string> {
+  const prenoms = new Map(membres.map((membre) => [membre.licence, prenomDe(membre)]));
+  const partages = (prenom: string) => [...prenoms.values()].filter((autre) => autre === prenom).length > 1;
+  return new Map(
+    membres.map((membre) => {
+      const prenom = prenoms.get(membre.licence) ?? membre.licence;
+      return [membre.licence, partages(prenom) ? (membre.nom ?? membre.licence) : prenom];
+    }),
+  );
+}
+
+/**
+ * myffbad écrit le nom de famille en capitales : le prénom est ce qui ne l'est
+ * pas. « Marie-Anne DE LA TOUR » donne « Marie-Anne ».
+ */
+function prenomDe(membre: MembreDeLEquipe): string {
+  if (membre.nom === null) return membre.licence;
+  const prenom = membre.nom.split(/\s+/).filter((mot) => mot !== mot.toUpperCase() || !/\p{L}/u.test(mot));
+  return prenom.length === 0 ? membre.nom : prenom.join(" ");
+}

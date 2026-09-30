@@ -4,7 +4,7 @@ import { CHEMIN_DES_PARAMETRES, routeurSources, type AccesAuxSources } from "./r
 import { garde, routeurConnexion } from "./routeur-connexion.ts";
 import type { Authentification } from "../core/authentification.ts";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
-import { heure } from "./format.ts";
+import { cadenceLisible, heure } from "./format.ts";
 
 /**
  * Un module de feature branché sur l'interface.
@@ -66,6 +66,7 @@ export function creerApplication(options: {
   application.set("views", [DOSSIER_VUES, ...modules.map((module) => module.vues)]);
   // Le format de l'heure, le même pour toutes les vues, modules compris.
   application.locals["heure"] = heure;
+  application.locals["cadenceLisible"] = cadenceLisible;
   application.locals["modules"] = modules.map(({ intitule, chemin }) => ({ intitule, chemin }));
   const apercus = modules.filter((module) => module.apercu !== undefined);
 

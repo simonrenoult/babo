@@ -325,6 +325,8 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
   {
     tache: tacheDAcquisition("myffbad"),
     intitule: "Relever noms et classements (myffbad)",
+    description:
+      "Le nom et le classement — lettre et cote CPPH en simple, double et mixte — de chaque membre de l'équipe, moi compris, lus sur leur fiche publique myffbad. Sans session. Alimente Mon profil, les effectifs et les forces par tableau.",
     reglageParDefaut: {
       cadence: { nature: "hebdomadaire", jour: 5, heure: 1, minute: 0 },
       graceMinutes: 48 * 60,
@@ -350,6 +352,8 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
   {
     tache: TACHE_COURRIER,
     intitule: "Vider la boîte d'envoi (courrier)",
+    description:
+      "Aucune donnée relevée : remet les mails restés en attente (alertes de panne, alertes et rappels de tournoi), ceux qu'un arrêt a laissés sans tentative. Les autres partent dès leur dépôt.",
     reglageParDefaut: {
       cadence: { nature: "quotidienne", heure: 6, minute: 30 },
       graceMinutes: 24 * 60,
@@ -368,6 +372,8 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
   {
     tache: tacheDesEngagements(),
     intitule: "Relever mes engagements (badnet)",
+    description:
+      "Mes inscriptions de tournoi sur badnet, sous session : tournoi, date, tableaux engagés, partenaire et statut de l'inscription. Alimente Mes prochains tournois ; une session morte la fait échouer.",
     reglageParDefaut: {
       cadence: { nature: "quotidienne", heure: 5, minute: 0 },
       graceMinutes: 12 * 60,
@@ -394,6 +400,8 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
   {
     tache: tacheDesTournois(),
     intitule: "Relever le lieu des tournois (badnet, anonyme)",
+    description:
+      "La fiche publique des tournois pas encore relevés — ceux où je suis inscrit et ceux que mes veilles ont trouvés : ville, gymnase, journées, tableaux, séries, date limite d'inscription. Anonyme, incrémentale et plafonnée.",
     reglageParDefaut: {
       cadence: { nature: "quotidienne", heure: 5, minute: 30 },
       graceMinutes: 12 * 60,
@@ -416,6 +424,8 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
   {
     tache: tacheDesVeilles(),
     intitule: "Relever mes veilles (badnet, anonyme)",
+    description:
+      "La recherche de tournois de chaque veille active, en anonyme : les tournois que badnet publie dans son périmètre. Leurs fiches sont relevées un quart d'heure plus tard par la passe des lieux.",
     reglageParDefaut: {
       cadence: { nature: "quotidienne", heure: 5, minute: 15 },
       graceMinutes: 12 * 60,
@@ -438,6 +448,8 @@ const tachesOrdonnancees: readonly TacheOrdonnancee[] = [
   {
     tache: TACHE_BATTEMENT,
     intitule: "Battement hebdomadaire",
+    description:
+      "Aucune donnée relevée : un mail qui récapitule les exécutions de la semaine, la taille de la base et les captures archivées. Son absence le lundi signale un planificateur arrêté.",
     reglageParDefaut: {
       cadence: { nature: "hebdomadaire", jour: 1, heure: 8, minute: 0 },
       graceMinutes: 0,
@@ -880,7 +892,7 @@ const application = creerApplication({
     // L'historique, que 019 réclame : par mail seul on ne voit que les échecs,
     // jamais la semaine qui s'est bien passée. `derniers` était déclaré depuis
     // 017 et n'était appelé nulle part.
-    rapports: () => rapports.derniers(50),
+    rapports: (tache) => rapports.derniers(50, tache),
 
     ordonnancement: () => ordonnanceur.etat(),
     reglerLaTache: (reglage) => ordonnanceur.regler(reglage),

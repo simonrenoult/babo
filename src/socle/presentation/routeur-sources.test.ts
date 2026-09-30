@@ -88,6 +88,7 @@ const TACHES: readonly EtatDeLaTache[] = [
   {
     tache: "acquisition:myffbad",
     intitule: "Relever noms et classements (myffbad)",
+    description: "Le nom et le classement de chaque membre, lus sur myffbad.",
     reglage: {
       tache: "acquisition:myffbad",
       cadence: { nature: "hebdomadaire", jour: 5, heure: 1, minute: 0 },
@@ -108,6 +109,7 @@ const TACHES: readonly EtatDeLaTache[] = [
     // Un rappel de veille (014) : une échéance ponctuelle n'est pas une passe.
     tache: "rappel:veille",
     intitule: "Rappel d'ouverture (ponctuel)",
+    description: "",
     reglage: {
       tache: "rappel:veille",
       cadence: { nature: "ponctuelle" },
@@ -121,6 +123,7 @@ const TACHES: readonly EtatDeLaTache[] = [
     // Une tâche suspendue : pas de bouton, elle ne se lance pas non plus.
     tache: "acquisition:badnet",
     intitule: "Acquisition badnet (suspendue)",
+    description: "",
     reglage: {
       tache: "acquisition:badnet",
       cadence: { nature: "quotidienne", heure: 2, minute: 0 },
@@ -134,6 +137,7 @@ const TACHES: readonly EtatDeLaTache[] = [
     // Le battement de 019 : son silence est l'information, donc pas de bouton.
     tache: "battement",
     intitule: "Battement hebdomadaire",
+    description: "",
     reglage: {
       tache: "battement",
       cadence: { nature: "hebdomadaire", jour: 1, heure: 8, minute: 0 },
@@ -191,7 +195,8 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         trace.mailsDeTest += 1;
         return Promise.resolve(MAIL_DE_TEST);
       },
-      rapports: () => [],
+      // L'historique d'une tâche : le rapport de classement, et rien pour les autres.
+      rapports: (tache?: string) => (tache === undefined || tache === RAPPORT.tache ? [RAPPORT] : []),
       ordonnancement: () => TACHES,
       reglerLaTache: (reglage) => void trace.reglages.push(reglage),
       deploiements: () => [
@@ -541,7 +546,8 @@ describe("l'écran des sources", () => {
 
     assert.equal(reponse.statut, 200);
     assert.deepEqual(trace.declenchements, ["acquisition:myffbad"], "la tâche est lue dans le chemin");
-    assert.match(reponse.corps, /Dernier déclenchement/);
+    assert.match(reponse.corps, /Dernier déclenchement/, "sur la page de la tâche");
+    assert.match(reponse.corps, /<code>acquisition:myffbad<\/code>/);
     assert.match(reponse.corps, /8 relevé\(s\) sur 8/, "le décompte que 028 exige");
     assert.match(reponse.corps, /24 disciplines relevées/, "le volume, pas le nombre de pages");
   });
@@ -592,14 +598,42 @@ describe("le tableau d'ordonnancement", () => {
 });
 
 describe("l'ordonnancement", () => {
-  it("affiche la cadence, la grâce et la prochaine échéance", async () => {
+  it("liste les tâches par nom brut, cadence, échéance et dernier résultat, sans réglage", async () => {
     const { acces } = ecran();
     const reponse = await interroger(acces, "/parametres/scrapping/ordonnancement");
 
     assert.equal(reponse.statut, 200);
-    assert.match(reponse.corps, /chaque vendredi à 01 h 00/);
-    assert.match(reponse.corps, /2880 min/, "la grâce se lit en minutes");
+    assert.match(reponse.corps, /<th>Nom<\/th><th>Cadence<\/th><th>Prochaine échéance<\/th><th>Dernier résultat<\/th><th>Actions<\/th>/);
+    assert.match(reponse.corps, /<code>acquisition:myffbad<\/code>/);
+    assert.match(reponse.corps, /chaque vendredi à 1h/);
     assert.match(reponse.corps, /04\/09\/2026/, "la prochaine échéance est datée");
+    assert.match(reponse.corps, /href="\/parametres\/scrapping\/ordonnancement\/acquisition%3Amyffbad">Voir/);
+    assert.doesNotMatch(reponse.corps, /name="grace"/, "la cadence se règle sur la page de la tâche");
+  });
+
+  it("détaille une tâche : description, grâce, tentatives, réglage et historique", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/scrapping/ordonnancement/acquisition:myffbad");
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /<h2>Paramètres<\/h2>/);
+    assert.match(reponse.corps, /Le nom et le classement de chaque membre, lus sur myffbad\./, "sa description");
+    assert.match(reponse.corps, /48 h/, "la grâce, lisible");
+    assert.match(reponse.corps, /3 au plus par échéance/, "le plafond de tentatives");
+    assert.match(reponse.corps, /name="grace" type="number" min="0" size="5" value="2880"/, "le réglage, pré-rempli");
+    assert.match(reponse.corps, /8 relevé\(s\) sur 8/, "l'historique de ses exécutions");
+    assert.match(reponse.corps, /Lancer maintenant/);
+  });
+
+  it("ne propose pas de lancer le battement depuis sa page, et 404 sur une tâche inconnue", async () => {
+    const { acces } = ecran();
+    const battement = await interroger(acces, "/parametres/scrapping/ordonnancement/battement");
+    assert.equal(battement.statut, 200);
+    assert.doesNotMatch(battement.corps, /Lancer maintenant/);
+    assert.match(battement.corps, /Aucune exécution consignée pour cette tâche/);
+
+    const inconnue = await interroger(acces, "/parametres/scrapping/ordonnancement/inconnue:pouet");
+    assert.equal(inconnue.statut, 404);
   });
 
   it("enregistre une cadence changée depuis l'écran, sans redéploiement", async () => {
@@ -618,7 +652,7 @@ describe("l'ordonnancement", () => {
       }),
     );
 
-    assert.equal(reponse.redirection, "/parametres/scrapping/ordonnancement");
+    assert.equal(reponse.redirection, "/parametres/scrapping/ordonnancement/acquisition%3Amyffbad", "retour sur la page de la tâche");
     assert.deepEqual(trace.reglages, [
       {
         tache: "acquisition:myffbad",

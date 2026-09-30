@@ -4,6 +4,9 @@
 
 <style>
   .grille td.reponse, .grille th.rencontre { text-align: center; padding-right: .5rem; padding-left: .5rem; }
+  /* La pastille au milieu de sa case, dans les deux sens : une ligne haute
+     (un nom suivi d'une remarque) ne la laisse pas collée en haut. */
+  .grille td.reponse { vertical-align: middle; }
   .grille th.rencontre { font-weight: normal; font-size: .85rem; white-space: nowrap; }
   .grille tr.decompte td { border-top: 1px solid var(--trait-fort); font-size: .9rem; text-align: center; }
   .grille .remarque { display: block; font-size: .8rem; color: var(--attenue); }
@@ -62,15 +65,18 @@
 
       <% for (const ligne of grille.lignes) { %>
         <tr>
-          <td>
-            <%= ligne.membre?.nom ?? ligne.nom %>
+          <%
+            // Le prénom seul. Le nom tel que le sondage l'écrit, et la
+            // remarque laissée par le joueur, ne se lisent qu'au survol.
+            const auSondage = [
+              ligne.membre !== null && nomDe(ligne.membre) !== ligne.nom ? `« ${ligne.nom} » au sondage` : "",
+              ligne.remarque ?? "",
+            ].filter(Boolean).join(" — ");
+          %>
+          <td<% if (auSondage) { %> title="<%= auSondage %>"<% } %>>
+            <%= ligne.membre === null ? ligne.nom : nomDe(ligne.membre) %>
             <% if (ligne.membre === null) { %>
               <span class="etat">non rattaché</span>
-            <% } else if (ligne.membre.nom !== ligne.nom) { %>
-              <span class="remarque">« <%= ligne.nom %> » au sondage</span>
-            <% } %>
-            <% if (ligne.remarque) { %>
-              <span class="remarque"><%= ligne.remarque %></span>
             <% } %>
           </td>
           <% for (const colonne of grille.colonnes) { %>
@@ -108,7 +114,7 @@
   <% if (grille.silencieux.length > 0) { %>
     <p class="etat">
       Sans réponse au sondage :
-      <%= grille.silencieux.map((membre) => membre.nom ?? membre.licence).join(", ") %>.
+      <%= grille.silencieux.map(nomDe).join(", ") %>.
     </p>
   <% } %>
 
@@ -134,7 +140,7 @@
               <option value="">— non rattaché —</option>
               <% for (const membre of membres) { %>
                 <option value="<%= membre.licence %>" <%= membre.licence === choisi ? "selected" : "" %>>
-                  <%= membre.nom ?? membre.licence %>
+                  <%= nomDe(membre) %>
                 </option>
               <% } %>
             </select>
