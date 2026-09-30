@@ -93,8 +93,10 @@ les nomme par leur valeur, `--espace-4` à `--espace-48`, pour qu'une valeur
 hors grille se voie à la lecture ; une vue qui porte son propre `<style>` s'en
 sert aussi. Un bouton et un champ font 40 px de haut, un sous-onglet 32, une
 pastille et une lettre de série 24 — la ligne de texte fait 24 px, et la marge
-intérieure retranche le trait de bordure pour tomber juste. Les traits, les
-contours de focus et la typographie n'en relèvent pas.
+intérieure retranche le trait de bordure pour tomber juste. Sous un titre ou
+un sous-titre (`h2` à `h5`), l'écart est de 8 px, toujours : la marge haute de
+ce qui suit est annulée, y compris celle du premier paragraphe d'un formulaire.
+Les traits, les contours de focus et la typographie n'en relèvent pas.
 
 ## L'acquisition
 
