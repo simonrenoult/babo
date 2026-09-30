@@ -298,7 +298,17 @@ describe("l'application assemblée", () => {
         courrier: () => courrier.etat(),
         envoyerUnMailDeTest: () => courrier.deposer(messageDeTest(horlogeSysteme.maintenant())),
         rapports: (tache) => rapports.derniers(50, tache),
-        ordonnancement: () => [],
+        // Le courrier se lit sur la page de sa tâche : l'assemblage la déclare.
+        ordonnancement: () => [
+          {
+            tache: "courrier",
+            intitule: "Vider la boîte d'envoi (courrier)",
+            description: "",
+            reglage: { tache: "courrier", cadence: { nature: "quotidienne", heure: 6, minute: 30 }, graceMinutes: 1440, active: true },
+            prochaine: null,
+            dernierRapport: null,
+          },
+        ],
         reglerLaTache: () => {},
         // L'import enchaîne la passe (028, 037) par le même geste que le
         // bouton — `executerMaintenant` — et le tout est vrai sauf le réseau :
@@ -736,7 +746,7 @@ describe("l'application assemblée", () => {
     });
     await new Promise((resoudre) => setImmediate(resoudre));
 
-    const courrierVu = await (await visiter(`/parametres/scrapping/emails`)).text();
+    const courrierVu = await (await visiter(`/parametres/scrapping/ordonnancement/courrier`)).text();
     assert.match(courrierVu, /\[Babo\] Panne — acquisition:badnet/);
 
     const historique = await (await visiter(`/parametres/scrapping/logs`)).text();
@@ -1039,7 +1049,7 @@ describe("l'application assemblée", () => {
       // ajouté cinq d'un coup, celle-ci les représente.
       "/capitanat/tableau/SH",
       "/veille",
-      "/parametres/scrapping/sessions",
+      "/parametres/scrapping/sources/myffbad",
     ]) {
       it(`refuse ${chemin} sans session`, async () => {
         const reponse = await sansCookie(chemin);

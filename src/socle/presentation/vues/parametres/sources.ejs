@@ -2,25 +2,36 @@
   <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
     <span>myffbad pour le classement et les matchs, badnet pour les tournois. Une session tombée
       n'arrête que sa source.</span>
+    <span><strong>Voir</strong> ouvre la page d'une source : sa session et de quoi la rouvrir, ses
+      déploiements, et les tâches qui la lisent.</span>
+    <span><strong>Sonder</strong> vérifie l'accès : quelques pages connues de la source, lues et
+      comptées. Le résultat s'affiche sur sa page.</span>
   </span></span>
 </h3>
 
 <table>
   <tr>
     <th>Source</th><th>Session</th><th>Expire</th>
-    <th>Dernière acquisition</th><th>Issue</th>
+    <th>Dernière acquisition</th><th>Issue</th><th>Actions</th>
   </tr>
   <% for (const etat of etats) { %>
     <tr>
-      <td><%= etat.source %></td>
-      <td><%= { absente: "absente", expiree: "expirée", valide: "valide" }[etat.session] %></td>
+      <td><code><%= etat.source %></code></td>
+      <td><%- include("../session", { session: etat.session }) %></td>
       <td><%= etat.expireLe ? etat.expireLe.toLocaleDateString("fr-FR") : "—" %></td>
       <td>
         <%= etat.derniereAcquisition
               ? etat.derniereAcquisition.toLocaleString("fr-FR")
               : "jamais" %>
       </td>
-      <td><%= etat.derniereIssue ?? "—" %></td>
+      <td><% if (etat.derniereIssue) { %><%- include("../issue", { issue: etat.derniereIssue }) %><% } else { %>—<% } %></td>
+      <td class="actions">
+        <a class="bouton" href="/parametres/scrapping/sources/<%= etat.source %>">Voir</a>
+        <%# Le résultat s'affiche sur la page de la source. %>
+        <form method="post" action="/parametres/scrapping/sources/<%= etat.source %>/sonder">
+          <button type="submit">Sonder</button>
+        </form>
+      </td>
     </tr>
   <% } %>
 </table>

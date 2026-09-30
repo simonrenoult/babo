@@ -1,0 +1,3 @@
+<%# L'état d'une session de source, en pastille. Paramètre : `session` — absente, expiree ou valide. %>
+<% const [ton, libelle] = { valide: ["succes", "valide"], expiree: ["erreur", "expirée"], absente: ["", "absente"] }[session] ?? ["", session]; %>
+<span class="pastille <%= ton %>"><%= libelle %></span>

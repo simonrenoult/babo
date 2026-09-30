@@ -1,11 +1,4 @@
-<h3>Sonder l'accès
-  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-    <span>Joue les requêtes qui portent les données et compte ce qu'elle en tire. C'est la colonne
-      « extraits » qui vaut : une session morte rend un statut 200 et une liste vide.</span>
-  </span></span>
-</h3>
-<form method="post" action="/parametres/scrapping/sondes"><button type="submit">Sonder</button></form>
-
+<%# Le résultat d'une sonde, une ligne par page. Paramètre : `sonde`, ou `null`. %>
 <% if (sonde) { %>
   <table>
     <tr>
@@ -16,7 +9,10 @@
       <tr>
         <td><%= resultat.source %></td>
         <td><%= resultat.page.intitule %></td>
-        <td><%= resultat.verdict %></td>
+        <td>
+          <% const [ton, libelle] = { atteinte: ["succes", "atteinte"], "mur-de-connexion": ["erreur", "mur de connexion"], "action-introuvable": ["erreur", "action introuvable"], echec: ["erreur", "échec"] }[resultat.verdict] ?? ["", resultat.verdict]; %>
+          <span class="pastille <%= ton %>"><%= libelle %></span>
+        </td>
         <td><%= resultat.statutHttp ?? "—" %></td>
         <td><%= resultat.extraits ?? "—" %></td>
         <td><%= resultat.octets === null ? "—" : Math.round(resultat.octets / 1024) + " Ko" %></td>

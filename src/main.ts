@@ -880,9 +880,9 @@ const application = creerApplication({
     // `/sources` porte l'exploitation, la feature porte la donnée (030).
     engagements: () => persistance.engagements.compter(),
 
-    sonder: () =>
+    sonder: (source) =>
       sonder({
-        modules: modulesDAcquisition,
+        modules: modulesDAcquisition.filter((module) => source === undefined || module.source === source),
         clientPour,
         jetons: persistance.jetonMyffbad,
         rapports,

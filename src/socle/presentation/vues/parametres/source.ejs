@@ -1,0 +1,173 @@
+<%#
+  La page d'une source : ce qu'elle apporte, sa session et les gestes pour la
+  rouvrir, son acquisition, ses déploiements, et les tâches qui la lisent.
+%>
+<% const action = (geste) => `/parametres/scrapping/sources/${source}/${geste}`; %>
+
+<p><a href="/parametres/scrapping/sources">← Sources</a></p>
+
+<h3>
+  <code><%= source %></code>
+  <% if (etat) { %><%- include("../session", { session: etat.session }) %><% } %>
+</h3>
+<p><%= description %></p>
+
+<form method="post" action="<%= action("sonder") %>">
+  <button type="submit">Sonder</button>
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Lit quelques pages connues de la source — sous session quand il y en a une — et compte ce
+      qu'elle en tire. Dix requêtes au plus. C'est la colonne « extraits » qui vaut : une session
+      morte peut rendre un statut 200 et une liste vide.</span>
+    <span>« Mur de connexion » : la session est morte. « Action introuvable » : la source a
+      redéployé. Le résultat est consigné comme une exécution de sa passe d'acquisition.</span>
+  </span></span>
+</form>
+
+<% if (sonde) { %>
+  <h4>Sonde</h4>
+  <%- include("resultats-de-sonde") %>
+<% } %>
+
+<h4>Session
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Se connecter dans un navigateur, y copier le cookie de session, le coller ici. Pour
+      badnet, c'est parfois incontournable : une double authentification garde la porte.</span>
+    <span>Le jeton est écrit dans la base chiffrée, jamais dans un journal, et n'est jamais
+      réaffiché : c'est pourquoi le champ reste vide même quand une session existe. L'échéance
+      affichée est celle que porte le jeton, quand il la porte.</span>
+  </span></span>
+</h4>
+
+<% if (connexion) { %>
+  <p class="etat <%= connexion.issue === "ouverte" ? "succes" : "" %>">
+    <% if (connexion.issue === "ouverte") { %>
+      <strong>Session <%= connexion.source %> ouverte.</strong> Aucun code n'a
+      été demandé. Son échéance se lit ci-dessous ; faute d'une date portée par
+      le jeton, elle est devinée à un mois.
+    <% } else { %>
+      Un code de vérification a été demandé à
+      <strong><%= connexion.source %></strong>. Il arrive par mail : le
+      recopier dans le champ ci-dessous.
+    <% } %>
+  </p>
+<% } %>
+
+<% if (etat) { %>
+  <p class="etat <%= etat.session === "expiree" ? "attention" : "" %>">
+    <% if (etat.session === "absente") { %>
+      Aucune session enregistrée pour cette source.
+    <% } else if (etat.session === "expiree") { %>
+      Session enregistrée le <%= etat.enregistreeLe.toLocaleString("fr-FR") %>,
+      <strong>expirée</strong> depuis le <%= etat.expireLe.toLocaleString("fr-FR") %>.
+      En enregistrer une nouvelle.
+    <% } else { %>
+      Session enregistrée le <%= etat.enregistreeLe.toLocaleString("fr-FR") %>,
+      valide jusqu'au <%= etat.expireLe.toLocaleString("fr-FR") %>
+      (<%= etat.joursRestants %> jour<%= etat.joursRestants > 1 ? "s" : "" %>).
+    <% } %>
+  </p>
+
+  <%# Un code attendu : l'écran bascule sur le second temps. C'est cette bascule %>
+  <%# qui distingue « le code n'est pas encore parti » de « le code est faux » (027). %>
+  <% if (attendu) { %>
+    <form method="post" action="<%= action("code") %>">
+      <p class="etat">
+        <strong>Code demandé</strong> à <%= heure(attendu.demandeeLe) %>. badnet l'envoie
+        par mail ; il expire au bout de dix minutes.
+      </p>
+      <p>
+        <label for="code">Code reçu par mail</label>
+        <input id="code" name="code" size="12" autocomplete="one-time-code" required>
+        <button type="submit">Valider le code</button>
+      </p>
+    </form>
+  <% } else if (etat.autonome) { %>
+    <form method="post" action="<%= action("connexion") %>">
+      <button type="submit">Se connecter maintenant</button>
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span>Son mot de passe est configuré : Babo peut ouvrir la session lui-même. badnet demandera
+          un code reçu par mail.</span>
+      </span></span>
+    </form>
+  <% } %>
+
+  <form method="post" action="<%= action("jeton") %>">
+    <p>
+      <label for="valeur">
+        <%= etat.autonome ? "Ou coller un cookie à la main" :
+            etat.session === "absente" ? "Cookie de session" : "Remplacer par" %>
+      </label><br>
+      <input id="valeur" name="valeur" size="60" placeholder="nom=valeur; autre=valeur" required>
+    </p>
+    <button type="submit">Enregistrer la session</button>
+  </form>
+
+  <% if (etat.session !== "absente") { %>
+    <form method="post" action="<%= action("oubli") %>">
+      <p><button type="submit" class="danger">Oublier cette session</button></p>
+    </form>
+  <% } %>
+<% } %>
+
+<h4>Acquisition</h4>
+<dl class="fiche">
+  <dt>Dernière acquisition</dt>
+  <dd>
+    <% if (etat?.derniereAcquisition) { %>
+      <%- include("../issue", { issue: etat.derniereIssue }) %>
+      <%= etat.derniereAcquisition.toLocaleString("fr-FR") %>
+    <% } else { %>
+      <span class="etat">jamais</span>
+    <% } %>
+  </dd>
+</dl>
+
+<% if (taches.length > 0) { %>
+  <table>
+    <tr><th>Tâche</th><th>Cadence</th><th>Dernier résultat</th><th>Actions</th></tr>
+    <% for (const tache of taches) { %>
+      <tr>
+        <td title="<%= tache.intitule %>"><code><%= tache.tache %></code></td>
+        <td><%= cadenceLisible(tache.reglage.cadence) %></td>
+        <td>
+          <% if (tache.dernierRapport) { %>
+            <%- include("../issue", { issue: tache.dernierRapport.issue }) %>
+            <span class="etat"><%= tache.dernierRapport.demarreLe.toLocaleString("fr-FR") %></span>
+          <% } else { %>
+            <span class="etat">jamais exécutée</span>
+          <% } %>
+        </td>
+        <td class="actions">
+          <a class="bouton" href="/parametres/scrapping/ordonnancement/<%= encodeURIComponent(tache.tache) %>">Voir</a>
+        </td>
+      </tr>
+    <% } %>
+  </table>
+<% } %>
+
+<h4>Déploiements
+  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+    <span>Chaque réponse annonce le build du site. Un redéploiement peut périmer les identifiants
+      des fonctions qu'on appelle ; compter les builds dit à quelle fréquence il faudra les
+      relever.</span>
+  </span></span>
+</h4>
+<% if (deploiement === null) { %>
+  <p class="etat">Aucun déploiement suivi pour cette source.</p>
+<% } else { %>
+  <dl class="fiche">
+    <dt>Build courant</dt>
+    <dd><%= deploiement.build === null ? "—" : deploiement.build %></dd>
+    <dt>Vu depuis</dt>
+    <dd><%= deploiement.depuis ? deploiement.depuis.toLocaleString("fr-FR") : "—" %></dd>
+    <dt>Builds observés</dt>
+    <dd><%= deploiement.builds %></dd>
+  </dl>
+  <% if (deploiement.actionsPeutEtrePerimees) { %>
+    <p class="etat attention">
+      <strong><%= source %> a redéployé</strong> depuis le relevé des
+      identifiants d'action : ils ont peut-être péri. Si c'est le cas, la panne
+      sera franche — « action introuvable », jamais une liste vide.
+    </p>
+  <% } %>
+<% } %>

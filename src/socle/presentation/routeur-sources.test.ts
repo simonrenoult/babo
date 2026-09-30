@@ -134,6 +134,20 @@ const TACHES: readonly EtatDeLaTache[] = [
     dernierRapport: null,
   },
   {
+    // La tâche qui vide la boîte d'envoi : sa page porte le courrier (016).
+    tache: "courrier",
+    intitule: "Vider la boîte d'envoi (courrier)",
+    description: "",
+    reglage: {
+      tache: "courrier",
+      cadence: { nature: "quotidienne", heure: 6, minute: 30 },
+      graceMinutes: 1440,
+      active: true,
+    },
+    prochaine: null,
+    dernierRapport: null,
+  },
+  {
     // Le battement de 019 : son silence est l'information, donc pas de bouton.
     tache: "battement",
     intitule: "Battement hebdomadaire",
@@ -153,6 +167,8 @@ type Trace = {
   enregistres: [Source, string][];
   oublies: Source[];
   sondes: number;
+  /** La source nommée à chaque sonde, `null` pour toutes. */
+  sourcesSondees: (string | null)[];
   connectes: Source[];
   declenchements: string[];
   importes: string[];
@@ -169,6 +185,7 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
     enregistres: [],
     oublies: [],
     sondes: 0,
+    sourcesSondees: [],
     connectes: [],
     declenchements: [],
     importes: [],
@@ -270,8 +287,9 @@ function ecran(): { acces: AccesAuxSources; trace: Trace } {
         // déclenchement, sous l'identifiant que la route a lié au chemin (037).
         return Promise.resolve(RAPPORT);
       },
-      sonder: () => {
+      sonder: (source) => {
         trace.sondes += 1;
+        trace.sourcesSondees.push(source ?? null);
         return Promise.resolve([
           {
             source: "badnet",
@@ -335,13 +353,13 @@ async function interroger(
 }
 
 describe("l'écran des sources", () => {
-  it("ouvre la racine et le groupe sur les tâches", async () => {
+  it("ouvre la racine et le groupe sur leur premier onglet, les sources", async () => {
     const { acces } = ecran();
 
     for (const chemin of ["/parametres", "/parametres/scrapping"]) {
       const reponse = await interroger(acces, chemin);
       assert.equal(reponse.statut, 302, chemin);
-      assert.equal(reponse.redirection, "/parametres/scrapping/ordonnancement", chemin);
+      assert.equal(reponse.redirection, "/parametres/scrapping/sources", chemin);
     }
   });
 
@@ -356,16 +374,16 @@ describe("l'écran des sources", () => {
   it("ne rend que l'onglet demandé, et refuse un onglet inconnu", async () => {
     const { acces } = ecran();
 
-    const sessions = await interroger(acces, "/parametres/scrapping/sessions");
-    assert.match(sessions.corps, /<title>Paramètres/);
-    assert.match(sessions.corps, /Enregistrer une session/);
-    assert.match(sessions.corps, /href="\/parametres\/scrapping\/emails"/, "les onglets sont des liens");
-    assert.doesNotMatch(sessions.corps, /<h3>Courrier/, "le courrier a son propre onglet");
+    const sources = await interroger(acces, "/parametres/scrapping/sources");
+    assert.match(sources.corps, /<title>Paramètres/);
+    assert.match(sources.corps, /<h3>Sources/);
+    assert.match(sources.corps, /href="\/parametres\/scrapping\/logs"/, "les onglets sont des liens");
+    assert.doesNotMatch(sources.corps, /<h3>Courrier/, "le courrier a son propre onglet");
 
-    const courrier = await interroger(acces, "/parametres/scrapping/emails");
-    assert.match(courrier.corps, /<h3>Courrier/);
-    assert.match(courrier.corps, /<h2>Paramètres<\/h2>/, "le titre de la section, au-dessus des onglets");
-    assert.doesNotMatch(courrier.corps, /Enregistrer une session/);
+    const logs = await interroger(acces, "/parametres/scrapping/logs");
+    assert.match(logs.corps, /<h3>Exécutions/);
+    assert.match(logs.corps, /<h2>Paramètres<\/h2>/, "le titre de la section, au-dessus des onglets");
+    assert.doesNotMatch(logs.corps, /<h3>Sources/);
 
     const inconnu = await interroger(acces, "/parametres/scrapping/pouet");
     assert.equal(inconnu.statut, 404);
@@ -380,20 +398,47 @@ describe("l'écran des sources", () => {
     assert.match(reponse.corps, /badnet/);
     assert.match(reponse.corps, /expirée/);
     assert.match(reponse.corps, /jamais/, "une source jamais acquise doit le dire");
+    assert.match(reponse.corps, /href="\/parametres\/scrapping\/sources\/badnet">Voir/);
+    assert.doesNotMatch(reponse.corps, /href="[^"]*scrapping\/(sessions|deploiement)"/, "plus d'onglets Sessions ni Déploiement");
+  });
+
+  it("redirige les anciens onglets Sessions et Déploiement vers les sources", async () => {
+    const { acces } = ecran();
+    for (const chemin of ["/parametres/scrapping/sessions", "/parametres/scrapping/deploiement"]) {
+      const reponse = await interroger(acces, chemin);
+      assert.equal(reponse.redirection, "/parametres/scrapping/sources", chemin);
+    }
+  });
+
+  it("détaille une source : description, session, tâches qui la lisent, déploiements", async () => {
+    const { acces } = ecran();
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/myffbad");
+
+    assert.equal(reponse.statut, 200);
+    assert.match(reponse.corps, /Le site fédéral des licenciés/);
+    assert.match(reponse.corps, /Session enregistrée le 16\/07\/2026/);
+    assert.match(reponse.corps, /href="\/parametres\/scrapping\/ordonnancement\/acquisition%3Amyffbad">Voir/, "ses tâches");
+    assert.match(reponse.corps, /NOUVEAUBUILD/, "son build courant");
+    assert.match(reponse.corps, /myffbad a redéployé/);
+    assert.doesNotMatch(reponse.corps, /acquisition:badnet/, "rien des tâches de l'autre source");
+
+    const inconnue = await interroger(acces, "/parametres/scrapping/sources/poona");
+    assert.equal(inconnue.statut, 404);
   });
 
   it("dit à côté du champ si une session existe déjà, et jusqu'à quand", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
+    const badnet = await interroger(acces, "/parametres/scrapping/sources/badnet");
+    const myffbad = await interroger(acces, "/parametres/scrapping/sources/myffbad");
 
-    assert.match(reponse.corps, /Aucune session enregistrée/, "badnet n'en a pas");
-    assert.match(reponse.corps, /Session enregistrée le 16\/07\/2026/, "myffbad en a une");
-    assert.match(reponse.corps, /expirée<\/strong> depuis le 15\/08\/2026/);
+    assert.match(badnet.corps, /Aucune session enregistrée/, "badnet n'en a pas");
+    assert.match(myffbad.corps, /Session enregistrée le 16\/07\/2026/, "myffbad en a une");
+    assert.match(myffbad.corps, /expirée<\/strong> depuis le 15\/08\/2026/);
   });
 
   it("ne réaffiche jamais le jeton qu'on lui a confié", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/myffbad");
 
     // Le champ reste vide par construction : un jeton rendu dans le HTML
     // repartirait dans le cache et l'historique du navigateur.
@@ -402,7 +447,7 @@ describe("l'écran des sources", () => {
 
   it("ne demande jamais le mot de passe fédéral, seulement le cookie déjà obtenu", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/badnet");
 
     assert.doesNotMatch(reponse.corps, /type="password"/);
     assert.match(reponse.corps, /Cookie de session/);
@@ -412,12 +457,12 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/parametres/scrapping/sessions/myffbad/jeton",
+      "/parametres/scrapping/sources/myffbad/jeton",
       new URLSearchParams({ valeur: "  session=abc  " }),
     );
 
     assert.equal(reponse.statut, 302);
-    assert.equal(reponse.redirection, "/parametres/scrapping/sessions");
+    assert.equal(reponse.redirection, "/parametres/scrapping/sources/myffbad", "retour sur la page de la source");
     assert.deepEqual(trace.enregistres, [["myffbad", "session=abc"]]);
   });
 
@@ -425,7 +470,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/parametres/scrapping/sessions/myffbad/jeton",
+      "/parametres/scrapping/sources/myffbad/jeton",
       new URLSearchParams({ valeur: "   " }),
     );
 
@@ -435,7 +480,7 @@ describe("l'écran des sources", () => {
 
   it("oublie un jeton sur demande", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions/badnet/oubli", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/badnet/oubli", new URLSearchParams());
 
     assert.equal(reponse.statut, 302);
     assert.deepEqual(trace.oublies, ["badnet"]);
@@ -445,7 +490,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/parametres/scrapping/sessions/poona/jeton",
+      "/parametres/scrapping/sources/poona/jeton",
       new URLSearchParams({ valeur: "session=abc" }),
     );
 
@@ -459,19 +504,32 @@ describe("l'écran des sources", () => {
    */
   it("dépose un mail de test et rend son état", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/emails", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/ordonnancement/courrier/mail-de-test", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
     assert.equal(trace.mailsDeTest, 1);
+    assert.match(reponse.corps, /<code>courrier<\/code>/, "sur la page de la tâche du courrier");
     assert.match(reponse.corps, /Mail de test <strong>en attente<\/strong>/);
   });
 
   it("annonce un courrier non configuré plutôt que de laisser croire qu'il alerte", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/emails");
+    const reponse = await interroger(acces, "/parametres/scrapping/ordonnancement/courrier");
 
     assert.match(reponse.corps, /Courrier non configuré/);
     assert.match(reponse.corps, /BABO_SMTP_MOT_DE_PASSE/);
+  });
+
+  it("ne porte le courrier que sur la page de sa tâche, et redirige l'ancien onglet", async () => {
+    const { acces } = ecran();
+    const autre = await interroger(acces, "/parametres/scrapping/ordonnancement/acquisition:myffbad");
+    assert.doesNotMatch(autre.corps, /Envoyer un mail de test/);
+
+    const ancien = await interroger(acces, "/parametres/scrapping/emails");
+    assert.equal(ancien.redirection, "/parametres/scrapping/ordonnancement/courrier");
+
+    const onglets = await interroger(acces, "/parametres/scrapping/sources");
+    assert.doesNotMatch(onglets.corps, />Emails</, "plus d'onglet Emails");
   });
 
   /**
@@ -483,7 +541,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     trace.attendus.push({ source: "badnet", demandeeLe: new Date("2026-09-05T09:00:00Z") });
 
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/badnet");
 
     assert.match(reponse.corps, /Code demandé/);
     assert.match(reponse.corps, /name="code"/);
@@ -494,7 +552,7 @@ describe("l'écran des sources", () => {
     const { acces, trace } = ecran();
     const reponse = await interroger(
       acces,
-      "/parametres/scrapping/sessions/badnet/code",
+      "/parametres/scrapping/sources/badnet/code",
       new URLSearchParams({ code: " 123456 " }),
     );
 
@@ -504,7 +562,7 @@ describe("l'écran des sources", () => {
 
   it("refuse un code vide plutôt que de le poster", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions/badnet/code", new URLSearchParams({ code: "  " }));
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/badnet/code", new URLSearchParams({ code: "  " }));
 
     assert.equal(reponse.statut, 400);
     assert.deepEqual(trace.codes, []);
@@ -523,14 +581,35 @@ describe("l'écran des sources", () => {
     assert.match(reponse.corps, /\/mon-profil/);
   });
 
-  it("rend le résultat de la sonde dans la page", async () => {
+  it("sonde une seule source, et rend le résultat sur sa page", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sondes", new URLSearchParams());
+    const liste = await interroger(acces, "/parametres/scrapping/sources");
+    assert.match(liste.corps, /action="\/parametres\/scrapping\/sources\/badnet\/sonder"/, "l'action du tableau");
+
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/badnet/sonder", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
-    assert.equal(trace.sondes, 1);
+    assert.deepEqual(trace.sourcesSondees, ["badnet"], "la source du chemin, et elle seule");
+    assert.match(reponse.corps, /<code>badnet<\/code>/, "sur la page de la source");
     assert.match(reponse.corps, /accueil public/);
-    assert.match(reponse.corps, /atteinte/);
+    assert.match(reponse.corps, /<span class="pastille succes">atteinte<\/span>/);
+
+    const inconnue = await interroger(acces, "/parametres/scrapping/sources/poona/sonder", new URLSearchParams());
+    assert.equal(inconnue.statut, 404);
+  });
+
+  it("n'a plus d'onglet Sondes : chaque source se sonde depuis sa page", async () => {
+    const { acces, trace } = ecran();
+    const ancien = await interroger(acces, "/parametres/scrapping/sondes");
+    assert.equal(ancien.redirection, "/parametres/scrapping/sources");
+
+    const poste = await interroger(acces, "/parametres/scrapping/sondes", new URLSearchParams());
+    assert.equal(poste.statut, 404, "plus rien ne sonde tout d'un coup");
+    assert.equal(trace.sondes, 0);
+
+    assert.doesNotMatch(ancien.corps, />Sondes</);
+    const onglets = await interroger(acces, "/parametres/scrapping/sources");
+    assert.doesNotMatch(onglets.corps, />Sondes</);
   });
 
   it("déclenche une tâche du tableau par le geste unique, et rend son rapport", async () => {
@@ -735,10 +814,11 @@ describe("l'import de l'équipe", () => {
 describe("la connexion autonome", () => {
   it("propose le bouton à la source qui sait se connecter, et à elle seule", async () => {
     const { acces } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions");
+    const myffbad = await interroger(acces, "/parametres/scrapping/sources/myffbad");
+    const badnet = await interroger(acces, "/parametres/scrapping/sources/badnet");
 
-    assert.match(reponse.corps, /action="\/parametres\/scrapping\/sessions\/myffbad\/connexion"/);
-    assert.doesNotMatch(reponse.corps, /action="\/parametres\/scrapping\/sessions\/badnet\/connexion"/);
+    assert.match(myffbad.corps, /action="\/parametres\/scrapping\/sources\/myffbad\/connexion"/);
+    assert.doesNotMatch(badnet.corps, /action="[^"]*\/connexion"/);
   });
 
   /**
@@ -748,7 +828,7 @@ describe("la connexion autonome", () => {
    */
   it("dit que la session s'est ouverte sans code", async () => {
     const { acces, trace } = ecran();
-    const reponse = await interroger(acces, "/parametres/scrapping/sessions/myffbad/connexion", new URLSearchParams());
+    const reponse = await interroger(acces, "/parametres/scrapping/sources/myffbad/connexion", new URLSearchParams());
 
     assert.equal(reponse.statut, 200);
     assert.match(reponse.corps, /Session myffbad ouverte/);
@@ -759,7 +839,7 @@ describe("la connexion autonome", () => {
   it("laisse remonter l'échec au lieu de prétendre que tout va bien", async () => {
     const { acces } = ecran();
     const cassee = { ...acces, connecter: () => Promise.reject(new Error("identifiants refusés")) };
-    const reponse = await interroger(cassee, "/parametres/scrapping/sessions/myffbad/connexion", new URLSearchParams());
+    const reponse = await interroger(cassee, "/parametres/scrapping/sources/myffbad/connexion", new URLSearchParams());
 
     assert.equal(reponse.statut, 500);
   });
