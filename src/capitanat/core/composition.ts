@@ -1,5 +1,8 @@
 import type { Discipline } from "../../socle/core/classement.ts";
+import { heure } from "../../socle/core/heure.ts";
 import type { Licence } from "../../socle/core/licence.ts";
+import type { EquipeDInterclub, Rencontre } from "./calendrier.ts";
+import { sigleDe } from "./calendrier.ts";
 import type { MembreDeLEquipe, Sexe } from "./coequipier.ts";
 import { designations } from "./coequipier.ts";
 import type { Reponse } from "./disponibilite.ts";
@@ -201,21 +204,37 @@ export function fautesParMatch(
 }
 
 /**
- * La composition en texte, à coller dans la discussion de l'équipe.
+ * La composition en texte, à coller dans la discussion de l'équipe — 038.
  *
- * Une ligne par match où quelqu'un est retenu, en liste WhatsApp (« * »), et
- * rien d'autre : ni classement ni cote, c'est une convocation. Chacun y est
- * désigné par son prénom, sauf quand deux membres le partagent.
+ * D'abord la rencontre, sur une ligne : journée, adversaire par son sigle,
+ * date, heure et lieu, séparés d'emojis comme on l'écrirait à la main.
+ * « vs » qu'on reçoive ou non : le lieu dit où l'on joue.
+ *
+ * Puis une ligne par match où quelqu'un est retenu, en liste WhatsApp (« * »),
+ * et rien d'autre : ni classement ni cote, c'est une convocation. Chacun y est
+ * désigné par son prénom, sauf quand deux membres le partagent. Une
+ * composition vide ne s'annonce pas, rencontre comprise.
  */
-export function texteDeLaComposition(composition: Composition, membres: readonly MembreDeLEquipe[]): string {
+export function texteDeLaComposition(
+  composition: Composition,
+  membres: readonly MembreDeLEquipe[],
+  rencontre: Rencontre,
+  adversaire: EquipeDInterclub,
+): string {
   const noms = designations(membres);
-  return MATCHS.flatMap(({ match }) => {
+  const matchs = MATCHS.flatMap(({ match }) => {
     const retenus = POSTES.filter((poste) => poste.match === match).flatMap(({ id }) => {
       const licence = composition.get(id);
       return licence === undefined ? [] : [noms.get(licence) ?? licence];
     });
     return retenus.length === 0 ? [] : [`* ${match} : ${retenus.join(" & ")}`];
-  }).join("\n");
+  });
+  if (matchs.length === 0) return "";
+
+  const journee = `J${String(rencontre.journee).padStart(2, "0")}`;
+  const date = rencontre.debut.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const enTete = `${journee} vs ${sigleDe(adversaire)} 📅 ${date} 🕗 ${heure(rencontre.debut)} 📍 ${rencontre.lieu}`;
+  return [enTete, ...matchs].join("\n");
 }
 
 export function placesVides(composition: Composition): number {

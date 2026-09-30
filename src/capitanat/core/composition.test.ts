@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { Classement } from "../../socle/core/classement.ts";
 import type { Licence } from "../../socle/core/licence.ts";
 import { licence } from "../../socle/core/licence.ts";
+import type { EquipeDInterclub, Rencontre } from "./calendrier.ts";
 import type { MembreDeLEquipe } from "./coequipier.ts";
 import type { Reponse } from "./disponibilite.ts";
 import {
@@ -209,13 +210,46 @@ describe("la sollicitation des joueurs", () => {
   });
 });
 
+const NOUS: EquipeDInterclub = { nom: "Bad’ à Paname 5", code: "75-BAP-5" };
+const EUX: EquipeDInterclub = { nom: "Bad’ à Paname 18 5", code: "75-BAP18-5" };
+const RENCONTRE: Rencontre = {
+  id: 42,
+  journee: 3,
+  debut: new Date(2026, 9, 10, 20, 30),
+  lieu: "Gymnase Jean Jaurès, Paris",
+  domicile: EUX,
+  exterieur: NOUS,
+};
+const texte = (places: Record<string, MembreDeLEquipe>, membres: readonly MembreDeLEquipe[], rencontre = RENCONTRE) =>
+  texteDeLaComposition(composition(places), membres, rencontre, EUX);
+
 describe("la composition, en texte à partager", () => {
-  it("liste les matchs où quelqu'un est retenu, par prénom, sans cote", () => {
+  it("situe la rencontre en première ligne : journée, adversaire, date, heure, lieu", () => {
+    assert.equal(
+      texte({ SH1: ALEX }, MEMBRES).split("\n")[0],
+      "J03 vs BAP18-5 📅 samedi 10 octobre 🕗 20h30 📍 Gymnase Jean Jaurès, Paris",
+    );
+  });
+
+  it("fait suivre la rencontre des matchs, sans ligne vide", () => {
+    assert.equal(
+      texte({ SH1: ALEX, "DH-1": ALEX, "DH-2": BRUNO }, MEMBRES),
+      "J03 vs BAP18-5 📅 samedi 10 octobre 🕗 20h30 📍 Gymnase Jean Jaurès, Paris\n* SH1 : Alex\n* DH : Alex & Bruno",
+    );
+  });
+
+  it("tait les minutes d'une heure pile", () => {
+    const aVingtHeures = { ...RENCONTRE, debut: new Date(2026, 9, 10, 20, 0) };
+
+    assert.match(texte({ SH1: ALEX }, MEMBRES, aVingtHeures), /🕗 20h 📍/);
+  });
+
+  it("liste ensuite les matchs où quelqu'un est retenu, par prénom, sans cote", () => {
     const simon = { ...ALEX, nom: "Simon RENOULT" };
     const marie = { ...DORA, nom: "Marie-Anne DE LA TOUR" };
 
     assert.equal(
-      texteDeLaComposition(composition({ SH1: simon, SD: marie, "DH-1": simon, "DH-2": BRUNO }), [simon, BRUNO, marie]),
+      texte({ SH1: simon, SD: marie, "DH-1": simon, "DH-2": BRUNO }, [simon, BRUNO, marie]).split("\n").slice(1).join("\n"),
       "* SH1 : Simon\n* SD : Marie-Anne\n* DH : Simon & Bruno",
     );
   });
@@ -224,10 +258,13 @@ describe("la composition, en texte à partager", () => {
     const un = { ...ALEX, nom: "Simon RENOULT" };
     const autre = { ...BRUNO, nom: "Simon MARTIN" };
 
-    assert.equal(texteDeLaComposition(composition({ SH1: un, SH2: autre }), [un, autre]), "* SH1 : Simon RENOULT\n* SH2 : Simon MARTIN");
+    assert.deepEqual(texte({ SH1: un, SH2: autre }, [un, autre]).split("\n").slice(1), [
+      "* SH1 : Simon RENOULT",
+      "* SH2 : Simon MARTIN",
+    ]);
   });
 
-  it("ne dit rien d'une composition vide", () => {
-    assert.equal(texteDeLaComposition(composition({}), MEMBRES), "");
+  it("ne dit rien d'une composition vide, pas même la rencontre", () => {
+    assert.equal(texte({}, MEMBRES), "");
   });
 });

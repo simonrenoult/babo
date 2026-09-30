@@ -1,6 +1,6 @@
 import { Router, type CookieOptions, type Request, type RequestHandler } from "express";
 import type { Authentification, VerdictDeSession } from "../core/authentification.ts";
-import { heure } from "./format.ts";
+import { heure } from "../core/heure.ts";
 
 /**
  * La porte, côté HTTP — spec 021.

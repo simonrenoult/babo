@@ -1032,7 +1032,7 @@ describe("l'application assemblée", () => {
     assert.match(page, /<section class="carte vide" aria-label="Simple dames">/);
     assert.match(page, /href="\/capitanat\/planification\/1" class="en-cours"/);
     assert.match(page, /href="\/capitanat\/planification\/2" class="vide"/);
-    assert.match(page, /data-texte="\* SH1 : Simon\n\* DH : Simon">Copier pour WhatsApp/, "par prénom, sans cote");
+    assert.match(page, /data-texte="J01 vs BAD18-5 📅 jeudi 5 novembre 🕗 20h 📍 Gymnase\n\* SH1 : Simon\n\* DH : Simon">Copier pour WhatsApp/, "la rencontre d'abord, puis par prénom, sans cote");
   });
 
   it("range chaque geste dans la barre qui suit le titre de ce qu'il concerne", async () => {

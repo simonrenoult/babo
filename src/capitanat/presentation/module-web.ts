@@ -279,7 +279,7 @@ export function creerModuleCapitanat(options: {
       etatsDesJournees: etatsDesJournees(leCalendrier.rencontres),
       // Le texte à coller dans la discussion : la composition *enregistrée*,
       // comme la feuille — ce qui n'est pas enregistré n'est pas annoncé.
-      texteAPartager: texteDeLaComposition(compositions.lire(journee), membres),
+      texteAPartager: texteDeLaComposition(compositions.lire(journee), membres, rencontre, adversaireDe(rencontre, leCalendrier.equipe)),
       cartes: cartesDuMatch(composition, membres, reponses, fautes),
       postes: POSTES,
       membres,

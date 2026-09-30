@@ -4,7 +4,8 @@ import { CHEMIN_DES_PARAMETRES, routeurSources, type AccesAuxSources } from "./r
 import { garde, routeurConnexion } from "./routeur-connexion.ts";
 import type { Authentification } from "../core/authentification.ts";
 import type { EtatDeLaSource } from "../core/acquisition.ts";
-import { cadenceLisible, heure } from "./format.ts";
+import { heure } from "../core/heure.ts";
+import { cadenceLisible } from "./format.ts";
 
 /**
  * Un module de feature branché sur l'interface.
