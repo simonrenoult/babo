@@ -76,7 +76,7 @@
           <% for (const colonne of grille.colonnes) { %>
             <% const reponse = ligne.reponses.get(colonne.rencontre.journee); %>
             <%# Une colonne pas encore sondée reste vide : « sans réponse » n'y aurait pas de sens. %>
-            <td class="reponse"><% if (reponse || colonne.sondee) { %><%- include("reponse", { reponse }) %><% } %></td>
+            <td class="reponse" data-tri="<%= { oui: 0, "si-besoin": 1, non: 2 }[reponse] ?? 3 %>"><% if (reponse || colonne.sondee) { %><%- include("reponse", { reponse }) %><% } %></td>
           <% } %>
         </tr>
       <% } %>

@@ -6,23 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title><%= titre %> — Babo</title>
   <link rel="stylesheet" href="/babo.css">
-  <script>
-    // Les infobulles s'ouvrent au survol et au focus, en CSS. Ce script ne
-    // sert que le toucher : Safari sur iOS ne donne pas le focus à un bouton
-    // qu'on touche. Un toucher ouvre, un autre ferme, Échap ferme tout.
-    document.addEventListener("click", (evenement) => {
-      const bouton = evenement.target.closest?.(".infobulle > button");
-      for (const ouverte of document.querySelectorAll(".infobulle.ouverte")) {
-        if (ouverte !== bouton?.parentElement) ouverte.classList.remove("ouverte");
-      }
-      bouton?.parentElement.classList.toggle("ouverte");
-    });
-    document.addEventListener("keydown", (evenement) => {
-      if (evenement.key !== "Escape") return;
-      for (const ouverte of document.querySelectorAll(".infobulle.ouverte")) ouverte.classList.remove("ouverte");
-      if (document.activeElement?.closest(".infobulle")) document.activeElement.blur();
-    });
-  </script>
+  <script src="/babo.js" defer></script>
 </head>
 <body>
 <%# La page de connexion n'affiche aucune navigation : tout y mènerait à la %>

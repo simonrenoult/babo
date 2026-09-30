@@ -185,10 +185,10 @@
       <% for (const { membre, reponse, selections, occasions } of sollicites) { %>
         <tr>
           <td><%= membre.nom ?? membre.licence %></td>
-          <td><%- include("reponse", { reponse }) %></td>
+          <td data-tri="<%= { oui: 0, "si-besoin": 1, non: 2 }[reponse] ?? 3 %>"><%- include("reponse", { reponse }) %></td>
           <td><%= selections %></td>
           <td><%= occasions.toLocaleString("fr-FR") %> journée<%= occasions > 1 ? "s" : "" %></td>
-          <td><%- include("jauge", { selections, occasions }) %></td>
+          <td data-tri="<%= occasions === 0 ? "" : selections / occasions %>"><%- include("jauge", { selections, occasions }) %></td>
         </tr>
       <% } %>
     </table>
@@ -202,7 +202,7 @@
         <tr>
           <td><%= nomDe(licence) %></td>
           <td><%= nombre %><% if (nombre > 2) { %> <span class="pastille erreur">trop</span><% } %></td>
-          <td><%- include("reponse", { reponse: reponses.get(licence) }) %></td>
+          <td data-tri="<%= { oui: 0, "si-besoin": 1, non: 2 }[reponses.get(licence)] ?? 3 %>"><%- include("reponse", { reponse: reponses.get(licence) }) %></td>
         </tr>
       <% } %>
     </table>
