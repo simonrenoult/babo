@@ -976,13 +976,15 @@ relevées sur la feuille du 30 septembre 2026 ; si le comité change sa mise en
 page, c'est là qu'elles se corrigent. Le téléchargement binaire vit à part du
 port `ClientHttp`, qui rend du texte : `telecharger` dans `client-fetch.ts`.
 
-**L'annonce WhatsApp.** « Copier pour WhatsApp » met dans le presse-papiers la
-composition *enregistrée*, composée par `texteDeLaComposition` au cœur. Une
-première ligne situe la rencontre — `J03 vs BAP18-5 📅 samedi 10 octobre 🕗
-20h30 📍 <lieu>` : adversaire par son sigle, « vs » qu'on reçoive ou non, le lieu
-disant où l'on joue —, puis une ligne par match où quelqu'un est retenu, par
-prénom. Une composition vide ne s'annonce pas du tout. Pas de lien `wa.me` : le
-capitaine choisit le groupe en collant (038).
+**Les textes WhatsApp.** Deux boutons copient la composition *enregistrée*
+dans le presse-papiers, composée au cœur (038). « Copier pour validation »,
+`texteDeLaComposition`, s'adresse à la cocapitaine : une ligne par match où
+quelqu'un est retenu, par prénom, sans rien d'autre. « Copier pour l'équipe »,
+`annonceDeLaComposition`, est l'annonce : le même texte précédé d'une ligne
+qui situe la rencontre — `J03 vs BAP18-5 📅 samedi 10 octobre 🕗 20h30 📍
+<lieu>`, adversaire par son sigle, « vs » qu'on reçoive ou non, le lieu disant
+où l'on joue. Une composition vide ne se partage pas. Pas de lien `wa.me` : le
+capitaine choisit la discussion en collant.
 
 ## Ce qui n'est pas encore là
 

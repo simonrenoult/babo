@@ -70,9 +70,15 @@
           main.</span>
       </span></span>
     </span>
-    <% if (texteAPartager !== "") { %>
+    <% if (texteAValider !== "") { %>
       <%# Le texte voyage dans l'attribut, échappé par EJS : le script le lit tel quel. %>
-      <button type="button" class="copier" data-texte="<%= texteAPartager %>">Copier pour WhatsApp</button>
+      <button type="button" class="copier" data-texte="<%= texteAValider %>">Copier pour validation</button>
+      <button type="button" class="copier" data-texte="<%= annonce %>">Copier pour l'équipe</button>
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span>Deux textes WhatsApp, de la composition <strong>enregistrée</strong> : pour
+          validation, la liste des matchs par prénom ; pour l'équipe, la même, précédée de la
+          journée, de l'adversaire, de la date, de l'heure et du lieu.</span>
+      </span></span>
     <% } %>
   </div>
 
