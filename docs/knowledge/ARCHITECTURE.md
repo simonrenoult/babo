@@ -86,6 +86,16 @@ juste après un envoi de formulaire ; le seul retour de la page, et présent mê
 sans aucun geste. La modification d'une veille ramène à cette veille, sa
 création à la liste.
 
+Les mesures suivent une **grille de 8 px** : espacements, tailles de composant
+et rayons en sont des multiples, le demi-pas de 4 px réservé aux écarts serrés
+en ligne (une infobulle contre son bouton, une pastille). La feuille de style
+les nomme par leur valeur, `--espace-4` à `--espace-48`, pour qu'une valeur
+hors grille se voie à la lecture ; une vue qui porte son propre `<style>` s'en
+sert aussi. Un bouton et un champ font 40 px de haut, un sous-onglet 32, une
+pastille et une lettre de série 24 — la ligne de texte fait 24 px, et la marge
+intérieure retranche le trait de bordure pour tomber juste. Les traits, les
+contours de focus et la typographie n'en relèvent pas.
+
 ## L'acquisition
 
 Deux sources, deux modules qui s'ignorent — `src/socle/infrastructure/acquisition/`,
