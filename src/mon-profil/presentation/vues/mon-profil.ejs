@@ -25,7 +25,7 @@
     <% for (const ligne of classement.lignes) { %>
       <tr>
         <td><%= ligne.discipline %></td>
-        <td><%- include("lettre", { lettre: ligne.lettre }) %></td>
+        <td data-tri="<%= ligne.cpph %>"><%- include("lettre", { lettre: ligne.lettre }) %></td>
         <td><%= ligne.cpph.toLocaleString("fr-FR") %></td>
       </tr>
     <% } %>
@@ -57,7 +57,7 @@
     <tr><th>Date</th><th>Tournoi</th><th>Lieu</th><th>Engagements</th><th>Inscription</th></tr>
     <% for (const tournoi of tournois) { %>
       <tr>
-        <td><%= tournoi.quand %></td>
+        <td data-tri="<%= tournoi.date.getTime() %>"><%= tournoi.quand %></td>
         <td><a href="<%= tournoi.fiche %>" rel="noreferrer"><%= tournoi.nom %></a></td>
         <td><%= tournoi.lieu ?? "—" %></td>
         <td>

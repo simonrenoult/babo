@@ -39,7 +39,6 @@ export type EtatDuSocle = {
 };
 
 const DOSSIER_VUES = new URL("vues/", import.meta.url).pathname;
-const FEUILLE_DE_STYLE = new URL("statique/babo.css", import.meta.url).pathname;
 
 /**
  * Construit l'application Express — spec 020.
@@ -82,14 +81,19 @@ export function creerApplication(options: {
     suite();
   });
 
-  // La feuille de style, seule chose servie avant le garde : la page de
-  // connexion en a besoin, et elle ne dit rien de ce qu'il y a derrière. Un
-  // seul fichier nommé, pas un dossier statique, pour que ce qui répond sans
-  // jeton reste une liste qu'on relit d'un coup d'œil (021). `no-cache` :
-  // revalidée à chaque page d'un 304, jamais périmée après un déploiement.
-  application.get("/babo.css", (_requete, reponse) => {
-    reponse.sendFile(FEUILLE_DE_STYLE, { headers: { "Cache-Control": "no-cache" } });
-  });
+  // La feuille de style et le script, seules choses servies avant le garde :
+  // la page de connexion en a besoin, et ils ne disent rien de ce qu'il y a
+  // derrière. Deux fichiers nommés, pas un dossier statique, pour que ce qui
+  // répond sans jeton reste une liste qu'on relit d'un coup d'œil (021).
+  // `no-cache` : revalidés à chaque page d'un 304, jamais périmés après un
+  // déploiement.
+  for (const fichier of ["babo.css", "babo.js"]) {
+    application.get(`/${fichier}`, (_requete, reponse) => {
+      reponse.sendFile(new URL(`statique/${fichier}`, import.meta.url).pathname, {
+        headers: { "Cache-Control": "no-cache" },
+      });
+    });
+  }
 
   // Le garde passe avant tout le reste : c'est lui qui décide ce qui répond
   // sans jeton, et il n'ouvre que `/connexion` et `/sante` (spec 021). Monté

@@ -66,7 +66,7 @@
     <% resultats.retenus.forEach(function (t) { %>
       <tr>
         <td><a href="<%= t.fiche %>" target="_blank" rel="noreferrer"><%= t.nom %></a></td>
-        <td><%= t.quand %></td>
+        <td data-tri="<%= t.debut?.getTime() ?? "" %>"><%= t.quand %></td>
         <td><%= t.ville === null ? "lieu non relevé" : t.ville %></td>
         <td class="nombre"><%= t.distanceKm === null ? "—" : t.distanceKm + " km" %></td>
         <td><%= t.tableaux.join(", ") %></td>
@@ -88,7 +88,7 @@
     <% resultats.indetermines.forEach(function (t) { %>
       <tr>
         <td><a href="<%= t.fiche %>" target="_blank" rel="noreferrer"><%= t.nom %></a></td>
-        <td><%= t.quand %></td>
+        <td data-tri="<%= t.debut?.getTime() ?? "" %>"><%= t.quand %></td>
         <td><%= t.ville === null ? "lieu non relevé" : t.ville %></td>
         <td class="nombre"><%= t.distanceKm === null ? "—" : t.distanceKm + " km" %></td>
         <td><%= t.dateLimite === null ? "—" : t.dateLimite.toLocaleDateString("fr-FR") %></td>

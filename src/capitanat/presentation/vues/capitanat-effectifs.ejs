@@ -67,7 +67,8 @@
         <td><%= membre.sexe %></td>
         <% for (const discipline of ["simple", "double", "mixte"]) { %>
           <% const classement = parDiscipline.get(discipline); %>
-          <td>
+          <%# Le tri suit la cote, pas l'ordre alphabétique des lettres. %>
+          <td data-tri="<%= classement?.cpph ?? "" %>">
             <% if (classement === undefined) { %>
               <span class="etat"><%= membre.nom === null ? "non relevé" : "non joué" %></span>
             <% } else { %>
@@ -77,7 +78,7 @@
         <% } %>
         <td><%= membre.vuLe === null ? "—" : membre.vuLe.toLocaleDateString("fr-FR") %></td>
         <% const { selections, occasions } = usage.get(membre.licence) ?? { selections: 0, occasions: 0 }; %>
-        <td><%- include("jauge", { selections, occasions }) %></td>
+        <td data-tri="<%= occasions === 0 ? "" : selections / occasions %>"><%- include("jauge", { selections, occasions }) %></td>
         <td><a href="tel:<%= membre.appel %>"><%= membre.telephone %></a></td>
         <td>
           <a href="<%= membre.fiche %>" rel="noreferrer noopener" target="_blank">myffbad</a>

@@ -968,7 +968,7 @@ describe("l'application assemblée", () => {
 
     assert.match(page, /Simon RENOULT — [^<]*· retenu 1\/1/, "retenu en J01, où il était disponible");
     assert.match(page, /Sollicitation des disponibles/);
-    assert.match(page, /<td>1<\/td>\s*<td>1 journée<\/td>\s*<td>\s*<span class="jauge" role="img" aria-label="100 %">/);
+    assert.match(page, /<td>1<\/td>\s*<td>1 journée<\/td>\s*<td data-tri="1">\s*<span class="jauge" role="img" aria-label="100 %">/);
   });
 
   it("donne sur les effectifs le taux de sollicitation de la saison", async () => {
@@ -1065,6 +1065,17 @@ describe("l'application assemblée", () => {
       assert.match(reponse.headers.get("content-type") ?? "", /^text\/css/);
       assert.equal(reponse.headers.get("cache-control"), "no-cache");
       assert.match(await (await sansCookie("/connexion")).text(), /href="\/babo\.css"/);
+    });
+
+    it("sert le script sans session, et rien d'autre du dossier statique", async () => {
+      const script = await sansCookie("/babo.js");
+      assert.equal(script.status, 200);
+      assert.match(script.headers.get("content-type") ?? "", /javascript/);
+      assert.match(await (await sansCookie("/connexion")).text(), /<script src="\/babo\.js" defer>/);
+
+      // Deux fichiers nommés, pas un dossier : le reste passe par le garde.
+      const autre = await sansCookie("/statique/babo.css");
+      assert.equal(autre.status, 302);
     });
 
     it("laisse la sonde de vie répondre, mais sans rien dire de la base", async () => {
