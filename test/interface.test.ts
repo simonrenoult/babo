@@ -964,6 +964,49 @@ describe("l'application assemblée", () => {
     }
   });
 
+  /** Une veille réelle, créée par la route, pour les pages qui en demandent une. */
+  async function creerUneVeille(nom: string): Promise<string> {
+    const creation = await visiter("/veille", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams([
+        ["nom", nom],
+        ["latitude", "48.8534"],
+        ["longitude", "2.3488"],
+        ["rayonKm", "50"],
+        ["fenetre", "glissante"],
+        ["fenetreJours", "90"],
+        ["tableaux", "DH"],
+        ["series", "D8"],
+      ]).toString(),
+    });
+    assert.equal(creation.status, 302);
+    return creation.headers.get("location") ?? "";
+  }
+
+  /** La barre d'actions qui suit immédiatement un titre (039), ou `null`. */
+  function barreSousLeTitre(page: string): string | null {
+    return /<\/h[2-4]>\s*(?:<nav[\s\S]*?<\/nav>\s*)*<div class="barre-actions">([\s\S]*?)<\/div>/.exec(page)?.[1] ?? null;
+  }
+
+  it("ouvre chaque sous-page par un seul retour vers son parent, sous le titre", async () => {
+    const veille = await creerUneVeille("Sous-page");
+    for (const [chemin, parent, libelle] of [
+      ["/parametres/scrapping/ordonnancement/courrier", "/parametres/scrapping/ordonnancement", "Tâches"],
+      ["/parametres/scrapping/sources/myffbad", "/parametres/scrapping/sources", "Sources"],
+      ["/capitanat/tableau/SH", "/capitanat/preferences", "Préférences"],
+      [veille, "/veille", "Veilles"],
+      ["/veille/nouvelle", "/veille", "Veilles"],
+      [`${veille}/modifier`, veille, "Sous-page"],
+    ] as const) {
+      const page = await (await visiter(chemin)).text();
+      const barre = barreSousLeTitre(page);
+      assert.ok(barre !== null, `${chemin} : une barre sous le titre`);
+      assert.match(barre, new RegExp(`^\\s*<a class="retour" href="${parent}">← ${libelle}</a>`), chemin);
+      assert.equal(page.match(/←|Retour aux/g)?.length, 1, `${chemin} : un seul retour`);
+    }
+  });
+
   it("annonce sur l'accueil la prochaine rencontre, et où en est sa composition", async () => {
     const page = await (await visiter("/")).text();
 
@@ -984,6 +1027,34 @@ describe("l'application assemblée", () => {
     assert.match(page, /href="\/capitanat\/planification\/1" class="en-cours"/);
     assert.match(page, /href="\/capitanat\/planification\/2" class="vide"/);
     assert.match(page, /data-texte="\* SH1 : Simon\n\* DH : Simon">Copier pour WhatsApp/, "par prénom, sans cote");
+  });
+
+  it("range chaque geste dans la barre qui suit le titre de ce qu'il concerne", async () => {
+    const veille = await creerUneVeille("Gestes");
+    for (const [chemin, gestes] of [
+      ["/veille", [/>Créer une veille</]],
+      [veille, [/>Modifier les critères</, />Suspendre</, />Supprimer<\/button>/]],
+      ["/parametres/scrapping/ordonnancement/courrier", [/>Lancer maintenant</]],
+      ["/capitanat/calendrier", [/>Exporter le calendrier \(\.ics\)</]],
+      ["/capitanat/planification/1", [/>Imprimer la feuille de rencontre</, />Copier pour WhatsApp</]],
+    ] as const) {
+      const barre = barreSousLeTitre(await (await visiter(chemin)).text());
+      assert.ok(barre !== null, `${chemin} : une barre sous le titre`);
+      for (const geste of gestes) assert.match(barre, geste, chemin);
+    }
+
+    const barreDeLaVeille = barreSousLeTitre(await (await visiter(veille)).text()) ?? "";
+    assert.match(barreDeLaVeille, />Supprimer<\/button>(?![\s\S]*<button type="submit")/, "Supprimer en dernier");
+  });
+
+  it("dit à cinq veilles, là où serait le bouton, pourquoi il n'y en a plus", async () => {
+    let restantes = 5 - veilles.toutes().length;
+    while (restantes-- > 0) await creerUneVeille(`Remplissage ${restantes}`);
+
+    const barre = barreSousLeTitre(await (await visiter("/veille")).text());
+    assert.ok(barre !== null, "une barre sous le titre");
+    assert.match(barre, /Cinq veilles, le maximum/);
+    assert.doesNotMatch(barre, /Créer une veille/);
   });
 
   it("dit, en composant une journée, combien de fois chacun a déjà été retenu", async () => {

@@ -10,29 +10,30 @@
   const succes = historique.filter((rapport) => rapport.issue === "succes").length;
 %>
 
-<p><a href="/parametres/scrapping/ordonnancement">← Tâches</a></p>
-
 <h3>
   <code><%= tache.tache %></code>
   <% if (reglage.active) { %><span class="pastille succes">active</span><% } else { %><span class="pastille">suspendue</span><% } %>
 </h3>
-<p><strong><%= tache.intitule %></strong></p>
-<p><%= tache.description %></p>
-
-<% if (declenchable) { %>
-  <form method="post" action="/parametres/scrapping/ordonnancement/<%= tache.tache %>/executer">
-    <button type="submit" class="principal">Lancer maintenant</button>
-    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-      <span>Joue la tâche tout de suite, comme si le planificateur s'était réveillé, et affiche
-        son rapport ici. Coup unique, sans réessai ; l'échéance prévue reste en place.</span>
-    </span></span>
-  </form>
-<% } %>
+<div class="barre-actions">
+  <%- include("../retour", { chemin: "/parametres/scrapping/ordonnancement", libelle: "Tâches" }) %>
+  <% if (declenchable) { %>
+    <form method="post" action="/parametres/scrapping/ordonnancement/<%= tache.tache %>/executer">
+      <button type="submit" class="principal">Lancer maintenant</button>
+      <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+        <span>Joue la tâche tout de suite, comme si le planificateur s'était réveillé, et affiche
+          son rapport ici. Coup unique, sans réessai ; l'échéance prévue reste en place.</span>
+      </span></span>
+    </form>
+  <% } %>
+</div>
 
 <% if (declenchement) { %>
   <h4>Dernier déclenchement</h4>
   <%- include("../rapport-de-passe", { passe: declenchement }) %>
 <% } %>
+
+<p><strong><%= tache.intitule %></strong></p>
+<p><%= tache.description %></p>
 
 <% if (courrier) { %>
   <%- include("courrier") %>

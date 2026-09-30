@@ -1,5 +1,8 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
+<div class="barre-actions">
+  <%- include("retour", retour) %>
+</div>
 
 <% if (motifs.length > 0) { %>
   <div class="etat erreur">
@@ -119,5 +122,4 @@
   <p><button type="submit" class="principal">Enregistrer</button></p>
 </form>
 
-<p><a href="/veille">Retour aux veilles</a></p>
 <%- include("pied") %>

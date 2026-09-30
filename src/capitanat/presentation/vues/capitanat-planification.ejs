@@ -59,6 +59,20 @@
     <a href="https://www.google.com/maps/search/?api=1&amp;query=<%= encodeURIComponent(rencontre.lieu) %>"
        rel="noreferrer noopener" target="_blank"><%= rencontre.lieu %></a>
   </h3>
+  <div class="barre-actions">
+    <%# Un lien, habillé en bouton : il ouvre le PDF dans un onglet, il ne poste rien. %>
+    <a class="bouton" href="/capitanat/planification/<%= rencontre.journee %>/feuille"
+       target="_blank" rel="noopener">Imprimer la feuille de rencontre</a>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>La feuille d'icbad, avec la composition <strong>enregistrée</strong> dans la colonne de
+        <%= calendrier.equipe.nom %>. La colonne adverse et les scores restent à remplir à la
+        main.</span>
+    </span></span>
+    <% if (texteAPartager !== "") { %>
+      <%# Le texte voyage dans l'attribut, échappé par EJS : le script le lit tel quel. %>
+      <button type="button" class="copier" data-texte="<%= texteAPartager %>">Copier pour WhatsApp</button>
+    <% } %>
+  </div>
 
   <% if (disponibles === 0) { %>
     <p class="etat attention">
@@ -156,21 +170,6 @@
       </span></span>
     </p>
   </form>
-
-  <p>
-    <%# Un lien, habillé en bouton : il ouvre le PDF dans un onglet, il ne poste rien. %>
-    <a class="bouton" href="/capitanat/planification/<%= rencontre.journee %>/feuille"
-       target="_blank" rel="noopener">Imprimer la feuille de rencontre</a>
-    <% if (texteAPartager !== "") { %>
-      <%# Le texte voyage dans l'attribut, échappé par EJS : le script le lit tel quel. %>
-      <button type="button" class="copier" data-texte="<%= texteAPartager %>">Copier pour WhatsApp</button>
-    <% } %>
-    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-      <span>La feuille d'icbad, avec la composition <strong>enregistrée</strong> dans la colonne de
-        <%= calendrier.equipe.nom %>. La colonne adverse et les scores restent à remplir à la
-        main.</span>
-    </span></span>
-  </p>
 
   <% if (sollicites.length > 0) { %>
     <h3>Sollicitation des disponibles

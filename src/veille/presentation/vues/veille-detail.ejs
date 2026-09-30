@@ -1,5 +1,19 @@
 <%- include("entete", { titre }) %>
 <h2><%= titre %></h2>
+<div class="barre-actions">
+  <%- include("retour", { chemin: "/veille", libelle: "Veilles" }) %>
+  <a class="bouton" href="/veille/<%= veille.id %>/modifier">Modifier les critères</a>
+  <form method="post" action="/veille/<%= veille.id %>/etat">
+    <input type="hidden" name="active" value="<%= veille.active ? "0" : "1" %>">
+    <button type="submit"><%= veille.active ? "Suspendre" : "Réactiver" %></button>
+  </form>
+  <form method="post" action="/veille/<%= veille.id %>/supprimer">
+    <button type="submit" class="danger">Supprimer</button>
+    <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
+      <span>Supprimer oublie ce que la veille a vu ; suspendre le garde.</span>
+    </span></span>
+  </form>
+</div>
 
 <% if (!veille.active) { %>
   <p class="etat attention">
@@ -104,20 +118,4 @@
   <% } %>
 </p>
 
-<h3>Gérer cette veille</h3>
-<p><a href="/veille/<%= veille.id %>/modifier">Modifier les critères</a></p>
-
-<form method="post" action="/veille/<%= veille.id %>/etat">
-  <input type="hidden" name="active" value="<%= veille.active ? "0" : "1" %>">
-  <button type="submit"><%= veille.active ? "Suspendre" : "Réactiver" %></button>
-</form>
-
-<form method="post" action="/veille/<%= veille.id %>/supprimer">
-  <button type="submit" class="danger">Supprimer</button>
-  <span class="infobulle"><button type="button" aria-label="En savoir plus"></button><span class="bulle" role="tooltip">
-    <span>Supprimer oublie ce que la veille a vu ; suspendre le garde.</span>
-  </span></span>
-</form>
-
-<p><a href="/veille">Retour aux veilles</a></p>
 <%- include("pied") %>
