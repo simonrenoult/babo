@@ -29,7 +29,22 @@
   --erreur: #b3261e;
   --info: #3b6ea8;
 
-  --rayon: .5rem;
+  /*
+   * La grille de 8 px : tout espacement, toute taille de composant et tout
+   * rayon en est un multiple, le demi-pas de 4 px réservé aux écarts serrés en
+   * ligne. Nommés par leur valeur, pour qu'une valeur hors grille se voie. Les
+   * traits (bordures, contours) et la typographie n'en relèvent pas.
+   */
+  --espace-4: .25rem;
+  --espace-8: .5rem;
+  --espace-16: 1rem;
+  --espace-24: 1.5rem;
+  --espace-32: 2rem;
+  --espace-40: 2.5rem;
+  --espace-48: 3rem;
+
+  --rayon: var(--espace-8);
+  --rayon-petit: var(--espace-4);
   --ombre: 0 1px 2px rgb(0 0 0 / .06), 0 1px 1px rgb(0 0 0 / .04);
 }
 
@@ -63,13 +78,13 @@ body {
   margin: 0;
   background: var(--fond);
   color: var(--texte);
-  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3 { line-height: 1.25; letter-spacing: -.01em; }
-h2 { font-size: 1.5rem; margin: 0 0 .5rem; }
-h3 { font-size: 1.1rem; margin: 2rem 0 .6rem; }
+h2 { font-size: 1.5rem; margin: 0 0 var(--espace-8); }
+h3 { font-size: 1.1rem; margin: var(--espace-32) 0 var(--espace-8); }
 /* Le titre d'une sous-page, juste sous ses onglets : ils le séparent déjà. */
 .onglets + h3 { margin-top: 0; }
 
@@ -78,35 +93,35 @@ a:hover { text-decoration-thickness: 2px; }
 
 code {
   font: .88em/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  padding: .1em .35em;
-  border-radius: .25rem;
+  padding: 0 var(--espace-4);
+  border-radius: var(--rayon-petit);
   background: color-mix(in srgb, var(--texte) 8%, transparent);
 }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-nav { display: flex; gap: 1rem; }
+nav { display: flex; gap: var(--espace-16); }
 
 /* --- Cadre : menu à gauche, contenu à droite --------------------------- */
 
 .app { display: grid; grid-template-columns: 14rem minmax(0, 1fr); min-height: 100vh; }
 .app.nu { grid-template-columns: minmax(0, 1fr); }
 /* La connexion, seule page sans menu : une colonne étroite au centre. */
-.app.nu .contenu { width: 100%; max-width: 34rem; margin: 3rem auto 0; }
+.app.nu .contenu { width: 100%; max-width: 34rem; margin: var(--espace-48) auto 0; }
 
 .menu {
   position: sticky; top: 0; height: 100vh;
-  display: flex; flex-direction: column; gap: 1.5rem;
-  padding: 1.5rem 1rem;
+  display: flex; flex-direction: column; gap: var(--espace-24);
+  padding: var(--espace-24) var(--espace-16);
   background: var(--surface);
   border-right: 1px solid var(--trait);
 }
-.menu h1 { margin: 0 .5rem; font-size: 1.35rem; }
+.menu h1 { margin: 0 var(--espace-8); font-size: 1.35rem; }
 .menu h1 a { color: var(--texte); text-decoration: none; }
-.menu h1 a::before { content: "🏸"; margin-right: .4rem; }
-.menu nav { flex-direction: column; gap: .15rem; }
+.menu h1 a::before { content: "🏸"; margin-right: var(--espace-8); }
+.menu nav { flex-direction: column; gap: var(--espace-4); }
 .menu nav a {
-  padding: .45rem .6rem; border-radius: var(--rayon);
+  padding: var(--espace-8); border-radius: var(--rayon);
   color: var(--texte); text-decoration: none;
 }
 .menu nav a:hover { background: color-mix(in srgb, var(--texte) 6%, transparent); }
@@ -114,12 +129,12 @@ nav { display: flex; gap: 1rem; }
 .menu form { margin-top: auto; }
 .menu form button { width: 100%; }
 
-.contenu { padding: 2rem 2.5rem; max-width: 72rem; }
-.contenu > header { border-bottom: 1px solid var(--trait); padding-bottom: .75rem; }
+.contenu { padding: var(--espace-32) var(--espace-40); max-width: 72rem; }
+.contenu > header { border-bottom: 1px solid var(--trait); padding-bottom: var(--espace-16); }
 .contenu > header h1 { margin: 0; font-size: 1.25rem; }
 
 footer {
-  margin-top: 3rem; padding-top: .75rem;
+  margin-top: var(--espace-48); padding-top: var(--espace-16);
   border-top: 1px solid var(--trait);
   font-size: .85rem; color: var(--attenue);
 }
@@ -127,12 +142,12 @@ footer {
 /* --- Onglets que portent les pages elles-mêmes : paramètres, capitanat - */
 
 .onglets {
-  flex-wrap: wrap; gap: 0 1.25rem;
-  margin: 1rem 0 1.5rem;
+  flex-wrap: wrap; gap: 0 var(--espace-24);
+  margin: var(--espace-16) 0 var(--espace-24);
   border-bottom: 1px solid var(--trait);
 }
 .onglets a {
-  padding: .5rem 0; margin-bottom: -1px;
+  padding: var(--espace-8) 0; margin-bottom: -1px;
   border-bottom: 2px solid transparent;
   color: var(--attenue); text-decoration: none;
 }
@@ -140,9 +155,10 @@ footer {
 .onglets a[aria-current] { color: var(--accent); font-weight: 600; border-bottom-color: var(--accent); }
 
 /* Les sous-onglets (les journées d'interclub) : des pastilles. */
-.onglets.sous { gap: .35rem; margin-top: -.75rem; border-bottom: 0; font-size: .9rem; }
+.onglets.sous { gap: var(--espace-4); margin-top: calc(-1 * var(--espace-16)); border-bottom: 0; font-size: .9rem; line-height: var(--espace-24); }
 .onglets.sous a {
-  padding: .2rem .6rem; margin: 0;
+  /* 32 px de haut : 24 de ligne, 4 de marge intérieure moins le trait. */
+  padding: calc(var(--espace-4) - 1px) var(--espace-8); margin: 0;
   border: 1px solid var(--trait); border-radius: 999px;
   font-variant-numeric: tabular-nums;
 }
@@ -160,7 +176,7 @@ table {
   display: block; max-width: 100%; overflow-x: auto; width: max-content;
   font-variant-numeric: tabular-nums;
 }
-th, td { text-align: left; padding: .5rem .9rem; vertical-align: top; }
+th, td { text-align: left; padding: var(--espace-8) var(--espace-16); vertical-align: top; }
 tr + tr > * { border-top: 1px solid var(--trait); }
 /* La ligne d'en-têtes : celle qui n'a que des `th`. */
 tr:first-child:not(:has(td)) > th {
@@ -178,23 +194,25 @@ tr:has(td) > th { font-weight: 600; white-space: nowrap; }
 button, input, select, textarea { font: inherit; color: inherit; }
 
 input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"]), select, textarea {
-  padding: .4rem .6rem;
+  /* 40 px de haut, comme un bouton : 24 de ligne, 8 de marge moins le trait. */
+  padding: calc(var(--espace-8) - 1px) var(--espace-8);
   background: var(--surface);
   border: 1px solid var(--trait-fort);
-  border-radius: calc(var(--rayon) - .15rem);
+  border-radius: var(--rayon-petit);
   max-width: 100%;
 }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  box-shadow: 0 0 0 var(--espace-4) color-mix(in srgb, var(--accent) 25%, transparent); }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 td select { min-width: 14rem; }
 
 /* Un lien qui mène à une action (« Créer une veille ») a l'air d'un bouton. */
 button, a.bouton {
   display: inline-block; text-decoration: none; color: inherit;
-  padding: .45rem .9rem;
+  /* 40 px de haut : 24 de ligne, 8 de marge intérieure moins le trait. */
+  padding: calc(var(--espace-8) - 1px) var(--espace-16);
   border: 1px solid var(--trait-fort);
-  border-radius: calc(var(--rayon) - .15rem);
+  border-radius: var(--rayon-petit);
   background: var(--surface);
   cursor: pointer;
   font-weight: 500;
@@ -211,9 +229,9 @@ button.danger:hover { border-color: var(--erreur); color: var(--erreur); }
  * à la ligne plutôt que déborder ; chaque infobulle suit son bouton, dans son
  * `<form>` ou, pour un lien ou un bouton sans formulaire, dans un `.geste`.
  */
-.barre-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 1rem; }
-.barre-actions > form, .barre-actions > p, .barre-actions > .geste { display: inline-flex; align-items: center; gap: .25rem; margin: 0; }
-.barre-actions > .retour { margin-right: .5rem; }
+.barre-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espace-8); margin: 0 0 var(--espace-16); }
+.barre-actions > form, .barre-actions > p, .barre-actions > .geste { display: inline-flex; align-items: center; gap: var(--espace-4); margin: 0; }
+.barre-actions > .retour { margin-right: var(--espace-8); }
 
 label { font-weight: 500; }
 
@@ -230,15 +248,15 @@ label { font-weight: 500; }
 .etat.erreur { --ton: var(--erreur); }
 
 p.etat, div.etat {
-  padding: .7rem 1rem;
+  padding: var(--espace-8) var(--espace-16);
   border: 1px solid color-mix(in srgb, var(--ton) 30%, transparent);
-  border-left: 4px solid var(--ton);
+  border-left: var(--espace-4) solid var(--ton);
   border-radius: var(--rayon);
   background: color-mix(in srgb, var(--ton) 8%, var(--surface));
 }
 p.etat.succes::before, div.etat.succes::before { content: "✓ "; color: var(--ton); font-weight: 700; }
 p.etat.attention::before, div.etat.attention::before { content: "⚠ "; color: var(--ton); }
-div.etat ul { margin: .4rem 0 0; padding-left: 1.25rem; }
+div.etat ul { margin: var(--espace-8) 0 0; padding-left: var(--espace-24); }
 
 span.etat { font-size: .85em; color: var(--attenue); }
 
@@ -248,15 +266,15 @@ span.etat { font-size: .85em; color: var(--attenue); }
   .app { grid-template-columns: minmax(0, 1fr); }
   .menu {
     position: static; height: auto;
-    flex-direction: row; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
-    padding: .75rem 1rem;
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--espace-8) var(--espace-16);
+    padding: var(--espace-16);
     border-right: 0; border-bottom: 1px solid var(--trait);
   }
-  .menu nav { flex-direction: row; flex-wrap: wrap; gap: .1rem; }
-  .menu nav a { padding: .3rem .5rem; }
+  .menu nav { flex-direction: row; flex-wrap: wrap; gap: var(--espace-4); }
+  .menu nav a { padding: var(--espace-4) var(--espace-8); }
   .menu form { margin-top: 0; margin-left: auto; }
   .menu form button { width: auto; }
-  .contenu { padding: 1rem; }
+  .contenu { padding: var(--espace-16); }
   td select { min-width: 0; }
 }
 
@@ -282,7 +300,7 @@ span.etat { font-size: .85em; color: var(--attenue); }
  */
 .infobulle { position: relative; display: inline-block; vertical-align: middle; line-height: 1; }
 .infobulle > button {
-  display: inline-block; width: 1.1rem; height: 1.1rem; padding: 0; margin: 0 .15rem;
+  display: inline-block; width: var(--espace-16); height: var(--espace-16); padding: 0; margin: 0 var(--espace-4);
   border: 0; border-radius: 50%; background: var(--attenue); cursor: help;
   /* Le « ? » cerclé de Lucide, en masque : il prend la couleur du texte. */
   -webkit-mask: var(--icone-aide) center / contain no-repeat;
@@ -290,12 +308,12 @@ span.etat { font-size: .85em; color: var(--attenue); }
 }
 .infobulle > button:hover, .infobulle:focus-within > button { background: var(--accent); }
 .infobulle > .bulle {
-  position: absolute; z-index: 20; left: -.6rem; top: calc(100% + .45rem);
+  position: absolute; z-index: 20; left: calc(-1 * var(--espace-8)); top: calc(100% + var(--espace-8));
   width: max-content; max-width: min(24rem, 80vw);
-  padding: .7rem .9rem;
+  padding: var(--espace-8) var(--espace-16);
   background: var(--surface); color: var(--texte);
   border: 1px solid var(--trait-fort); border-radius: var(--rayon);
-  box-shadow: 0 6px 20px rgb(0 0 0 / .15);
+  box-shadow: 0 var(--espace-8) var(--espace-24) rgb(0 0 0 / .15);
   font-size: .88rem; font-weight: 400; line-height: 1.5; letter-spacing: normal;
   text-transform: none; text-align: left; white-space: normal;
 }
@@ -309,15 +327,15 @@ span.etat { font-size: .85em; color: var(--attenue); }
   clip-path: inset(50%); white-space: nowrap;
 }
 /* Un pont invisible entre l'icône et la bulle : la souris y passe sans la fermer. */
-.infobulle > .bulle::before { content: ""; position: absolute; left: 0; right: 0; top: -.5rem; height: .5rem; }
+.infobulle > .bulle::before { content: ""; position: absolute; left: 0; right: 0; top: calc(-1 * var(--espace-8)); height: var(--espace-8); }
 .bulle > span { display: block; }
 
 /* Sur un écran étroit, la bulle ne déborde pas : elle se pose en bas. */
 @media (max-width: 42rem) {
-  .infobulle > .bulle { position: fixed; left: 1rem; right: 1rem; top: auto; bottom: 1rem; max-width: none; width: auto; }
+  .infobulle > .bulle { position: fixed; left: var(--espace-16); right: var(--espace-16); top: auto; bottom: var(--espace-16); max-width: none; width: auto; }
   .infobulle > .bulle::before { display: none; }
 }
-.bulle > span + span { margin-top: .5em; }
+.bulle > span + span { margin-top: var(--espace-8); }
 
 :root {
   --icone-aide: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
@@ -326,31 +344,32 @@ span.etat { font-size: .85em; color: var(--attenue); }
 /* --- Accueil : une tuile par module ------------------------------------ */
 
 .tuiles {
-  display: grid; gap: 1rem;
+  display: grid; gap: var(--espace-16);
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--espace-24);
 }
 .tuile {
-  padding: 1rem 1.25rem;
+  padding: var(--espace-16) var(--espace-24);
   background: var(--surface);
   border: 1px solid var(--trait); border-radius: var(--rayon);
   box-shadow: var(--ombre);
 }
-.tuile > h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 .75rem; }
+.tuile > h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 var(--espace-16); }
 .tuile > h2 a { color: var(--attenue); text-decoration: none; }
 .tuile > h2 a:hover { color: var(--accent); }
-.tuile p { margin: .4rem 0; }
+.tuile p { margin: var(--espace-8) 0; }
 .tuile .fort { font-size: 1.15rem; font-weight: 600; margin: 0; }
-.tuile ul { margin: .4rem 0; padding-left: 1.1rem; }
+.tuile ul { margin: var(--espace-8) 0; padding-left: var(--espace-24); }
 .tuile table { box-shadow: none; }
 
 /* --- Pastilles : un état en un mot ------------------------------------- */
 
 .pastille {
   --ton: var(--attenue);
-  display: inline-block; padding: .1rem .55rem; white-space: nowrap;
+  /* 24 px de haut : 16 de ligne, 4 de marge intérieure. */
+  display: inline-block; padding: var(--espace-4) var(--espace-8); white-space: nowrap;
   border-radius: 999px;
-  font-size: .82rem; font-weight: 600;
+  font-size: .82rem; font-weight: 600; line-height: var(--espace-16);
   color: var(--ton);
   background: color-mix(in srgb, var(--ton) 14%, transparent);
 }
@@ -368,10 +387,11 @@ span.etat { font-size: .85em; color: var(--attenue); }
 }
 .lettre {
   --ton: var(--serie-nc);
-  display: inline-block; min-width: 2.2em; padding: .05rem .4rem;
-  border: 1px solid color-mix(in srgb, var(--ton) 45%, transparent); border-radius: .3rem;
+  /* 24 px de haut, comme une pastille : 16 de ligne, 4 de marge moins le trait. */
+  display: inline-block; min-width: var(--espace-32); padding: calc(var(--espace-4) - 1px) var(--espace-4);
+  border: 1px solid color-mix(in srgb, var(--ton) 45%, transparent); border-radius: var(--rayon-petit);
   background: color-mix(in srgb, var(--ton) 14%, transparent);
-  color: var(--ton); font-size: .82rem; font-weight: 700; text-align: center; white-space: nowrap;
+  color: var(--ton); font-size: .82rem; font-weight: 700; line-height: var(--espace-16); text-align: center; white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .lettre.serie-n { --ton: var(--serie-n); }
@@ -382,39 +402,39 @@ span.etat { font-size: .85em; color: var(--attenue); }
 /* --- Jauge : un taux en barre ------------------------------------------ */
 
 .jauge {
-  display: inline-block; flex: none; width: 4.5rem; height: .45rem; margin-right: .35rem; vertical-align: middle;
+  display: inline-block; flex: none; width: 4.5rem; height: var(--espace-8); margin-right: var(--espace-4); vertical-align: middle;
   border-radius: 999px; background: color-mix(in srgb, var(--texte) 10%, transparent); overflow: hidden;
 }
 .jauge > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
-.jauge.faible > span { background: var(--attention); min-width: .45rem; }
+.jauge.faible > span { background: var(--attention); min-width: var(--espace-8); }
 
 /* Lu par un lecteur d'écran, invisible à l'œil. */
 .visuellement-cache {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
-.tuile .fort .discipline { margin-right: .75rem; white-space: nowrap; font-size: 1rem; }
+.tuile .fort .discipline { margin-right: var(--espace-16); white-space: nowrap; font-size: 1rem; }
 
 /* --- Tableaux triables ------------------------------------------------- */
 
 /* L'en-tête devient un bouton (posé par babo.js) : il garde l'air d'un en-tête. */
 th > button.trier {
-  all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .3rem;
+  all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: var(--espace-4);
   font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
 }
 th > button.trier:hover { color: var(--texte); }
-th > button.trier:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: .2rem; }
+th > button.trier:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--rayon-petit); }
 th > button.trier::after { content: "↕"; opacity: .35; font-size: .9em; }
 th[aria-sort="ascending"] > button.trier::after { content: "↑"; opacity: 1; color: var(--accent); }
 th[aria-sort="descending"] > button.trier::after { content: "↓"; opacity: 1; color: var(--accent); }
 
 /* Une cellule de boutons : côte à côte, formulaires compris. */
 td.actions { white-space: nowrap; }
-td.actions > * { display: inline-block; margin: 0 .25rem 0 0; vertical-align: middle; }
+td.actions > * { display: inline-block; margin: 0 var(--espace-4) 0 0; vertical-align: middle; }
 td.actions form { margin: 0; }
 
 /* Une fiche : des libellés à gauche, leurs valeurs à droite. */
-dl.fiche { display: grid; grid-template-columns: max-content 1fr; gap: .45rem 1.5rem; margin: 1rem 0; }
+dl.fiche { display: grid; grid-template-columns: max-content 1fr; gap: var(--espace-8) var(--espace-24); margin: var(--espace-16) 0; }
 dl.fiche dt { color: var(--attenue); font-size: .9rem; }
 dl.fiche dd { margin: 0; }
-@media (max-width: 42rem) { dl.fiche { grid-template-columns: 1fr; gap: .1rem; } dl.fiche dd { margin-bottom: .5rem; } }
+@media (max-width: 42rem) { dl.fiche { grid-template-columns: 1fr; gap: var(--espace-4); } dl.fiche dd { margin-bottom: var(--espace-8); } }

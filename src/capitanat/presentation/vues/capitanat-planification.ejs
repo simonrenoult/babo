@@ -2,7 +2,7 @@
 <style>
   /* Les journées : une pastille par rencontre, dont la couleur dit l'état. */
   .journees a::before {
-    content: ""; display: inline-block; width: .5rem; height: .5rem; margin-right: .35rem;
+    content: ""; display: inline-block; width: var(--espace-8); height: var(--espace-8); margin-right: var(--espace-4);
     border-radius: 50%; border: 1.5px solid var(--attenue); vertical-align: .05em;
   }
   .journees a.en-cours::before { border-color: var(--attention); background: linear-gradient(90deg, var(--attention) 50%, transparent 50%); }
@@ -11,22 +11,22 @@
   .journees a[aria-current].composee::before, .journees a[aria-current].en-cours::before { background: currentColor; }
 
   /* Une carte par match. Le liseré dit l'état, la pastille le nomme. */
-  .cartes { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); margin: 1rem 0; }
+  .cartes { display: grid; gap: var(--espace-16); grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); margin: var(--espace-16) 0; }
   .carte {
     --ton: var(--trait-fort);
-    padding: .75rem .9rem; background: var(--surface);
-    border: 1px solid var(--trait); border-left: 4px solid var(--ton); border-radius: var(--rayon);
+    padding: var(--espace-16); background: var(--surface);
+    border: 1px solid var(--trait); border-left: var(--espace-4) solid var(--ton); border-radius: var(--rayon);
     box-shadow: var(--ombre);
   }
   .carte.incomplet { --ton: var(--attention); }
   .carte.rempli { --ton: var(--succes); }
   .carte.faute { --ton: var(--erreur); background: color-mix(in srgb, var(--erreur) 5%, var(--surface)); }
-  .carte header { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .6rem; }
+  .carte header { display: flex; align-items: baseline; gap: var(--espace-8); margin-bottom: var(--espace-8); }
   .carte .code { font-size: 1.05rem; }
   .carte .intitule { color: var(--attenue); font-size: .85rem; flex: 1; }
-  .carte .place + .place { margin-top: .6rem; }
+  .carte .place + .place { margin-top: var(--espace-8); }
   .carte select { width: 100%; }
-  .carte .retenu { display: flex; align-items: center; gap: .4rem; margin-top: .3rem; font-size: .88rem; }
+  .carte .retenu { display: flex; align-items: center; gap: var(--espace-4); margin-top: var(--espace-4); font-size: .88rem; }
 </style>
 <h2><%= titre %></h2>
 <%- include("capitanat-onglets") %>
